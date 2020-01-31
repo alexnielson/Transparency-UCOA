@@ -1,0 +1,343 @@
+---
+title: "Vague UCoA Report"
+author: "Michael Jensen"
+date: "September 2019"
+output: html_notebook
+---
+# Program Description
+
+**Purpose**
+
+For non-archived Transparent Utah data, determine the percentage of UCoA function and account codes that are vague. 
+
+Valid-but-vague UCoA values are an obstacle to making the data useful for analysis. We want to identify entities with a high percentage of vague UCoA values so we can work with them to get more detailed financial information.
+
+**Input(s)**
+
+```{r}
+dsn_aws        <- "transpAWS"
+dsn_salesforce <- "salesforce"
+```
+
+**Output(s)**
+
+* A .csv file containing the following for each active and participating entity with a Transparency ID listed in Salesforce:
+  + The percentage of transactions that have a vague function code
+  + The percentage of transactions that have a vague expense account code
+  + The percentage of transactions that have a vague revenue account code
+
+# Libraries and Data Sources
+
+```{r}
+library(lubridate)
+library(magrittr)
+library(odbc)
+library(readxl)
+library(tidyverse)
+
+odbc_aws <- dbConnect(odbc::odbc(), dsn_aws)
+odbc_sf  <- dbConnect(odbc::odbc(), dsn_salesforce)
+
+rm(dsn_aws, dsn_salesforce)
+
+download.file(
+  "http://financialreports.utah.gov/chartofaccounts/ChartofAccountFull.xlsx",
+  "ucoa.xlsx",
+  mode = "wb")
+```
+
+# Function Definitions
+
+## Argument Definitions
+
+```{r, eval=FALSE}
+  #   t_id (num): The entity's Transparency ID, as queried from Salesforce
+  #     rather than Transparency.
+  #   ucoa (list): The list containing the Fund, Function, and Account codes 
+  #     from OSA's Uniform Chart of Accounts.
+  #   ucoa_type (char): The UCoA component to check ("funct" = function,
+  #     "exp" = expense, "rev" = revenue).
+```
+
+## check_percentage_of_vague_ucoa
+
+```{r}
+check_percentage_of_vague_ucoa <- function(t_id, ucoa_type, ucoa) {
+  # Determine the percentage of an entity's transactions that use a valid but 
+  # vague UCoA code.
+  #
+  # Arguments:
+  #   t_id (num): The entity's Transparency ID, as queried from Salesforce
+  #     rather than Transparency.
+  #   ucoa_type (char): The UCoA component to check ("funct" = function,
+  #     "exp" = expense, "rev" = revenue).
+  #   ucoa (list): The list containing the Fund, Function, and Account codes 
+  #     from OSA's Uniform Chart of Accounts.
+  #
+  # Value:
+  #   Numeric.
+  # 
+  # Comments:
+  #   The UCoA code is the key to analyzing, in aggregate, local government 
+  #   financial data. The UCoA code is minimally useful if governments are 
+  #   using only the most general code (e.g., coding a transaction as
+  #   100-000000-30000000 isn't useful).
+  
+  reported_ucoa <- 
+    dbGetQuery(
+      odbc_aws,
+      paste("
+            SELECT account_number, type
+            FROM transaction
+            WHERE batch_id IN (
+              SELECT id
+              FROM batch
+              WHERE entity_id = ", t_id, "
+              AND status IN ('PROCESSED', 'PROCESSING', 'DONTDELETE'))")) %>% 
+    as_tibble() %>% 
+    filter(nchar(account_number, allowNA = TRUE) == 19) %>% 
+    filter(!is.na(account_number))
+
+  if (ucoa_type == "funct") {
+    
+    vague_ucoa_codes <- ucoa[["vague_funct"]][["NUMBER"]]
+    
+    reported_ucoa <- 
+      reported_ucoa %>% 
+      .[["account_number"]] %>% 
+      substr(5, 10)
+    
+  } else if (ucoa_type == "exp") {
+    
+    vague_ucoa_codes <- ucoa[["vague_exp"]][["NUMBER"]]
+    
+    reported_ucoa <- 
+      reported_ucoa %>% 
+      filter(type == 1) %>% 
+      .[["account_number"]] %>% 
+      substr(12, 19)
+    
+  } else if (ucoa_type == "rev") {
+    
+    vague_ucoa_codes <- ucoa[["vague_rev"]][["NUMBER"]]
+    
+    reported_ucoa <- 
+      reported_ucoa %>% 
+      filter(type == 2) %>% 
+      .[["account_number"]] %>% 
+      substr(12, 19)
+  }
+  
+  reported_vague_ucoa <- 
+    reported_ucoa[reported_ucoa %in% vague_ucoa_codes]
+  
+  percent_vague <- 
+    (length(reported_vague_ucoa) / length(reported_ucoa)) * 100
+
+  round(percent_vague)
+}
+```
+
+# Execution
+
+## Salesforce
+
+```{r}
+# Note that I do not query LEAs. They are managed by USBE, which uses a
+# different chart of accounts. I also do not query higher education.
+
+sf_data <-
+  dbGetQuery(
+    odbc_sf,
+    paste("
+          SELECT
+            Account.Name                  AS name,
+            Account.Id                    AS id,
+            Account.Transparency_ID__c    AS t_id,
+            Account.Fiscal_Year_Begins__c AS begin_fy,
+            RecordType.DeveloperName      AS govt_type
+          FROM Account
+          JOIN RecordType
+          ON Account.RecordTypeId = RecordType.Id
+          WHERE Account.RecordTypeId IN (
+            SELECT Id
+            FROM RecordType
+            WHERE DeveloperName IN (
+            'AOG',
+            'City',
+            'Conservation_District',
+            'County',
+            'District_Health',
+            'Housing',
+            'Independent_Quasi_State_Entity',
+            'Interlocal',
+            'Local_and_Special_Service_District',
+            'Mental_Health',
+            'Redevelopment_Agency_Project_Area',
+            'Town'))
+          AND Account.Entity_Status__c IN (
+            'Current',
+            'On hold',
+            'Delinquent',
+            'Suspended')
+          AND Account.Name NOT IN (
+            'Intermountain Power Agency',
+            'Utah Associated Municipal Power Systems',
+            'Utah Municipal Power Agency')
+          AND (
+            Account.Expense_Revenue_Start_Date__c <= DATE() OR
+            Account.Expense_Revenue_Start_Date__c IS NULL)")) %>%
+  as_tibble()
+```
+
+## UCoA
+
+```{r}
+ucoa_fund <- 
+  read_xlsx("ucoa.xlsx", sheet = excel_sheets("ucoa.xlsx")[[1]])
+
+ucoa_function <- 
+  read_xlsx("ucoa.xlsx", sheet = excel_sheets("ucoa.xlsx")[[2]])
+
+ucoa_account <- 
+  read_xlsx("ucoa.xlsx", sheet = excel_sheets("ucoa.xlsx")[[3]])
+
+# Some of the code below will become unnecessary after I edit OSA's Uniform
+# Chart of Accounts and publish it on the OSA website.
+
+colnames(ucoa_fund)     <- ucoa_fund[2, ]
+colnames(ucoa_function) <- c("NUMBER", ucoa_function[1, 2:4])
+colnames(ucoa_account)  <- ucoa_account[2, ]
+
+ucoa_fund     <- ucoa_fund     %>% slice(-1, -2)
+ucoa_function <- ucoa_function %>% slice(-1)
+ucoa_account  <- ucoa_account  %>% slice(-1, -2)
+
+# I don't think I need the fund numbers in this code... hold on to it until I'm
+# done with the program, just in case.
+extra_fund_numbers <- 
+  c(202:298, 302:398, 402:448, 452:498, 502:598, 602:698, 702:798) %>% 
+  as.character() %>% 
+  enframe(name = NULL) %>% 
+  rename("NUMBER" = "value") %>% 
+  mutate("SHORT DESCRIPTION" = NA, "FULL DESCRIPTION" = NA, "DETAIL" = NA,
+         NUMBER = if_else(nchar(NUMBER) == 2, 
+                          str_pad(NUMBER, width = 3, side = "left", "0"), 
+                          NUMBER))
+
+ucoa_fund <- 
+  ucoa_fund %>% 
+  bind_rows(extra_fund_numbers)
+
+ucoa_fund$NUMBER[[1]]     <- "010"
+ucoa_fund$NUMBER[[2]]     <- "020"
+ucoa_fund$NUMBER[[3]]     <- "030"
+ucoa_function$NUMBER[[1]] <- "000000"
+
+ucoa_account_exp <-
+  ucoa_account %>% 
+  filter(str_detect(NUMBER, "^4"))
+
+ucoa_account_rev <- 
+  ucoa_account %>% 
+  filter(str_detect(NUMBER, "^3"))
+  
+# ucoa_account_w2 <- 
+#   ucoa_account %>% 
+#   filter(str_detect(NUMBER, "^4001"))
+
+ucoa_vague_funct <- 
+  ucoa_function %>% 
+  filter(
+    NUMBER == "000000" |
+    NUMBER == "100000" |
+    NUMBER == "200000" |
+    NUMBER == "300000" |
+    NUMBER == "400000" |
+    NUMBER == "500000")
+
+ucoa_vague_exp <- 
+  ucoa_account_exp %>% 
+  filter(
+    NUMBER == "40000000" |
+    NUMBER == "40010000" |
+    NUMBER == "40020000" |
+    NUMBER == "40030000" |
+    NUMBER == "40040000" |
+    NUMBER == "40050000" |
+    NUMBER == "40060000" |
+    NUMBER == "40070000" |
+    NUMBER == "40080000" |
+    NUMBER == "40110000" |
+    NUMBER == "40170000" )
+
+ucoa_vague_rev <- 
+  ucoa_account_rev %>% 
+  filter(
+    NUMBER == "30000000" |
+    NUMBER == "30010000" |
+    NUMBER == "30020000" |
+    NUMBER == "30030000" |
+    NUMBER == "30040000" |
+    NUMBER == "30050000" |
+    NUMBER == "30060000" |
+    NUMBER == "30070000" )
+
+ucoa <-
+  list(
+    fund        = ucoa_fund,
+    funct       = ucoa_function,
+    account     = ucoa_account,
+    account_exp = ucoa_account_exp,
+    account_rev = ucoa_account_rev,
+    vague_funct = ucoa_vague_funct,
+    vague_exp   = ucoa_vague_exp,
+    vague_rev   = ucoa_vague_rev)
+
+rm(ucoa_fund, ucoa_function, ucoa_account, extra_fund_numbers, ucoa_account_exp,
+   ucoa_account_rev, ucoa_vague_funct, ucoa_vague_exp, ucoa_vague_rev)
+```
+
+## Report
+
+```{r}
+# The error I occasionally see when I run the code below is:
+# Error in nchar(account_number, keepNA = TRUE): invalid multibyte string,
+# element 375181.
+# I suspect the error may result from non-UTF-8 characters in the account_number
+# string...
+report <- 
+  sf_data %>% 
+  filter(!is.na(t_id)) %>% 
+  mutate(
+    percent_vague_function = 
+      t_id %>%                 
+      map_dbl(
+        check_percentage_of_vague_ucoa, 
+        "funct", 
+        ucoa),
+    percent_vague_exp = 
+      t_id %>% 
+      map_dbl(
+        check_percentage_of_vague_ucoa,
+        "exp",
+        ucoa),
+    percent_vague_rev = 
+      t_id %>% 
+      map_dbl(
+        check_percentage_of_vague_ucoa,
+        "rev",
+        ucoa))
+```
+
+```{r}
+report %>% 
+  write_csv(
+    paste0(getwd(), "/Vague UCoA Report.csv"))
+```
+
+# DBMS Disconnection
+
+```{r}
+dbDisconnect(odbc_aws, odbc_sf)
+```
