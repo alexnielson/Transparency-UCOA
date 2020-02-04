@@ -1,0 +1,764 @@
+name,id,t_id,begin_fy,govt_type
+Community Reinvestment Agency of Magna,0011K000024ZWDCQA4,1680,2019-01-01,Redevelopment_Agency_Project_Area
+Central Utah 911,0011K000026SCeZQAW,1679,2018-07-01,Interlocal
+Bear Lake Regional Commission,0014100000rD0xGAAS,1601,2017-07-01,AOG
+Bear River Association of Governments,0014100000rD0xHAAS,881,2017-07-01,AOG
+Cache Metropolitan Planning Organization,0014100000rD0xIAAS,1451,2017-07-01,AOG
+Five County Association of Governments,0014100000rD0xJAAS,885,2017-07-01,AOG
+Mountainland Association of Governments,0014100000rD0xKAAS,895,2017-07-01,AOG
+Six County Association of Governments,0014100000rD0xLAAS,905,2017-07-01,AOG
+Southeastern Utah Association of Governments,0014100000rD0xMAAS,911,2017-07-01,AOG
+Uintah Basin Association of Governments,0014100000rD0xNAAS,923,2017-07-01,AOG
+Wasatch Front Regional Council,0014100000rD0xOAAS,949,2017-07-01,AOG
+Alpine City,0014100000rD0zJAAS,355,2017-07-01,City
+American Fork City,0014100000rD0zKAAS,359,2017-07-01,City
+Aurora City,0014100000rD0zLAAS,361,2017-07-01,City
+Ballard Town,0014100000rD0zMAAS,1107,2017-07-01,City
+Bear River City,0014100000rD0zNAAS,1223,2017-07-01,City
+Beaver City,0014100000rD0zOAAS,363,2017-07-01,City
+Blanding City,0014100000rD0zPAAS,365,2017-07-01,City
+Bluffdale City,0014100000rD0zQAAS,367,2017-07-01,City
+Bountiful City,0014100000rD0zRAAS,369,2017-07-01,City
+Brigham City,0014100000rD0zSAAS,373,2017-07-01,City
+Castle Dale City,0014100000rD0zTAAS,1590,2017-07-01,City
+Cedar City,0014100000rD0zUAAS,377,2017-07-01,City
+Cedar Hills City,0014100000rD0zVAAS,379,2017-07-01,City
+Centerfield City,0014100000rD0zWAAS,1025,2017-07-01,City
+Centerville City,0014100000rD0zXAAS,381,2017-07-01,City
+Clearfield City,0014100000rD0zYAAS,383,2017-07-01,City
+Clinton City,0014100000rD0zZAAS,385,2017-07-01,City
+Coalville City,0014100000rD0zaAAC,387,2017-07-01,City
+Cottonwood Heights,0014100000rD0zbAAC,389,2017-07-01,City
+Delta City,0014100000rD0zcAAC,391,2017-07-01,City
+Draper City,0014100000rD0zdAAC,393,2017-07-01,City
+Duchesne City,0014100000rD0zeAAC,395,2017-07-01,City
+Eagle Mountain City,0014100000rD0zfAAC,397,2017-07-01,City
+Elk Ridge City,0014100000rD0zhAAC,401,2017-07-01,City
+Enoch City,0014100000rD0ziAAC,405,2017-07-01,City
+Enterprise City,0014100000rD0zjAAC,407,2017-07-01,City
+Ephraim City,0014100000rD0zkAAC,409,2017-07-01,City
+Escalante City,0014100000rD0zlAAC,411,2017-07-01,Town
+Eureka City,0014100000rD0zmAAC,1155,2017-07-01,City
+Fairview City,0014100000rD0znAAC,413,2017-07-01,City
+Farmington City,0014100000rD0zoAAC,415,2017-07-01,City
+Farr West City,0014100000rD0zpAAC,417,2017-07-01,City
+Ferron City,0014100000rD0zqAAC,419,2017-07-01,City
+Fillmore City,0014100000rD0zrAAC,421,2017-07-01,City
+Fountain Green City,0014100000rD0zsAAC,1065,2017-07-01,City
+Fruit Heights City,0014100000rD0ztAAC,425,2017-07-01,City
+Garland City,0014100000rD0zuAAC,429,2017-07-01,City
+Genola Town,0014100000rD0zvAAC,1019,2017-07-01,City
+Grantsville City,0014100000rD0zwAAC,431,2017-07-01,City
+Green River City,0014100000rD0zxAAC,433,2017-07-01,City
+Gunnison City,0014100000rD0zyAAC,435,2017-07-01,City
+Harrisville City,0014100000rD0zzAAC,437,2017-07-01,City
+Heber City,0014100000rD100AAC,439,2017-07-01,City
+Helper City,0014100000rD101AAC,441,2017-07-01,City
+Herriman City,0014100000rD102AAC,443,2017-07-01,City
+Highland City,0014100000rD103AAC,445,2017-07-01,City
+Hildale City,0014100000rD104AAC,447,2017-07-01,City
+Holladay City,0014100000rD105AAC,451,2017-07-01,City
+Honeyville City,0014100000rD106AAC,1269,2017-07-01,City
+Hooper City,0014100000rD107AAC,453,2017-07-01,City
+Huntington City,0014100000rD108AAC,455,2017-07-01,City
+Hurricane City,0014100000rD109AAC,457,2017-07-01,City
+Hyde Park City,0014100000rD10AAAS,459,2017-07-01,City
+Hyrum City,0014100000rD10BAAS,461,2017-07-01,City
+Ivins City,0014100000rD10CAAS,463,2017-07-01,City
+Kamas City,0014100000rD10DAAS,465,2017-07-01,City
+Kanab City,0014100000rD10EAAS,467,2017-07-01,City
+Kaysville City,0014100000rD10FAAS,469,2017-07-01,City
+La Verkin City,0014100000rD10GAAS,471,2017-07-01,City
+Layton City,0014100000rD10HAAS,473,2017-07-01,City
+Lehi City,0014100000rD10IAAS,475,2017-07-01,City
+Lewiston City,0014100000rD10JAAS,479,2017-07-01,City
+Lindon City,0014100000rD10KAAS,481,2017-07-01,City
+Logan City,0014100000rD10LAAS,483,2017-07-01,City
+Manti City,0014100000rD10MAAS,485,2017-07-01,City
+Mapleton City,0014100000rD10NAAS,487,2017-07-01,City
+Marriott-Slaterville City,0014100000rD10TAAS,489,2017-07-01,City
+Midvale City,0014100000rD10UAAS,491,2017-07-01,City
+Midway City,0014100000rD10VAAS,493,2017-07-01,City
+Milford City,0014100000rD10WAAS,495,2017-07-01,City
+Millville City,0014100000rD10XAAS,497,2017-07-01,City
+Moab City,0014100000rD10YAAS,499,2017-07-01,City
+Mona City,0014100000rD10ZAAS,501,2017-07-01,City
+Monroe City,0014100000rD10aAAC,503,2017-07-01,City
+Monticello City,0014100000rD10bAAC,505,2017-07-01,City
+Morgan City,0014100000rD10cAAC,507,2017-07-01,City
+Moroni City,0014100000rD10dAAC,509,2017-07-01,City
+Mt. Pleasant City,0014100000rD10eAAC,511,2017-07-01,City
+Murray City,0014100000rD10fAAC,513,2017-07-01,City
+Myton City,0014100000rD10gAAC,1137,2017-07-01,City
+Naples City,0014100000rD10hAAC,515,2017-07-01,City
+Nephi City,0014100000rD10iAAC,517,2017-07-01,City
+Nibley City,0014100000rD10jAAC,519,2017-07-01,City
+North Logan City,0014100000rD10kAAC,521,2017-07-01,City
+North Ogden City,0014100000rD10lAAC,523,2017-07-01,City
+"North Salt Lake, City of",0014100000rD10mAAC,525,2017-07-01,City
+Oakley City,0014100000rD10nAAC,527,2017-07-01,City
+Ogden City,0014100000rD10oAAC,529,2017-07-01,City
+Orangeville City,0014100000rD10pAAC,1143,2017-07-01,City
+Orem City,0014100000rD10qAAC,531,2017-07-01,City
+Panguitch City,0014100000rD10rAAC,533,2017-07-01,City
+Park City,0014100000rD10sAAC,535,2017-07-01,City
+Parowan City,0014100000rD10tAAC,537,2017-07-01,City
+Payson City,0014100000rD10uAAC,539,2017-07-01,City
+Perry City,0014100000rD10vAAC,541,2017-07-01,City
+Plain City,0014100000rD10wAAC,543,2017-07-01,City
+Pleasant Grove City,0014100000rD10xAAC,545,2017-07-01,City
+Pleasant View City,0014100000rD10yAAC,547,2017-07-01,City
+Price City,0014100000rD10zAAC,549,2017-07-01,City
+Providence City,0014100000rD110AAC,551,2017-07-01,City
+Provo City,0014100000rD111AAC,553,2017-07-01,City
+Richfield City,0014100000rD112AAC,555,2017-07-01,City
+Richmond City,0014100000rD113AAC,557,2017-07-01,City
+River Heights City,0014100000rD114AAC,841,2017-07-01,City
+Riverdale City,0014100000rD115AAC,559,2017-07-01,City
+Riverton City,0014100000rD116AAC,561,2017-07-01,City
+Roosevelt City,0014100000rD117AAC,563,2017-07-01,City
+Roy City,0014100000rD118AAC,565,2017-07-01,City
+Salem City,0014100000rD119AAC,567,2017-07-01,City
+Salina City,0014100000rD11AAAS,569,2017-07-01,City
+Salt Lake City,0014100000rD11BAAS,571,2017-07-01,City
+Sandy City,0014100000rD11CAAS,573,2017-07-01,City
+Santa Clara City,0014100000rD11DAAS,575,2017-07-01,City
+Santaquin City,0014100000rD11EAAS,577,2017-07-01,City
+Saratoga Springs,0014100000rD11FAAS,579,2017-07-01,City
+Smithfield City,0014100000rD11GAAS,581,2017-07-01,City
+South Jordan City,0014100000rD11HAAS,583,2017-07-01,City
+South Ogden City,0014100000rD11IAAS,585,2017-07-01,City
+South Salt Lake City,0014100000rD11JAAS,587,2017-07-01,City
+South Weber City,0014100000rD11KAAS,589,2017-07-01,City
+Spanish Fork City,0014100000rD11LAAS,591,2017-07-01,City
+Spring City,0014100000rD11MAAS,847,2017-07-01,City
+Springville City,0014100000rD11NAAS,595,2017-07-01,City
+St. George City,0014100000rD11OAAS,597,2017-07-01,City
+Sunset City,0014100000rD11QAAS,599,2017-07-01,City
+Syracuse City,0014100000rD11RAAS,601,2017-07-01,City
+Taylorsville City,0014100000rD11SAAS,603,2017-07-01,City
+Tooele City,0014100000rD11TAAS,605,2017-07-01,City
+Toquerville City,0014100000rD11UAAS,1139,2017-07-01,City
+Tremonton City,0014100000rD11VAAS,607,2017-07-01,City
+Uintah City,0014100000rD11WAAS,1059,2017-07-01,City
+Vernal City,0014100000rD11XAAS,609,2017-07-01,City
+Washington City,0014100000rD11YAAS,613,2017-07-01,City
+Washington Terrace City,0014100000rD11ZAAS,615,2017-07-01,City
+Wellington City,0014100000rD11aAAC,617,2017-07-01,City
+Wellsville City,0014100000rD11bAAC,619,2017-07-01,City
+Wendover City,0014100000rD11cAAC,621,2017-07-01,City
+West Bountiful City,0014100000rD11dAAC,623,2017-07-01,City
+West Haven City,0014100000rD11eAAC,625,2017-07-01,City
+West Jordan City,0014100000rD11fAAC,627,2017-07-01,City
+West Point City,0014100000rD11gAAC,629,2017-07-01,City
+West Valley City,0014100000rD11hAAC,631,2017-07-01,City
+Willard City,0014100000rD11iAAC,637,2017-07-01,City
+Woodland Hills City,0014100000rD11jAAC,633,2017-07-01,City
+Woods Cross City,0014100000rD11kAAC,635,2017-07-01,City
+Francis City,0014100000rD11lAAC,423,2017-07-01,City
+East Carbon City,0014100000rD11mAAC,399,2017-07-01,City
+Millcreek City,0014100000rD11oAAC,1371,2017-07-01,City
+Blacksmith Fork Conservation District,0014100000rD11pAAC,1645,2017-07-01,Conservation_District
+North Cache Conservation District,0014100000rD11qAAC,1662,2017-07-01,Conservation_District
+Northern Utah Conservation District,0014100000rD11rAAC,1663,2017-07-01,Conservation_District
+Rich County Conservation District,0014100000rD11sAAC,1665,2017-07-01,Conservation_District
+West Box Elder Conservation District,0014100000rD11tAAC,1661,2017-07-01,Conservation_District
+Davis County Conservation District,0014100000rD11uAAC,1648,2017-07-01,Conservation_District
+Grantsville Conservation District,0014100000rD11vAAC,1654,2017-07-01,Conservation_District
+Morgan Conservation District,0014100000rD11wAAC,1660,2017-07-01,Conservation_District
+Salt Lake Conservation District,0014100000rD11xAAC,1666,2017-07-01,Conservation_District
+Shambip Conservation District,0014100000rD11yAAC,1670,2017-07-01,Conservation_District
+Weber County Conservation District,0014100000rD11zAAC,1676,2017-07-01,Conservation_District
+Alpine Conservation District,0014100000rD120AAC,1643,2017-07-01,Conservation_District
+Kamas Valley Conservation District,0014100000rD121AAC,1657,2017-07-01,Conservation_District
+Summit County Conservation District,0014100000rD122AAC,1671,2017-07-01,Conservation_District
+Timp/Nebo Conservation District,0014100000rD123AAC,1672,2017-07-01,Conservation_District
+Wasatch Conservation District,0014100000rD124AAC,1642,2017-07-01,Conservation_District
+Delta Conservation District,0014100000rD125AAC,1650,2017-07-01,Conservation_District
+Fremont River Conservation District,0014100000rD126AAC,1638,2017-07-01,Conservation_District
+Juab Conservation District,0014100000rD127AAC,1656,2017-07-01,Conservation_District
+Millard Conservation District,0014100000rD128AAC,1659,2017-07-01,Conservation_District
+Piute County Conservation District,0014100000rD129AAC,1664,2017-07-01,Conservation_District
+Sanpete County Conservation District,0014100000rD12AAAS,1669,2017-07-01,Conservation_District
+Sevier County Conservation District,0014100000rD12BAAS,1639,2017-07-01,Conservation_District
+Beaver Conservation District,0014100000rD12CAAS,1644,2017-07-01,Conservation_District
+Canyonlands Conservation District,0014100000rD12DAAS,1646,2017-07-01,Conservation_District
+Dixie Conservation District,0014100000rD12EAAS,1649,2017-07-01,Conservation_District
+E and I Conservation District,0014100000rD12FAAS,1652,2017-07-01,Conservation_District
+Kane County Conservation District,0014100000rD12GAAS,1658,2017-07-01,Conservation_District
+Twin M Conservation District,0014100000rD12HAAS,1673,2017-07-01,Conservation_District
+Upper Sevier Conservation District,0014100000rD12IAAS,1675,2017-07-01,Conservation_District
+Daggett Conservation District,0014100000rD12JAAS,1647,2017-07-01,Conservation_District
+Duchesne County Conservation District,0014100000rD12KAAS,1651,2017-07-01,Conservation_District
+Uintah County Conservation District,0014100000rD12LAAS,1674,2017-07-01,Conservation_District
+Grand Conservation District,0014100000rD12MAAS,1653,2017-07-01,Conservation_District
+Green River Conservation District,0014100000rD12NAAS,1655,2017-07-01,Conservation_District
+Price River Conservation District,0014100000rD12OAAS,1677,2017-07-01,Conservation_District
+San Juan Conservation District,0014100000rD12PAAS,1667,2017-07-01,Conservation_District
+San Rafael Conservation District,0014100000rD12QAAS,1668,2017-07-01,Conservation_District
+Beaver County,0014100000rD12RAAS,297,2018-01-01,County
+Box Elder County,0014100000rD12SAAS,299,2018-01-01,County
+Cache County,0014100000rD12TAAS,301,2018-01-01,County
+Carbon County,0014100000rD12UAAS,303,2018-01-01,County
+Daggett County,0014100000rD12VAAS,305,2018-01-01,County
+Davis County,0014100000rD12WAAS,307,2018-01-01,County
+Duchesne County,0014100000rD12XAAS,309,2018-01-01,County
+Emery County,0014100000rD12YAAS,311,2018-01-01,County
+Garfield County,0014100000rD12ZAAS,313,2018-01-01,County
+Grand County,0014100000rD12aAAC,315,2018-01-01,County
+Iron County,0014100000rD12bAAC,317,2018-01-01,County
+Juab County,0014100000rD12cAAC,319,2018-01-01,County
+Kane County,0014100000rD12dAAC,321,2018-01-01,County
+Millard County,0014100000rD12eAAC,323,2018-01-01,County
+Morgan County,0014100000rD12fAAC,325,2018-01-01,County
+Piute County,0014100000rD12gAAC,327,2018-01-01,County
+Rich County,0014100000rD12hAAC,329,2018-01-01,County
+Salt Lake County,0014100000rD12iAAC,331,2018-01-01,County
+San Juan County,0014100000rD12jAAC,333,2018-01-01,County
+Sanpete County,0014100000rD12kAAC,335,2018-01-01,County
+Sevier County,0014100000rD12lAAC,337,2018-01-01,County
+Summit County,0014100000rD12mAAC,339,2018-01-01,County
+Tooele County,0014100000rD12nAAC,341,2018-01-01,County
+Uintah County,0014100000rD12oAAC,343,2018-01-01,County
+Utah County,0014100000rD12pAAC,345,2018-01-01,County
+Wasatch County,0014100000rD12qAAC,347,2018-01-01,County
+Washington County,0014100000rD12rAAC,349,2018-01-01,County
+Wayne County,0014100000rD12sAAC,351,2018-01-01,County
+Weber County,0014100000rD12tAAC,353,2018-01-01,County
+Cedar City Housing Authority,0014100000rD132AAC,1605,2017-07-01,Housing
+Emery County Housing Authority,0014100000rD134AAC,1604,2018-04-01,Housing
+Housing Authority of Carbon County,0014100000rD135AAC,1608,2018-04-01,Housing
+Housing Authority of Southeastern Utah,0014100000rD136AAC,1613,2017-07-01,Housing
+Utah County Housing Authority,0014100000rD137AAC,1615,2018-01-01,Housing
+Millard County Housing Authority,0014100000rD138AAC,1593,2018-01-01,Housing
+Myton City Housing Authority,0014100000rD139AAC,1616,2018-04-01,Housing
+Ogden City Housing Authority,0014100000rD13AAAS,1610,2017-07-01,Housing
+Provo City Housing Authority,0014100000rD13CAAS,1591,2017-10-01,Housing
+Roosevelt Housing Authority,0014100000rD13DAAS,1606,2018-04-01,Housing
+Salt Lake City Housing Authority,0014100000rD13EAAS,1611,2018-01-01,Housing
+Salt Lake County Housing Authority,0014100000rD13FAAS,1612,2017-07-01,Housing
+St. George Housing Authority,0014100000rD13GAAS,1594,2017-07-01,Housing
+Tooele County Housing Authority,0014100000rD13HAAS,1614,2018-01-01,Housing
+Weber Housing Authority,0014100000rD13IAAS,1171,2018-01-01,Housing
+Beaver Housing Authority,0014100000rD13KAAS,1607,2017-10-01,Housing
+Military Installation Development Authority,0014100000rD13LAAS,893,2017-07-01,Independent_Quasi_State_Entity
+Southeastern Utah District Health Department,0014100000rD13MAAS,1189,2018-01-01,Interlocal
+Southwest Utah Public Health Department,0014100000rD13NAAS,1131,2018-01-01,Interlocal
+Ashley Valley Sewer Management Board,0014100000rD13OAAS,879,2018-01-01,Interlocal
+Central Valley Water Reclamation Facility,0014100000rD13PAAS,695,2018-01-01,Interlocal
+Davis-Salt Lake Aerial Spray Authority,0014100000rD13QAAS,1436,2018-01-01,Interlocal
+Drug Enforcement Administration Metropolitan Narcotics Task Force,0014100000rD13RAAS,1153,2017-07-01,Interlocal
+Duchesne/Wasatch Special Service District,0014100000rD13SAAS,883,2018-01-01,Interlocal
+Eastern Utah Television and Technology Association,0014100000rD13TAAS,1385,2018-01-01,Interlocal
+Gas Departments of Hildale/Colorado City,0014100000rD13UAAS,1388,2017-07-01,Interlocal
+Grand Water and Sewer Service Agency,0014100000rD13VAAS,887,2018-01-01,Interlocal
+Heber Light & Power Company,0014100000rD13WAAS,889,2018-01-01,Interlocal
+Jordan River Commission,0014100000rD13ZAAS,1389,2017-07-01,Interlocal
+Lone Peak Public Safety District,0014100000rD13bAAC,955,2017-07-01,Interlocal
+Multi-County Appraisal Trust Fund,0014100000rD13cAAC,897,2018-01-01,Interlocal
+Sanpete Sanitary Landfill COOP,0014100000rD1AFAA0,1061,2018-01-01,Interlocal
+South Utah Valley Municipal Water Association,0014100000rD1AIAA0,909,2017-07-01,Interlocal
+Southern Utah Valley Power,0014100000rD1AJAA0,913,2017-10-01,Interlocal
+Stansbury Service Agency,0014100000rD1ALAA0,919,2018-01-01,Interlocal
+Trans-Jordan Cities,0014100000rD1AMAA0,921,2017-07-01,Interlocal
+Fox Hollow Golf Course,0014100000rD1ANAA0,1405,2018-01-01,Interlocal
+Unified Police Department,0014100000rD1APAA0,927,2017-07-01,Interlocal
+Utah Counties Indemnity Pool,0014100000rD1AQAA0,931,2018-01-01,Interlocal
+Utah Infrastructure Agency,0014100000rD1ARAA0,933,2017-07-01,Interlocal
+Utah Lake Commission,0014100000rD1ASAA0,1390,2017-07-01,Interlocal
+Utah League of Cities and Towns,0014100000rD1ATAA0,983,2017-07-01,Interlocal
+Utah Local Governments Trust,0014100000rD1AUAA0,935,2018-01-01,Interlocal
+Utah Risk Management Mutual Association,0014100000rD1AXAA0,939,2017-07-01,Interlocal
+Utah Water Finance Agency,0014100000rD1AYAA0,943,2017-07-01,Interlocal
+Valley Emergency Communications Center,0014100000rD1AZAA0,947,2017-07-01,Interlocal
+Water Departments of Hildale/Colorado City,0014100000rD1AaAAK,925,2017-07-01,Interlocal
+Northeastern Counseling Center/Uintah Basin Tri-County Mental Health,0014100000rD1AbAAK,903,2017-07-01,Interlocal
+Southwest Behavioral Health Center,0014100000rD1AcAAK,915,2019-07-01,Interlocal
+Weber Human Services,0014100000rD1AdAAK,953,2017-07-01,Interlocal
+North Sanpete Ambulance Service,0014100000rD1AeAAK,1403,2017-07-01,Interlocal
+South Valley Water Reclamation Facility,0014100000rD1AgAAK,657,2018-01-01,Interlocal
+Unified Fire Authority,0014100000rD1AiAAK,679,2017-07-01,Interlocal
+Utah School Boards Risk Management Insurance Association,0014100000rD1AjAAK,941,2017-07-01,Interlocal
+UTOPIA,0014100000rD1AkAAK,945,2017-07-01,Interlocal
+Heber Valley Tourism and Economic Development Agency,0014100000rD1AlAAK,1047,2018-01-01,Interlocal
+Community Education Channel Agency,0014100000rD1AnAAK,1406,2017-07-01,Interlocal
+Seven County Infrastructure Coalition,0014100000rD1AoAAK,1404,2018-01-01,Interlocal
+Washington County Flood Control Authority,0014100000rD1ApAAK,1109,2018-01-01,Interlocal
+Northern Utah Environmental Resource Agency,0014100000rD1AqAAK,1401,2018-01-01,Interlocal
+"Center for Education, Business, and the Arts Interlocal Agency",0014100000rD1ArAAK,1387,2018-01-01,Interlocal
+Weber Morgan Strike Force,0014100000rD1AsAAK,1437,2018-07-01,Interlocal
+Castle Dale Building Commission,0014100000rD1AtAAK,1597,2018-01-01,Interlocal
+Gunnison Valley Police Department,0014100000rD1AuAAK,1402,2017-07-01,Interlocal
+Central Utah Public Health Department,0014100000rD1AvAAK,1603,2018-01-01,Interlocal
+Bear River Health Department,0014100000rD1AwAAK,1161,2018-01-01,Local_and_Special_Service_District
+Central Utah Counseling Center,0014100000rD1AxAAK,961,2017-07-01,Interlocal
+San Juan Health Care Services District,0014100000rD1AyAAK,971,2018-01-01,Local_and_Special_Service_District
+North Tooele Fire Protection Service District,0014100000rD1AzAAK,987,2018-01-01,Local_and_Special_Service_District
+San Juan Mental Health / Substance Abuse Special Service District,0014100000rD1B0AAK,721,2018-01-01,Local_and_Special_Service_District
+Alpine Cove Water Special Service District,0014100000rD1B1AAK,1379,2018-01-01,Local_and_Special_Service_District
+Alta Canyon Recreation Special Service District,0014100000rD1B2AAK,765,2017-07-01,Local_and_Special_Service_District
+American Fork Metropolitan Water District,0014100000rD1B3AAK,1409,2018-01-01,Local_and_Special_Service_District
+Angell Springs Special Service District,0014100000rD1B4AAK,1540,2018-01-01,Local_and_Special_Service_District
+Antimony Cemetery Maintenance District,0014100000rD1B5AAK,1457,2018-01-01,Local_and_Special_Service_District
+Ashley Valley Water & Sewer Improvement District,0014100000rD1B6AAK,641,2018-01-01,Local_and_Special_Service_District
+Austin Community Special Service District,0014100000rD1B7AAK,1541,2017-07-01,Local_and_Special_Service_District
+Avon Cemetery Maintenance District,0014100000rD1B8AAK,1459,2018-01-01,Local_and_Special_Service_District
+Axtell Community Special Service District,0014100000rD1B9AAK,1542,2018-01-01,Local_and_Special_Service_District
+Ballard Water Improvement District,0014100000rD1BAAA0,643,2018-01-01,Local_and_Special_Service_District
+Bear Lake Special Service District,0014100000rD1BBAA0,1067,2018-01-01,Local_and_Special_Service_District
+Bear River Water Conservancy District,0014100000rD1BCAA0,973,2018-01-01,Local_and_Special_Service_District
+Beaver County Special Serv. District 2 (fire),0014100000rD1BFAA0,1363,2018-01-01,Local_and_Special_Service_District
+Beaver Dam Village Special Service District,0014100000rD1BHAA0,1410,2018-01-01,Local_and_Special_Service_District
+Beaver Fire District 1,0014100000rD1BIAA0,1411,2018-01-01,Local_and_Special_Service_District
+Beaver Special Service District 7,0014100000rD1BKAA0,1543,2018-01-01,Local_and_Special_Service_District
+Belmont Drainage District,0014100000rD1BLAA0,1460,2018-01-01,Local_and_Special_Service_District
+Ben Lomond Cemetery Maintenance District,0014100000rD1BMAA0,1412,2018-01-01,Local_and_Special_Service_District
+Benchland Water District,0014100000rD1BNAA0,1031,2018-01-01,Local_and_Special_Service_District
+Benjamin Cemetery Maintenance District,0014100000rD1BOAA0,1461,2018-01-01,Local_and_Special_Service_District
+Benjamin Drainage District,0014100000rD1BPAA0,1462,2018-01-01,Local_and_Special_Service_District
+Benson Culinary Water Improvement District,0014100000rD1BQAA0,1463,2018-01-01,Local_and_Special_Service_District
+Big Cottonwood Canyon Improvement District,0014100000rD1BRAA0,1544,2018-01-01,Local_and_Special_Service_District
+Big Plains Water and Sewer Special Service District,0014100000rD1BSAA0,1021,2017-07-01,Local_and_Special_Service_District
+Blanding Cemetery Maintenance District,0014100000rD1BTAA0,1381,2018-01-01,Local_and_Special_Service_District
+Bluff Service Area,0014100000rD1BUAA0,1464,2018-01-01,Local_and_Special_Service_District
+Bluff Water Works District,0014100000rD1BVAA0,1439,2018-01-01,Local_and_Special_Service_District
+Bona Vista Water Improvement District,0014100000rD1BWAA0,659,2018-01-01,Local_and_Special_Service_District
+Bountiful Irrigation District,0014100000rD1BXAA0,687,2018-01-01,Local_and_Special_Service_District
+Box Elder Willard City Flood Control,0014100000rD1BYAA0,1466,2018-01-01,Local_and_Special_Service_District
+Box Elder County Service Area 2,0014100000rD1BZAA0,1467,2018-01-01,Local_and_Special_Service_District
+Box Elder County Solid Waste (Grouse Creek Solid Waste),0014100000rD1BaAAK,1545,2018-01-01,Local_and_Special_Service_District
+Box Elder County Special Service District 1,0014100000rD1BbAAK,1413,2018-01-01,Local_and_Special_Service_District
+Box Elder Mosquito Abatement District,0014100000rD1BcAAK,1033,2018-01-01,Local_and_Special_Service_District
+Brian Head Special Service District,0014100000rD1BdAAK,1431,2017-07-01,Local_and_Special_Service_District
+Cache County Drainage District 3,0014100000rD1BfAAK,1468,2018-01-01,Local_and_Special_Service_District
+Cache County Drainage District 5,0014100000rD1BgAAK,1469,2018-01-01,Local_and_Special_Service_District
+Cache County Drainage District 6,0014100000rD1BhAAK,1470,2018-01-01,Local_and_Special_Service_District
+Cache Valley Transit District,0014100000rD1BiAAK,265,2018-01-01,Local_and_Special_Service_District
+Cannonville Cemetery Maintenance District,0014100000rD1BjAAK,1471,2018-01-01,Local_and_Special_Service_District
+Canyon Land Improvement District,0014100000rD1BlAAK,1589,2018-01-01,Local_and_Special_Service_District
+Canyonlands Health Care Special Service District,0014100000rD1BmAAK,965,2018-01-01,Local_and_Special_Service_District
+Carbon County Rec. and Trans. Spec Serv Dist,0014100000rD1BnAAK,767,2018-01-01,Local_and_Special_Service_District
+Carbon Water Conservancy District,0014100000rD1BoAAK,689,2018-01-01,Local_and_Special_Service_District
+Cedar Mtn Fire Protection District,0014100000rD1BpAAK,771,2018-01-01,Local_and_Special_Service_District
+Cedarview-Montwell Special Service District,0014100000rD1BqAAK,1365,2018-01-01,Local_and_Special_Service_District
+Central Box Elder Fire Special Service District,0014100000rD1BrAAK,1394,2018-01-01,Local_and_Special_Service_District
+Central Davis Sewer District,0014100000rD1BsAAK,691,2018-01-01,Local_and_Special_Service_District
+Central Iron County Water Conservancy District,0014100000rD1BtAAK,693,2018-01-01,Local_and_Special_Service_District
+Central Utah Water Conservancy District,0014100000rD1BuAAK,639,2017-07-01,Local_and_Special_Service_District
+Central Weber Sewer Improvement District,0014100000rD1BvAAK,697,2018-01-01,Local_and_Special_Service_District
+Charleston Water Conservancy District,0014100000rD1BwAAK,1445,2018-01-01,Local_and_Special_Service_District
+Church Wells Special Service District,0014100000rD1BxAAK,1547,2018-01-01,Local_and_Special_Service_District
+Clinton Sanitary Sewer SSD,0014100000rD1ByAAK,1396,2017-07-01,Local_and_Special_Service_District
+College-Young Mosquito Abatement District,0014100000rD1BzAAK,1472,2018-01-01,Local_and_Special_Service_District
+Copperton Improvement District,0014100000rD1C0AAK,1191,2018-01-01,Local_and_Special_Service_District
+Corinne Cemetery Maintenance District,0014100000rD1C1AAK,1473,2018-01-01,Local_and_Special_Service_District
+Corinne Drainage District 1,0014100000rD1C2AAK,1474,2018-01-01,Local_and_Special_Service_District
+Cornish Cemetery Maintenance District,0014100000rD1C3AAK,1475,2018-01-01,Local_and_Special_Service_District
+Cottonwood Improvement District,0014100000rD1C4AAK,739,2018-01-01,Local_and_Special_Service_District
+Crescent Cemetery Maintenance District,0014100000rD1C5AAK,1476,2018-01-01,Local_and_Special_Service_District
+Daggett Mosquito Abatement District,0014100000rD1C6AAK,1477,2018-01-01,Local_and_Special_Service_District
+Daggett County Service Area No. 1,0014100000rD1C7AAK,1548,2018-01-01,Local_and_Special_Service_District
+Daggett Water District,0014100000rD1C8AAK,1478,2018-01-01,Local_and_Special_Service_District
+Dammeron Valley Fire Special Service District,0014100000rD1C9AAK,1549,2018-01-01,Local_and_Special_Service_District
+Delta-Sutherland-Oasis Cemetery Maint.,0014100000rD1CAAA0,1479,2018-01-01,Local_and_Special_Service_District
+Deseret-Oasis Special Service District,0014100000rD1CCAA0,1357,2018-01-01,Local_and_Special_Service_District
+Duchesne County Mosquito Abatement District,0014100000rD1CEAA0,1440,2018-01-01,Local_and_Special_Service_District
+Duchesne County Special Service District 2,0014100000rD1CFAA0,773,2018-01-01,Local_and_Special_Service_District
+Duchesne County Special Service District 3,0014100000rD1CGAA0,1550,2018-01-01,Local_and_Special_Service_District
+Upper Country Water Improvement District,0014100000rD1CHAA0,1045,2018-01-01,Local_and_Special_Service_District
+Duchesne County Water Conservancy District,0014100000rD1CIAA0,703,2017-07-01,Local_and_Special_Service_District
+East Duchesne Culinary Water Improvement Dist,0014100000rD1CJAA0,1185,2018-01-01,Local_and_Special_Service_District
+East Garland Cemetery Maintenance District,0014100000rD1CKAA0,1480,2018-01-01,Local_and_Special_Service_District
+East Juab Water Conservancy District,0014100000rD1CLAA0,1435,2018-01-01,Local_and_Special_Service_District
+East Lewiston Drainage District 4,0014100000rD1CMAA0,1481,2018-01-01,Local_and_Special_Service_District
+East Zion Special Service District,0014100000rD1COAA0,1417,2018-01-01,Local_and_Special_Service_District
+Eastland Special Service District,0014100000rD1CPAA0,1552,2018-01-01,Local_and_Special_Service_District
+Echo Creek Ranches Special Service District,0014100000rD1CQAA0,1441,2018-01-01,Local_and_Special_Service_District
+Eden Cemetery Maintenance District,0014100000rD1CRAA0,1482,2018-01-01,Local_and_Special_Service_District
+Elk Meadows Special Service District,0014100000rD1CTAA0,1554,2018-01-01,Local_and_Special_Service_District
+Elwood Drainage District,0014100000rD1CUAA0,1483,2018-01-01,Local_and_Special_Service_District
+Emery County Fire Protection Spec Serv Dist,0014100000rD1CVAA0,775,2018-01-01,Local_and_Special_Service_District
+Emery County Recreation Special Service District,0014100000rD1CWAA0,1399,2018-01-01,Local_and_Special_Service_District
+Emery County Special Service District 1,0014100000rD1CXAA0,777,2018-01-01,Local_and_Special_Service_District
+Emery Water Conservancy District,0014100000rD1CYAA0,779,2018-01-01,Local_and_Special_Service_District
+Emigration Improvement District,0014100000rD1CZAA0,1069,2018-01-01,Local_and_Special_Service_District
+Escalante Cemetery Maintenance District,0014100000rD1CaAAK,1484,2018-01-01,Local_and_Special_Service_District
+Fielding Cemetery Maintenance District,0014100000rD1CbAAK,1485,2018-01-01,Local_and_Special_Service_District
+Flaming Gorge Roads and Transportation SSD,0014100000rD1CcAAK,781,2018-01-01,Local_and_Special_Service_District
+Fruitland Special Service District,0014100000rD1CdAAK,1372,2018-01-01,Local_and_Special_Service_District
+Garden City Cemetery Maintenance District,0014100000rD1CeAAK,1366,2018-01-01,Local_and_Special_Service_District
+Garden City Fire Protection District,0014100000rD1CfAAK,1386,2018-01-01,Local_and_Special_Service_District
+Grand County Service Area/Castle Valley Fire Protection District,0014100000rD1CkAAK,1488,2018-01-01,Local_and_Special_Service_District
+Grand County Recreation Special Service District,0014100000rD1ClAAK,783,2018-01-01,Local_and_Special_Service_District
+Grand County Special Service Water District,0014100000rD1CmAAK,1397,2018-01-01,Local_and_Special_Service_District
+Grand County Transportation Special Service District,0014100000rD1CnAAK,1163,2018-01-01,Local_and_Special_Service_District
+Granger-Hunter Improvement District,0014100000rD1CoAAK,705,2018-01-01,Local_and_Special_Service_District
+Green Hills Est. Water and Sewer Imp. District,0014100000rD1CqAAK,1489,2018-01-01,Local_and_Special_Service_District
+Grouse Creek Cemetery Maintenance District,0014100000rD1CrAAK,1490,2018-01-01,Local_and_Special_Service_District
+Grouse Creek Special Service District,0014100000rD1CsAAK,1584,2018-01-01,Local_and_Special_Service_District
+Gunlock Special Service District,0014100000rD1CtAAK,1557,2018-01-01,Local_and_Special_Service_District
+Gunnison Valley Hospital Special Service District,0014100000rD1CuAAK,967,2017-07-01,Local_and_Special_Service_District
+Hanksville Special Service District,0014100000rD1CvAAK,1353,2017-07-01,Local_and_Special_Service_District
+Hanna Water and Sewer District,0014100000rD1CwAAK,1373,2018-01-01,Local_and_Special_Service_District
+Hansel Valley Watershed District,0014100000rD1CxAAK,1491,2018-01-01,Local_and_Special_Service_District
+Heber Valley Special Service District,0014100000rD1CyAAK,785,2018-01-01,Local_and_Special_Service_District
+Henrieville Cemetery Maintenance District,0014100000rD1CzAAK,1493,2018-01-01,Local_and_Special_Service_District
+Hideout Local District No. 1,0014100000rD1D0AAK,1494,2017-07-01,Local_and_Special_Service_District
+Highland Conservation District,0014100000rD1D2AAK,1495,2018-01-01,Local_and_Special_Service_District
+Hinckley-Deseret Cemetery Maint. District,0014100000rD1D3AAK,1496,2018-01-01,Local_and_Special_Service_District
+Hooper Water Improvement District,0014100000rD1D5AAK,719,2018-01-01,Local_and_Special_Service_District
+Hoytsville Cemetery Maintenance District,0014100000rD1D6AAK,1497,2018-01-01,Local_and_Special_Service_District
+Hurricane Valley Fire Special Service District,0014100000rD1D7AAK,1181,2018-01-01,Local_and_Special_Service_District
+Hyde Park Cemetery Maintenance District,0014100000rD1D8AAK,1498,2018-01-01,Local_and_Special_Service_District
+Indian Ridge Water Conservancy District,0014100000rD1DAAA0,1499,2017-07-01,Local_and_Special_Service_District
+Iowa String Drainage District,0014100000rD1DBAA0,1500,2018-01-01,Local_and_Special_Service_District
+Iron County Special Service District 3,0014100000rD1DCAA0,1448,2018-01-01,Local_and_Special_Service_District
+Jensen Water Improvement District,0014100000rD1DDAA0,1071,2018-01-01,Local_and_Special_Service_District
+Johnson Water Improvement District,0014100000rD1DEAA0,709,2018-01-01,Local_and_Special_Service_District
+Jordanelle Special Service District,0014100000rD1DOAA0,787,2018-01-01,Local_and_Special_Service_District
+Juab County Spec Serv Fire Protection District,0014100000rD1DPAA0,1073,2018-01-01,Local_and_Special_Service_District
+Juab County Special Service District 2,0014100000rD1DRAA0,1075,2018-01-01,Local_and_Special_Service_District
+Kane County Human Resource SSD (Hospital),0014100000rD1DSAA0,969,2018-01-01,Local_and_Special_Service_District
+Kane County Recreation and Transportation SSD,0014100000rD1DTAA0,1558,2018-01-01,Local_and_Special_Service_District
+Kane County Water Conservancy District,0014100000rD1DUAA0,293,2017-07-01,Local_and_Special_Service_District
+Kearns Improvement District,0014100000rD1DVAA0,737,2018-01-01,Local_and_Special_Service_District
+Lake Point Cemetery and Parks Service Area,0014100000rD1DXAA0,1392,2018-01-01,Local_and_Special_Service_District
+Lake Point Improvement District,0014100000rD1DYAA0,1383,2018-01-01,Local_and_Special_Service_District
+Lakeshore & Benjamin Drainage District,0014100000rD1DZAA0,1501,2018-01-01,Local_and_Special_Service_District
+Laketown Cemetery Maintenance District,0014100000rD1DaAAK,1502,2018-01-01,Local_and_Special_Service_District
+Laketown Fire District,0014100000rD1DbAAK,1433,2018-01-01,Local_and_Special_Service_District
+Lehi Metropolitan Water District,0014100000rD1DdAAK,1370,2017-07-01,Local_and_Special_Service_District
+Liberty Cemetery Maintenance District,0014100000rD1DeAAK,1503,2018-01-01,Local_and_Special_Service_District
+Little Mountain Service Area,0014100000rD1DfAAK,1382,2018-01-01,Local_and_Special_Service_District
+Long Valley Sewer Improvement District,0014100000rD1DgAAK,1504,2018-01-01,Local_and_Special_Service_District
+Maeser Water Improvement District,0014100000rD1DiAAK,667,2018-01-01,Local_and_Special_Service_District
+Magna Mosquito Abatement District,0014100000rD1DjAAK,1195,2018-01-01,Local_and_Special_Service_District
+Magna Water Company,0014100000rD1DkAAK,733,2018-01-01,Local_and_Special_Service_District
+Mammoth Creek Fire District,0014100000rD1DlAAK,1418,2018-01-01,Local_and_Special_Service_District
+Mapleton Irrigation District,0014100000rD1DmAAK,1408,2018-01-01,Local_and_Special_Service_District
+Mexican Hat Special Service District,0014100000rD1DnAAK,1559,2018-01-01,Local_and_Special_Service_District
+Midway Sanitation District,0014100000rD1DoAAK,663,2018-01-01,Local_and_Special_Service_District
+Milford Area Health Care Service District 3,0014100000rD1DpAAK,1077,2018-01-01,Local_and_Special_Service_District
+Millard County Drainage District 1,0014100000rD1DqAAK,1505,2018-01-01,Local_and_Special_Service_District
+Millard County Drainage District 2,0014100000rD1DrAAK,1506,2018-01-01,Local_and_Special_Service_District
+Millard County Drainage District 3,0014100000rD1DsAAK,1507,2018-01-01,Local_and_Special_Service_District
+Millard County Drainage District 4,0014100000rD1DtAAK,1508,2018-01-01,Local_and_Special_Service_District
+Millard County Fire District,0014100000rD1DuAAK,1079,2018-01-01,Local_and_Special_Service_District
+Millard County Special Service District 8,0014100000rD1DvAAK,789,2018-01-01,Local_and_Special_Service_District
+Millard County Water Conservancy District,0014100000rD1DwAAK,1509,2018-01-01,Local_and_Special_Service_District
+Millville-Nibley Cemetery Maint. District,0014100000rD1DxAAK,1510,2018-01-01,Local_and_Special_Service_District
+Moab Mosquito Abatement District,0014100000rD1DyAAK,1560,2018-01-01,Local_and_Special_Service_District
+Moab Valley Fire Protection District,0014100000rD1DzAAK,1081,2018-01-01,Local_and_Special_Service_District
+Monticello Cemetery Maintenance District,0014100000rD1E0AAK,1511,2018-01-01,Local_and_Special_Service_District
+Mosquito Abatement District- Davis,0014100000rD1E1AAK,835,2018-01-01,Local_and_Special_Service_District
+Mountain Green Fire Protection District,0014100000rD1E2AAK,1395,2018-01-01,Local_and_Special_Service_District
+Mountain Green Sewer Improvement District,0014100000rD1E3AAK,1083,2018-01-01,Local_and_Special_Service_District
+Mountain Regional Water Special Service District (Atkinson),0014100000rD1E4AAK,837,2018-01-01,Local_and_Special_Service_District
+Mountain View Special Service District,0014100000rD1E5AAK,1561,2018-01-01,Local_and_Special_Service_District
+Mt Olympus Improvement District,0014100000rD1E6AAK,749,2018-01-01,Local_and_Special_Service_District
+Mutton Hollow Improvement District,0014100000rD1E7AAK,1420,2018-01-01,Local_and_Special_Service_District
+Neola Community Park District,0014100000rD1E8AAK,1512,2018-01-01,Local_and_Special_Service_District
+Neola Water and Sewer District,0014100000rD1E9AAK,1374,2018-01-01,Local_and_Special_Service_District
+New Harmony Valley Special Service District,0014100000rD1EAAA0,1393,2018-01-01,Local_and_Special_Service_District
+Newton Cemetery Maintenance District,0014100000rD1EBAA0,1367,2018-01-01,Local_and_Special_Service_District
+North Central Fire Special Service District,0014100000rD1ECAA0,1562,2018-01-01,Local_and_Special_Service_District
+North Davis Fire District,0014100000rD1EDAA0,791,2017-07-01,Local_and_Special_Service_District
+North Davis Sewer District,0014100000rD1EEAA0,959,2018-01-01,Local_and_Special_Service_District
+North Emery Water Users Special Service District,0014100000rD1EFAA0,1361,2018-01-01,Local_and_Special_Service_District
+North Fork Special Service District,0014100000rD1EGAA0,1199,2018-01-01,Local_and_Special_Service_District
+North Pointe Solid Waste Spec Serv District,0014100000rD1EHAA0,793,2018-01-01,Local_and_Special_Service_District
+North Summit Fire Protection District,0014100000rD1EIAA0,1421,2018-01-01,Local_and_Special_Service_District
+North Summit Recreation Special Service District,0014100000rD1EJAA0,1422,2018-01-01,Local_and_Special_Service_District
+North Tooele City Special Service District,0014100000rD1EKAA0,1368,2017-07-01,Local_and_Special_Service_District
+North Utah County Water Conservancy District,0014100000rD1ELAA0,741,2018-01-01,Local_and_Special_Service_District
+North Utah Valley Animal Services Special Service District,0014100000rD1EMAA0,1035,2017-07-01,Local_and_Special_Service_District
+North View Fire District,0014100000rD1ENAA0,743,2017-07-01,Local_and_Special_Service_District
+North Village Special Service District,0014100000rD1EOAA0,795,2018-01-01,Local_and_Special_Service_District
+Northwestern Special Service District,0014100000rD1EPAA0,1384,2018-01-01,Local_and_Special_Service_District
+Ogden Valley Transmission/Recreation SSD,0014100000rD1EQAA0,1563,2018-01-01,Local_and_Special_Service_District
+Oquirrh Recreation and Parks District,0014100000rD1ERAA0,651,2018-01-01,Local_and_Special_Service_District
+Orem Metropolitan Water District,0014100000rD1ESAA0,797,2017-07-01,Local_and_Special_Service_District
+Ouray Park Water Improvement District,0014100000rD1ETAA0,821,2018-01-01,Local_and_Special_Service_District
+Panguitch Cemetery Maintenance District,0014100000rD1EUAA0,1513,2018-01-01,Local_and_Special_Service_District
+Panguitch Lake Local Special Service District,0014100000rD1EVAA0,1564,2018-01-01,Local_and_Special_Service_District
+Paradise Cemetery Maintenance District,0014100000rD1EWAA0,1514,2018-01-01,Local_and_Special_Service_District
+Paunsaugunt Cliffs Special Service District,0014100000rD1EYAA0,1359,2018-01-01,Local_and_Special_Service_District
+Penrose Cemetery Maintenance District,0014100000rD1EZAA0,1454,2018-01-01,Local_and_Special_Service_District
+Peoa Recreation Special Service District,0014100000rD1EaAAK,1566,2018-01-01,Local_and_Special_Service_District
+Pine Valley Local District,0014100000rD1EcAAK,1515,2018-01-01,Local_and_Special_Service_District
+Pine Valley Special Service District,0014100000rD1EdAAK,1567,2018-01-01,Local_and_Special_Service_District
+Pinon Forest Special Service District,0014100000rD1EeAAK,1423,2018-01-01,Local_and_Special_Service_District
+Pioneer Special Service District,0014100000rD1EfAAK,1355,2017-07-01,Local_and_Special_Service_District
+Piute County Special Service District 1,0014100000rD1EgAAK,1151,2018-01-01,Local_and_Special_Service_District
+Plain City Cemetery Maintenance District,0014100000rD1EhAAK,1516,2018-01-01,Local_and_Special_Service_District
+Pleasant Grove Metropolitan Water District,0014100000rD1EiAAK,1517,2017-07-01,Local_and_Special_Service_District
+Plymouth Cemetery Maintenance District,0014100000rD1EjAAK,1424,2018-01-01,Local_and_Special_Service_District
+Pole Canyon Basic Local District,0014100000rD1EkAAK,1425,2018-01-01,Local_and_Special_Service_District
+Portage Cemetery Maintenance District,0014100000rD1ElAAK,1518,2018-01-01,Local_and_Special_Service_District
+Powder Mountain Water and Sewer Improvement District,0014100000rD1EmAAK,1456,2018-01-01,Local_and_Special_Service_District
+Price River Water Improvement District,0014100000rD1EnAAK,655,2018-01-01,Local_and_Special_Service_District
+Provo Metropolitan Water District,0014100000rD1EoAAK,1585,2017-07-01,Local_and_Special_Service_District
+Randolph Cemetery District,0014100000rD1EpAAK,1519,2018-01-01,Local_and_Special_Service_District
+Randolph Fire District,0014100000rD1EqAAK,1520,2018-01-01,Local_and_Special_Service_District
+Richmond Cemetery Maintenance District,0014100000rD1ErAAK,1521,2018-01-01,Local_and_Special_Service_District
+Riverside Cemetery Maintenance District,0014100000rD1EsAAK,1446,2018-01-01,Local_and_Special_Service_District
+Riverside Community Special Service District,0014100000rD1EtAAK,1568,2018-01-01,Local_and_Special_Service_District
+Roy Water Conservancy District,0014100000rD1EvAAK,745,2018-01-01,Local_and_Special_Service_District
+Metropolitan Water District of Salt Lake Sandy,0014100000rD1ExAAK,677,2017-07-01,Local_and_Special_Service_District
+Salt Lake City Mosquito Abatement District,0014100000rD1EyAAK,747,2018-01-01,Local_and_Special_Service_District
+Salt Lake County Service Area 3,0014100000rD1EzAAK,1085,2018-01-01,Local_and_Special_Service_District
+Unified Fire Service Area,0014100000rD1F0AAK,673,2018-01-01,Local_and_Special_Service_District
+Salt Lake Valley Law Enforcement Service Area,0014100000rD1F1AAK,665,2018-01-01,Local_and_Special_Service_District
+San Juan County Water Conservancy District,0014100000rD1F3AAK,1087,2018-01-01,Local_and_Special_Service_District
+San Juan Transportation District,0014100000rD1F4AAK,1135,2018-01-01,Local_and_Special_Service_District
+Sandy Suburban Improvement District,0014100000rD1F5AAK,669,2018-01-01,Local_and_Special_Service_District
+Sanpete County Fire Special Service District,0014100000rD1F6AAK,1569,2018-01-01,Local_and_Special_Service_District
+Sanpete County Special Service District 1,0014100000rD1F7AAK,801,2018-01-01,Local_and_Special_Service_District
+Sanpete County Water Conservancy District,0014100000rD1F8AAK,1426,2018-01-01,Local_and_Special_Service_District
+Scofield Reservoir Special Service District,0014100000rD1F9AAK,1570,2018-01-01,Local_and_Special_Service_District
+Sevier County Drainage District 1,0014100000rD1FBAA0,1523,2018-01-01,Local_and_Special_Service_District
+Aurora Drainage District 4,0014100000rD1FCAA0,1458,2018-01-01,Local_and_Special_Service_District
+Sevier County Special Service District 2,0014100000rD1FDAA0,1571,2018-01-01,Local_and_Special_Service_District
+Sevier County Special Service District 1,0014100000rD1FEAA0,295,2018-01-01,Local_and_Special_Service_District
+Skyline Mountain Special Service District,0014100000rD1FGAA0,1427,2018-01-01,Local_and_Special_Service_District
+Snyderville Basin Spec. Rec. District,0014100000rD1FHAA0,725,2018-01-01,Local_and_Special_Service_District
+Snyderville Basin Water Reclamation District,0014100000rD1FIAA0,681,2018-01-01,Local_and_Special_Service_District
+South Salt Lake Valley Mosquito Abatement District,0014100000rD1FJAA0,685,2018-01-01,Local_and_Special_Service_District
+Soldier Summit Special Service District,0014100000rD1FKAA0,1572,2018-01-01,Local_and_Special_Service_District
+South Davis Water District,0014100000rD1FLAA0,713,2018-01-01,Local_and_Special_Service_District
+South Davis Recreation District,0014100000rD1FMAA0,683,2018-01-01,Local_and_Special_Service_District
+South Davis Sewer District,0014100000rD1FNAA0,715,2018-01-01,Local_and_Special_Service_District
+South Ogden Conservation District,0014100000rD1FOAA0,753,2018-01-01,Local_and_Special_Service_District
+South Rim Special Service District,0014100000rD1FPAA0,1573,2018-01-01,Local_and_Special_Service_District
+South Summit Cemetery Maintenance District,0014100000rD1FRAA0,1428,2018-01-01,Local_and_Special_Service_District
+South Summit Fire Protection District,0014100000rD1FSAA0,1524,2018-01-01,Local_and_Special_Service_District
+South Utah Valley Animal Services Special Service District,0014100000rD1FTAA0,1429,2017-07-01,Local_and_Special_Service_District
+South Weber Water Improvement District,0014100000rD1FUAA0,1430,2018-01-01,Local_and_Special_Service_District
+Southwest Mosquito Abatement District,0014100000rD1FWAA0,1091,2018-01-01,Local_and_Special_Service_District
+Southwestern Special Service District c/o Washington County,0014100000rD1FYAA0,1377,2018-01-01,Local_and_Special_Service_District
+Spanish Valley Wtr and Sewer Improv. District,0014100000rD1FZAA0,1391,2018-01-01,Local_and_Special_Service_District
+Springville Drainage District,0014100000rD1FaAAK,1449,2018-01-01,Local_and_Special_Service_District
+Springville Irrigation District,0014100000rD1FbAAK,1450,2018-01-01,Local_and_Special_Service_District
+Stansbury Park Improvement District,0014100000rD1FcAAK,717,2018-01-01,Local_and_Special_Service_District
+Strawberry Lakeview Special Service District,0014100000rD1FdAAK,1443,2018-01-01,Local_and_Special_Service_District
+Summit County Serv. Area 3 (Silver Creek),0014100000rD1FeAAK,1093,2018-01-01,Local_and_Special_Service_District
+Summit County Service Area 5,0014100000rD1FgAAK,1595,2018-01-01,Local_and_Special_Service_District
+Summit Mosquito Abatement District,0014100000rD1FkAAK,1095,2018-01-01,Local_and_Special_Service_District
+Summit Special Service District,0014100000rD1FmAAK,1369,2017-11-01,Local_and_Special_Service_District
+Tabby Valley Parks and Recreation SSD,0014100000rD1FnAAK,1575,2018-01-01,Local_and_Special_Service_District
+Taylorsville-Bennion Improvement District,0014100000rD1FoAAK,723,2018-01-01,Local_and_Special_Service_District
+Taylor-West Weber Water Improvement Dist,0014100000rD1FpAAK,1097,2018-01-01,Local_and_Special_Service_District
+Teasdale Special Service District,0014100000rD1FqAAK,1576,2018-01-01,Local_and_Special_Service_District
+Thompson Special Service District,0014100000rD1FsAAK,1578,2018-01-01,Local_and_Special_Service_District
+Ticaboo Utility Improvement District,0014100000rD1FuAAK,1197,2018-01-01,Local_and_Special_Service_District
+Timberlakes Water Special Service District,0014100000rD1FvAAK,803,2018-01-01,Local_and_Special_Service_District
+Timberline Special Service District,0014100000rD1FwAAK,1193,2018-01-01,Local_and_Special_Service_District
+Timpanogos Special Service District,0014100000rD1FxAAK,805,2018-01-01,Local_and_Special_Service_District
+Tooele County Recreation Spec. Serv. District,0014100000rD1G0AAK,1579,2018-01-01,Local_and_Special_Service_District
+Tooele Valley Mosquito Abatement District,0014100000rD1G1AAK,1099,2018-01-01,Local_and_Special_Service_District
+Traverse Ridge Special Service District,0014100000rD1G2AAK,1434,2017-07-01,Local_and_Special_Service_District
+Tremonton-Garland Area Drainage District,0014100000rD1G4AAK,1455,2018-01-01,Local_and_Special_Service_District
+Tridell-Lapoint Water Improvement District,0014100000rD1G5AAK,1376,2018-01-01,Local_and_Special_Service_District
+Tropic Cemetery Maintenance District,0014100000rD1G6AAK,1525,2018-01-01,Local_and_Special_Service_District
+Twin Creeks Special Service District,0014100000rD1G7AAK,807,2018-01-01,Local_and_Special_Service_District
+Twin Oaks Local District,0014100000rD1G8AAK,1453,2018-01-01,Local_and_Special_Service_District
+Uintah Animal Control and Shelter Special Service District,0014100000rD1G9AAK,1101,2018-01-01,Local_and_Special_Service_District
+Uintah Fire Suppression Special Service District,0014100000rD1GAAA0,809,2018-01-01,Local_and_Special_Service_District
+Uintah Health Care Special Service District,0014100000rD1GBAA0,857,2018-01-01,Local_and_Special_Service_District
+Uintah Highlands Water and Sewer Improvement District,0014100000rD1GCAA0,1111,2018-01-01,Local_and_Special_Service_District
+Uintah Impact Mitigation Special Service District,0014100000rD1GDAA0,811,2018-01-01,Local_and_Special_Service_District
+Uintah Mosquito Abatement District,0014100000rD1GEAA0,671,2018-01-01,Local_and_Special_Service_District
+Uintah Recreation Special Service District,0014100000rD1GFAA0,675,2018-01-01,Local_and_Special_Service_District
+Uintah Transportation Special Service District,0014100000rD1GGAA0,813,2018-01-01,Local_and_Special_Service_District
+Uintah Water Conservancy District,0014100000rD1GHAA0,757,2018-01-01,Local_and_Special_Service_District
+Upper Sevier River Water Conservancy District,0014100000rD1GIAA0,1526,2018-01-01,Local_and_Special_Service_District
+Utah Valley Road Special Service District,0014100000rD1GLAA0,1581,2018-01-01,Local_and_Special_Service_District
+Vernon Waterworks Special Service District,0014100000rD1GMAA0,1582,2017-07-01,Local_and_Special_Service_District
+Wanship Cemetery Maintenance District,0014100000rD1GNAA0,1527,2018-01-01,Local_and_Special_Service_District
+Warren-West Warren Cemetery Maint. District,0014100000rD1GOAA0,1528,2018-01-01,Local_and_Special_Service_District
+West Warren-Warren Water Improv. District,0014100000rD1GPAA0,1534,2018-01-01,Local_and_Special_Service_District
+Wasatch County Fire Protection S.S.D.,0014100000rD1GQAA0,815,2018-01-01,Local_and_Special_Service_District
+Wasatch County Recreation SSD 21,0014100000rD1NGAA0,1628,2018-01-01,Local_and_Special_Service_District
+Wasatch County Service Area 1,0014100000rD1NMAA0,817,2018-01-01,Local_and_Special_Service_District
+Wasatch County Solid Waste SSD,0014100000rD1NNAA0,819,2018-01-01,Local_and_Special_Service_District
+Wasatch County Special Service District 9 (Mineral Lease),0014100000rD1NPAA0,825,2018-01-01,Local_and_Special_Service_District
+Wasatch Front Waste and Recycling District,0014100000rD1NQAA0,963,2018-01-01,Local_and_Special_Service_District
+Wasatch Integrated Waste Management District,0014100000rD1NRAA0,827,2017-07-01,Local_and_Special_Service_District
+Wasatch Mental Health Services Special Service District,0014100000rD1NSAA0,845,2017-07-01,Local_and_Special_Service_District
+Washington County Solid Waste,0014100000rD1NTAA0,731,2018-01-01,Local_and_Special_Service_District
+Washington County Water Conservancy District,0014100000rD1NUAA0,759,2018-01-01,Local_and_Special_Service_District
+Washington County/St. George City Interlocal Agency,0014100000rD1NVAA0,951,2018-01-01,Local_and_Special_Service_District
+Waste Management Service District 5,0014100000rD1NWAA0,1127,2018-01-01,Local_and_Special_Service_District
+Wayne County Special Service District 1,0014100000rD1NYAA0,1103,2018-01-01,Local_and_Special_Service_District
+Wayne County Water Conservancy District,0014100000rD1NZAA0,1529,2018-01-01,Local_and_Special_Service_District
+Weber Area Dispatch 911 and Emergency Services District,0014100000rD1NaAAK,653,2018-01-01,Local_and_Special_Service_District
+Weber County Mosquito Abatement District,0014100000rD1NbAAK,829,2018-01-01,Local_and_Special_Service_District
+Ogden Valley Parks Service Area,0014100000rD1NcAAK,1530,2018-01-01,Local_and_Special_Service_District
+Weber County Serv. Area 6 (W. Warren Park),0014100000rD1NdAAK,1531,2018-01-01,Local_and_Special_Service_District
+Weber Fire District,0014100000rD1NeAAK,761,2018-01-01,Local_and_Special_Service_District
+Weber-Box Elder Conservation District,0014100000rD1NfAAK,763,2018-01-01,Local_and_Special_Service_District
+Wellsville-Mendon Conservation District,0014100000rD1NgAAK,1532,2018-01-01,Local_and_Special_Service_District
+West Haven Special Service District,0014100000rD1NiAAK,831,2017-07-01,Local_and_Special_Service_District
+West Millard Mosquito Abatement District,0014100000rD1NkAAK,1105,2018-01-01,Local_and_Special_Service_District
+West Weber-Taylor Cemetery Maint. District,0014100000rD1NmAAK,1535,2018-01-01,Local_and_Special_Service_District
+Western Kane County Spec. Serv. District 1,0014100000rD1NnAAK,751,2018-01-01,Local_and_Special_Service_District
+White City Water Improvement District,0014100000rD1NoAAK,645,2018-01-01,Local_and_Special_Service_District
+Willard Precinct Cemetery Maint. District,0014100000rD1NsAAK,1537,2018-01-01,Local_and_Special_Service_District
+Wolf Creek Water and Sewer Improvement District,0014100000rD1NtAAK,861,2018-01-01,Local_and_Special_Service_District
+Woodruff Cemetery Maintenance District,0014100000rD1NuAAK,1539,2018-01-01,Local_and_Special_Service_District
+Woodruff Fire District,0014100000rD1NvAAK,1538,2018-01-01,Local_and_Special_Service_District
+Goshen Valley Local District,0014100000rD1NwAAK,1487,2018-01-01,Local_and_Special_Service_District
+Cache County Roads Special Service District,0014100000rD1O3AAK,1438,2018-01-01,Local_and_Special_Service_District
+South Davis Metro Fire Service Area,0014100000rD1O8AAK,1378,2017-07-01,Local_and_Special_Service_District
+Diamond Valley Fire Special Service District,0014100000rD1O9AAK,1587,2018-01-01,Local_and_Special_Service_District
+Cache Water District,0014100000rD1OBAA0,1629,2018-01-01,Local_and_Special_Service_District
+Central Utah Educational Services,0014100000rD1hyAAC,1175,2017-07-01,Interlocal
+Northeastern Utah Educational Services,0014100000rD1isAAC,1173,2017-07-01,Interlocal
+Southeast Educational Service Center,0014100000rD1jOAAS,1177,2017-07-01,Interlocal
+Southwest Educational Development Center,0014100000rD1jQAAS,1179,2017-07-01,Interlocal
+Alta Town,0014100000rD1pJAAS,357,2017-07-01,Town
+Altamont Town,0014100000rD1pKAAS,1217,2017-07-01,Town
+Alton Town,0014100000rD1pLAAS,1063,2017-07-01,Town
+Amalga Town,0014100000rD1pMAAS,1219,2017-07-01,Town
+Annabella Town,0014100000rD1pNAAS,1220,2017-07-01,Town
+Antimony Town,0014100000rD1pOAAS,1221,2017-07-01,Town
+Apple Valley,0014100000rD1pPAAS,1017,2017-07-01,Town
+Bicknell Town,0014100000rD1pQAAS,1213,2017-07-01,Town
+Big Water Town,0014100000rD1pRAAS,1225,2017-07-01,Town
+Boulder Town,0014100000rD1pSAAS,449,2017-07-01,Town
+Brian Head Town,0014100000rD1pTAAS,371,2017-07-01,Town
+Bryce Canyon City,0014100000rD1pUAAS,375,2017-07-01,Town
+Cannonville Town,0014100000rD1pVAAS,1227,2017-07-01,Town
+Castle Valley Town,0014100000rD1pWAAS,1229,2017-07-01,Town
+Cedar Fort Town,0014100000rD1pXAAS,1231,2017-07-01,Town
+Central Valley,0014100000rD1pYAAS,1167,2017-07-01,Town
+Charleston Town,0014100000rD1pZAAS,1233,2017-07-01,Town
+Circleville Town,0014100000rD1paAAC,1235,2017-07-01,Town
+Clarkston Town,0014100000rD1pbAAC,1237,2017-07-01,Town
+Clawson Town,0014100000rD1pcAAC,1239,2017-07-01,Town
+Cleveland Town,0014100000rD1pdAAC,1241,2017-07-01,Town
+Corinne City,0014100000rD1peAAC,1157,2017-07-01,Town
+Cornish Town,0014100000rD1pfAAC,1243,2017-07-01,Town
+Daniel Town,0014100000rD1pgAAC,839,2017-07-01,Town
+Deweyville Town,0014100000rD1phAAC,1245,2017-07-01,Town
+Elmo Town,0014100000rD1piAAC,1247,2017-07-01,Town
+Elsinore Town,0014100000rD1pjAAC,1029,2017-07-01,Town
+Elwood Town,0014100000rD1pkAAC,403,2017-07-01,Town
+Emery Town,0014100000rD1plAAC,1249,2017-07-01,Town
+Fairfield Town,0014100000rD1pmAAC,1251,2017-07-01,Town
+Fayette Town,0014100000rD1pnAAC,1253,2017-07-01,Town
+Fielding Town,0014100000rD1poAAC,1255,2017-07-01,Town
+Garden City,0014100000rD1ppAAC,427,2017-07-01,Town
+Glendale Town,0014100000rD1pqAAC,1257,2017-07-01,Town
+Glenwood Town,0014100000rD1prAAC,1023,2017-07-01,Town
+Goshen Town,0014100000rD1psAAC,1037,2017-07-01,Town
+Hanksville,0014100000rD1ptAAC,1259,2017-07-01,Town
+Hatch Town,0014100000rD1puAAC,1261,2017-07-01,Town
+Henefer Town,0014100000rD1pvAAC,1263,2017-07-01,Town
+Henrieville Town,0014100000rD1pwAAC,1265,2017-07-01,Town
+Hideout Town,0014100000rD1pxAAC,1027,2017-07-01,Town
+Hinckley Town,0014100000rD1pyAAC,1049,2017-07-01,Town
+Holden Town,0014100000rD1pzAAC,1267,2017-07-01,Town
+Howell Town,0014100000rD1q0AAC,1271,2017-07-01,Town
+Huntsville Town,0014100000rD1q1AAC,1115,2017-07-01,Town
+Independence,0014100000rD1q2AAC,1273,2017-07-01,Town
+Joseph Town,0014100000rD1q3AAC,1277,2017-07-01,Town
+Junction Town,0014100000rD1q4AAC,1279,2017-07-01,Town
+Kanarraville Town,0014100000rD1q5AAC,1281,2017-07-01,Town
+Kanosh Town,0014100000rD1q6AAC,1283,2017-07-01,Town
+Kingston,0014100000rD1q7AAC,1285,2017-07-01,Town
+Koosharem Town,0014100000rD1q8AAC,1287,2017-07-01,Town
+Laketown Town,0014100000rD1q9AAC,1289,2017-07-01,Town
+Leamington Town,0014100000rD1qAAAS,1291,2017-07-01,Town
+Leeds Town,0014100000rD1qBAAS,1293,2017-07-01,Town
+Levan Town,0014100000rD1qCAAS,477,2017-07-01,Town
+Loa Town,0014100000rD1qDAAS,899,2017-07-01,Town
+Lyman Town,0014100000rD1qEAAS,1295,2017-07-01,Town
+Lynndyl Town,0014100000rD1qFAAS,1297,2017-07-01,Town
+Manila Town,0014100000rD1qGAAS,1147,2017-07-01,Town
+Mantua Town,0014100000rD1qHAAS,1051,2017-07-01,Town
+Marysvale Town,0014100000rD1qIAAS,1299,2017-07-01,Town
+Mayfield Town,0014100000rD1qJAAS,1039,2017-07-01,Town
+Meadow Town,0014100000rD1qKAAS,1301,2017-07-01,Town
+Mendon City,0014100000rD1qLAAS,1159,2017-07-01,Town
+Minersville Town,0014100000rD1qMAAS,1303,2017-07-01,Town
+New Harmony Town,0014100000rD1qNAAS,1305,2017-07-01,Town
+Newton Town,0014100000rD1qOAAS,1307,2017-07-01,Town
+Oak City,0014100000rD1qPAAS,1041,2017-07-01,Town
+Orderville Town,0014100000rD1qRAAS,1311,2017-07-01,Town
+Paradise Town,0014100000rD1qSAAS,1053,2017-07-01,Town
+Paragonah Town,0014100000rD1qTAAS,1043,2017-07-01,Town
+Plymouth Town,0014100000rD1qUAAS,1313,2017-07-01,Town
+Portage Town,0014100000rD1qVAAS,1315,2017-07-01,Town
+Randolph Town,0014100000rD1qWAAS,1317,2017-07-01,Town
+Redmond Town,0014100000rD1qXAAS,1055,2017-07-01,Town
+Rockville Town,0014100000rD1qYAAS,1319,2017-07-01,Town
+Rocky Ridge Town,0014100000rD1qZAAS,1321,2017-07-01,Town
+Rush Valley Town,0014100000rD1qaAAC,1323,2017-07-01,Town
+Scipio Town,0014100000rD1qbAAC,1325,2017-07-01,Town
+Scofield Town,0014100000rD1qcAAC,1327,2017-07-01,Town
+Sigurd Town,0014100000rD1qdAAC,1329,2017-07-01,Town
+Snowville Town,0014100000rD1qeAAC,1331,2017-07-01,Town
+Springdale Town,0014100000rD1qfAAC,593,2017-07-01,Town
+Sterling Town,0014100000rD1qgAAC,1333,2017-07-01,Town
+Stockton Town,0014100000rD1qhAAC,1335,2017-07-01,Town
+Tabiona Town,0014100000rD1qiAAC,1337,2017-07-01,Town
+Torrey Town,0014100000rD1qjAAC,1339,2017-07-01,Town
+Trenton Town,0014100000rD1qkAAC,1341,2017-07-01,Town
+Tropic Town,0014100000rD1qlAAC,1057,2017-07-01,Town
+Vernon Town,0014100000rD1qmAAC,1343,2017-07-01,Town
+Vineyard Town,0014100000rD1qnAAC,611,2017-07-01,Town
+Virgin Town,0014100000rD1qoAAC,1345,2017-07-01,Town
+Wales Town,0014100000rD1qpAAC,1347,2017-07-01,Town
+Wallsburg Town,0014100000rD1qqAAC,1349,2017-07-01,Town
+Woodruff Town,0014100000rD1qrAAC,1351,2017-07-01,Town
+Interlaken Town,0014100000rD1qsAAC,1275,2017-07-01,Town
+Dutch John,0014100000rD1qtAAC,1617,2017-07-01,Town
+Davis Community Housing Authority,0014100000rD1urAAC,1609,2017-10-01,Housing
+Salt Lake Valley Solid Waste Management Facility,0014100000rD1utAAC,1620,2018-01-01,Interlocal
+Mt. Nebo Water Agency,0014100000rD1uuAAC,1400,2017-07-01,Interlocal
+Central Wasatch Commission,0014100000rD1uwAAC,1627,2017-07-01,Interlocal
+Ash Creek Special Service District,0014100000rD1uxAAC,727,2018-01-01,Local_and_Special_Service_District
+Box Elder County and Perry City Flood Control,0014100000rD1uyAAC,1465,2018-01-01,Local_and_Special_Service_District
+Cache Mosquito Abatement District,0014100000rD1uzAAC,1415,2018-01-01,Local_and_Special_Service_District
+Castle Valley Special Service District,0014100000rD1v0AAC,769,2018-01-01,Local_and_Special_Service_District
+Cottonwood Heights Parks and Recreation Service Area,0014100000rD1v1AAC,699,2018-01-01,Local_and_Special_Service_District
+Dixie Deer Special Service District,0014100000rD1v2AAC,1416,2018-01-01,Local_and_Special_Service_District
+Garland Cemetery Maintenance District,0014100000rD1v3AAC,1486,2018-01-01,Local_and_Special_Service_District
+Grand County Water Conservancy District,0014100000rD1v4AAC,1398,2018-01-01,Local_and_Special_Service_District
+Hatch Cemetery Maintenance District,0014100000rD1v5AAC,1492,2018-01-01,Local_and_Special_Service_District
+Jordan Valley Water Conservancy District,0014100000rD1v6AAC,859,2017-07-01,Local_and_Special_Service_District
+Midvalley Improvement District,0014100000rD1v7AAC,661,2018-01-01,Local_and_Special_Service_District
+Park City Fire Service District,0014100000rD1v8AAC,799,2018-01-01,Local_and_Special_Service_District
+Rush Valley Water Conservancy District,0014100000rD1v9AAC,1522,2018-01-01,Local_and_Special_Service_District
+Solid Waste Special Service District 1,0014100000rD1vAAAS,1089,2018-01-01,Local_and_Special_Service_District
+South Utah Valley Electric Service District,0014100000rD1vBAAS,649,2017-10-01,Local_and_Special_Service_District
+South Utah Valley Solid Waste District,0014100000rD1vCAAS,755,2017-07-01,Local_and_Special_Service_District
+South Valley Sewer District,0014100000rD1vDAAS,729,2018-01-01,Local_and_Special_Service_District
+Specially Funded Transportation Special Service District,0014100000rD1vEAAS,1447,2018-01-01,Local_and_Special_Service_District
+Tooele County Transportation Special Service District,0014100000rD1vFAAS,1375,2018-01-01,Local_and_Special_Service_District
+Utah Transit Authority,0014100000rD1vGAAS,23,2018-01-01,Independent_Quasi_State_Entity
+Weber Basin Water Conservancy District,0014100000rD1vHAAS,735,2017-07-01,Local_and_Special_Service_District
+Greater Salt Lake Municipal Services District,0014100000rD1vJAAS,1556,2018-01-01,Local_and_Special_Service_District
+Glen Canyon Special Service District of Big Water,0014100000rD1vKAAS,1602,2017-07-01,Local_and_Special_Service_District
+Western Weber Park District,0014100000rD1vLAAS,1678,2018-01-01,Local_and_Special_Service_District
+Copperton Metro Township,0014100000rD1vlAAC,1622,2018-01-01,Town
+Magna Metro Township,0014100000rD1vmAAC,1625,2018-01-01,Town
+Kearns Metro Township,0014100000rD1vnAAC,1624,2018-01-01,Town
+White City Metro Township,0014100000rD1voAAC,1626,2018-01-01,Town
+Emigration Canyon Metro Township,0014100000rD1vpAAC,1623,2018-01-01,Town
+Heber Valley Historic Railroad Authority,0014100000rD4i0AAC,989,2019-07-01,Independent_Quasi_State_Entity
+Utah Beef Council,0014100000rD4inAAC,1640,2018-01-01,Independent_Quasi_State_Entity
+Utah Communications Authority,0014100000rD4iqAAC,995,2018-07-01,Independent_Quasi_State_Entity
+Utah Dairy Commission,0014100000rD4isAAC,1588,2018-01-01,Independent_Quasi_State_Entity
+Utah Housing Corporation,0014100000rD4ixAAC,991,2018-07-01,Independent_Quasi_State_Entity
+Utah State Fair Corporation,0014100000rD4j9AAC,993,2018-07-01,Independent_Quasi_State_Entity
+Cache County EMS Authority,0014100000wXQb6AAG,1586,2018-01-01,Local_and_Special_Service_District
+Salt Lake City Public Library,0014100000wXV3fAAG,843,2017-07-01,Local_and_Special_Service_District
+Utah Performing Arts Center Agency (Eccles Theatre),0014100000wXfW3AAK,1621,2018-01-01,Interlocal
+Cedar Highlands,0014100001PvC9BAAV,1634,2018-07-01,Town
+North Park Police Agency,0014100001bB046AAC,1630,2017-07-01,Interlocal
+Grand County Emergency Medical Services Special Service District,0014100001g9hOMAAY,1636,2018-01-01,Local_and_Special_Service_District
+Beaver Valley Hospital,0014100001op9otAAA,1641,2018-07-01,District_Health
+Bluff,0014100001qGgOIAA0,1637,2018-07-01,Town
+Riverton Law Enforcement Service Area,0014100001vz39dAAA,1635,2018-01-01,Local_and_Special_Service_District

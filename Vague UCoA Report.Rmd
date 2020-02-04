@@ -1,6 +1,6 @@
 ---
 title: "Vague UCoA Report"
-author: "Michael Jensen"
+author: "Michael Jensen- Amended by Alexander Nielson"
 date: "September 2019"
 output: html_notebook
 ---
@@ -11,6 +11,9 @@ output: html_notebook
 For non-archived Transparent Utah data, determine the percentage of UCoA function and account codes that are vague. 
 
 Valid-but-vague UCoA values are an obstacle to making the data useful for analysis. We want to identify entities with a high percentage of vague UCoA values so we can work with them to get more detailed financial information.
+
+NOTE: a vague UCoA is usually considered one that can be broken down further at a function, or accounts level. 
+
 
 **Input(s)**
 
@@ -95,6 +98,7 @@ check_percentage_of_vague_ucoa <- function(t_id, ucoa_type, ucoa) {
               WHERE entity_id = ", t_id, "
               AND status IN ('PROCESSED', 'PROCESSING', 'DONTDELETE'))")) %>% 
     as_tibble() %>% 
+    #note nchar returns the number of characters.
     filter(nchar(account_number, allowNA = TRUE) == 19) %>% 
     filter(!is.na(account_number))
 
@@ -193,22 +197,26 @@ sf_data <-
 ## UCoA
 
 ```{r}
+#note that excel_sheets() returns a list, hence the list access syntax.
+
 ucoa_fund <- 
-  read_xlsx("ucoa.xlsx", sheet = excel_sheets("ucoa.xlsx")[[1]])
+  read_xlsx("ucoa.xlsx", sheet = excel_sheets("ucoa.xlsx")[[1]] )
 
 ucoa_function <- 
-  read_xlsx("ucoa.xlsx", sheet = excel_sheets("ucoa.xlsx")[[2]])
+  read_xlsx("ucoa.xlsx", sheet = excel_sheets("ucoa.xlsx")[[2]] )
 
 ucoa_account <- 
-  read_xlsx("ucoa.xlsx", sheet = excel_sheets("ucoa.xlsx")[[3]])
+  read_xlsx("ucoa.xlsx", sheet = excel_sheets("ucoa.xlsx")[[3]] )
 
-# Some of the code below will become unnecessary after I edit OSA's Uniform
-# Chart of Accounts and publish it on the OSA website.
+#Since the xlsx file was built to be readable, and not necessarily easily
+#parsed, the first two rows must be cleaned. 
 
+#fix the column names
 colnames(ucoa_fund)     <- ucoa_fund[2, ]
 colnames(ucoa_function) <- c("NUMBER", ucoa_function[1, 2:4])
 colnames(ucoa_account)  <- ucoa_account[2, ]
 
+#remove the useless rows.
 ucoa_fund     <- ucoa_fund     %>% slice(-1, -2)
 ucoa_function <- ucoa_function %>% slice(-1)
 ucoa_account  <- ucoa_account  %>% slice(-1, -2)
@@ -236,11 +244,15 @@ ucoa_function$NUMBER[[1]] <- "000000"
 
 ucoa_account_exp <-
   ucoa_account %>% 
-  filter(str_detect(NUMBER, "^4"))
+  filter(str_detect(NUMBER, "^4"))# filter for any row which starts with 4,
+                                  # this is because UCoA attributes anything in 
+                                  # the 3000-3999 to revenues
 
 ucoa_account_rev <- 
   ucoa_account %>% 
-  filter(str_detect(NUMBER, "^3"))
+  filter(str_detect(NUMBER, "^3"))# filter for any row which starts with 3
+                                  # this is because UCoA attribtes anything in
+                                  # the 3000-3999 to revenues
   
 # ucoa_account_w2 <- 
 #   ucoa_account %>% 
@@ -248,40 +260,46 @@ ucoa_account_rev <-
 
 ucoa_vague_funct <- 
   ucoa_function %>% 
-  filter(
-    NUMBER == "000000" |
-    NUMBER == "100000" |
-    NUMBER == "200000" |
-    NUMBER == "300000" |
-    NUMBER == "400000" |
-    NUMBER == "500000")
+  filter(                #DESCRIPTION OF FUNCTION
+    NUMBER == "000000" | # Not Applicable
+    NUMBER == "100000" | # General Government
+    NUMBER == "200000" | # Public Safety
+    NUMBER == "300000" | # Public Works
+    NUMBER == "400000" | # Health
+    NUMBER == "500000")  # Community
 
 ucoa_vague_exp <- 
   ucoa_account_exp %>% 
-  filter(
-    NUMBER == "40000000" |
-    NUMBER == "40010000" |
-    NUMBER == "40020000" |
-    NUMBER == "40030000" |
-    NUMBER == "40040000" |
-    NUMBER == "40050000" |
-    NUMBER == "40060000" |
-    NUMBER == "40070000" |
-    NUMBER == "40080000" |
-    NUMBER == "40110000" |
-    NUMBER == "40170000" )
+  filter(                  # DESCRIPTION of Expeditures accounts
+    NUMBER == "40000000" | # Expenditures
+    NUMBER == "40010000" | # Personnel Services
+    NUMBER == "40020000" | # General and Contracted Services
+    NUMBER == "40030000" | # Utilities and Utility Services
+    NUMBER == "40040000" | # Taxes and Fees
+    NUMBER == "40050000" | # Supplies and Materials
+    NUMBER == "40060000" | # Grants and Contracts
+    NUMBER == "40070000" | # Direct Payments
+    NUMBER == "40080000" | # Capital Outlays
+      # Notice that I think that 40090000 Interdepartmental Charges, and
+      # 40100000 Judgements and Losses are considered non-vague. Since they
+      # cannot be broken down further. If this ever change then we would need to
+      # include them here.
+    NUMBER == "40110000" | # Other financing Uses
+      # As noted above, 40120000:40160000 cannot be broken down into more
+      # specific accounts
+    NUMBER == "40170000" ) # Debt Service
 
 ucoa_vague_rev <- 
   ucoa_account_rev %>% 
-  filter(
-    NUMBER == "30000000" |
-    NUMBER == "30010000" |
-    NUMBER == "30020000" |
-    NUMBER == "30030000" |
-    NUMBER == "30040000" |
-    NUMBER == "30050000" |
-    NUMBER == "30060000" |
-    NUMBER == "30070000" )
+  filter(                  # DESCRIPTION OF Revenue accounts
+    NUMBER == "30000000" | # Revenues
+    NUMBER == "30010000" | # Taxes
+    NUMBER == "30020000" | # Licenses and Permits
+    NUMBER == "30030000" | # Intergovernmental
+    NUMBER == "30040000" | # Charges For Service
+    NUMBER == "30050000" | # Fines and Forfeitures
+    NUMBER == "30060000" | # Miscellaneous
+    NUMBER == "30070000" ) # Other Sources of Funding
 
 ucoa <-
   list(

@@ -1,0 +1,439 @@
+# Program Description
+
+**Purpose**
+I am interested in learning more about how to access and pay with the UCOA codes. I decided to conduct some Exploratory Data Analysis in this document as well.
+
+DURATION: the script will take about 20-30 minutes to run.
+
+**Input(s)**
+
+```{r}
+dsn_aws        <- "transpAWS"
+dsn_salesforce <- "salesforce"
+```
+
+**Output(s)**
+
+
+# Libraries and Data Sources
+
+```{r}
+library(lubridate)
+library(magrittr)
+library(odbc)
+library(readxl)
+library(tidyverse)
+
+odbc_aws <- dbConnect(odbc::odbc(), dsn_aws)
+odbc_sf  <- dbConnect(odbc::odbc(), dsn_salesforce)
+
+rm(dsn_aws, dsn_salesforce)
+
+download.file(
+  "http://financialreports.utah.gov/chartofaccounts/ChartofAccountFull.xlsx",
+  "ucoa.xlsx",
+  mode = "wb")
+```
+
+
+# Function Definitions
+
+#plot_in_range
+```{r}
+
+```
+
+#plot_by_ucoa_category
+```{r}
+
+```
+
+
+# Execution
+
+## Salesforce
+
+Query Salesforce. 
+```{r}
+# Note that I do not query LEAs. They are managed by USBE, which uses a
+# different chart of accounts. I also do not query higher education.
+
+sf_data <-
+  dbGetQuery(
+    odbc_sf,
+    paste("
+          SELECT
+            Account.Name                  AS name,
+            Account.Id                    AS id,
+            Account.Transparency_ID__c    AS t_id,
+            Account.Fiscal_Year_Begins__c AS begin_fy,
+            RecordType.DeveloperName      AS govt_type
+          FROM Account
+          JOIN RecordType
+          ON Account.RecordTypeId = RecordType.Id
+          WHERE Account.RecordTypeId IN (
+            SELECT Id
+            FROM RecordType
+            WHERE DeveloperName IN (
+            'AOG',
+            'City',
+            'Conservation_District',
+            'County',
+            'District_Health',
+            'Housing',
+            'Independent_Quasi_State_Entity',
+            'Interlocal',
+            'Local_and_Special_Service_District',
+            'Mental_Health',
+            'Redevelopment_Agency_Project_Area',
+            'Town'))
+          AND Account.Entity_Status__c IN (
+            'Current',
+            'On hold',
+            'Delinquent',
+            'Suspended')
+          AND Account.Name NOT IN (
+            'Intermountain Power Agency',
+            'Utah Associated Municipal Power Systems',
+            'Utah Municipal Power Agency')
+          AND (
+            Account.Expense_Revenue_Start_Date__c <= DATE() OR
+            Account.Expense_Revenue_Start_Date__c IS NULL)")) %>%
+  as_tibble()
+```
+
+## UCOA
+
+```{r}
+#note that excel_sheets() returns a list, hence the list access syntax.
+#access in this way since it is a xlsx file.
+ucoa_fund <- 
+  read_xlsx("ucoa.xlsx", sheet = excel_sheets("ucoa.xlsx")[[1]] )
+
+ucoa_function <- 
+  read_xlsx("ucoa.xlsx", sheet = excel_sheets("ucoa.xlsx")[[2]] )
+
+ucoa_account <- 
+  read_xlsx("ucoa.xlsx", sheet = excel_sheets("ucoa.xlsx")[[3]] )
+
+#Since the xlsx file was built to be readable, and not necessarily easily
+#parsed, the first two rows must be cleaned. 
+
+#fix the column names
+colnames(ucoa_fund)     <- ucoa_fund[2, ]
+colnames(ucoa_function) <- c("NUMBER", ucoa_function[1, 2:4])
+colnames(ucoa_account)  <- ucoa_account[2, ]
+
+#remove the useless rows.
+ucoa_fund     <- ucoa_fund     %>% slice(-1, -2)
+ucoa_function <- ucoa_function %>% slice(-1)
+ucoa_account  <- ucoa_account  %>% slice(-1, -2)
+
+
+extra_fund_numbers <-
+  c(201:299, 301:399, 401:449, 451:499, 501:599, 601:699, 701:799) %>%
+  as.character() %>%
+  enframe(name = NULL) %>%
+  rename("NUMBER" = "value") %>%
+  mutate("SHORT DESCRIPTION" = NA,
+         `FULL DESCRIPTION` = case_when(
+            NUMBER %in% (201:299) ~ "Special Revenue Funds (as assigned by local government)",
+            NUMBER %in% (301:399) ~ "Debt Service Funds (as assigned by local government)",
+            NUMBER %in% (401:449) ~ "Capital Projects Funds (as assigned by local government)",
+            NUMBER %in% (451:499) ~ "Permanent Funds (as assigned by local government)",
+            NUMBER %in% (501:599) ~ "Enterprise Funds (as assigned by local government)",
+            NUMBER %in% (601:699) ~ "Internal Service Funds (as assigned by local government)",
+            NUMBER %in% (701:799) ~ "Trust and Agency Funds (as assigned by local government)"
+                                        ),
+         "DETAIL" = NA
+    
+         )
+
+ucoa_fund <-
+  ucoa_fund %>%
+  bind_rows(extra_fund_numbers)
+
+#fix some other random formattings. ie: 10 ==> 010
+
+ucoa_fund$NUMBER[[1]]     <- "010"
+ucoa_fund$NUMBER[[2]]     <- "020"
+ucoa_fund$NUMBER[[3]]     <- "030"
+ucoa_function$NUMBER[[1]] <- "000000"
+
+#we want a table of just account expenditures
+ucoa_account_exp <-
+  ucoa_account %>% 
+  filter(str_detect(NUMBER, "^4"))# filter for any row which starts with 4,
+                                  # this is because UCoA attributes anything in 
+                                  # the 3000-3999 to revenues
+
+#we also want a table of just account revenues. 
+ucoa_account_rev <- 
+  ucoa_account %>% 
+  filter(str_detect(NUMBER, "^3"))# filter for any row which starts with 3
+                                  # this is because UCoA attribtes anything in
+                                  # the 3000-3999 to revenues
+
+#if we want a table of just w2 information, then we should run this code too.  
+# ucoa_account_w2 <- 
+#   ucoa_account %>% 
+#   filter(str_detect(NUMBER, "^4001"))
+
+
+ucoa_vague_funct <- 
+  ucoa_function %>% 
+  filter(                #DESCRIPTION OF FUNCTION
+    NUMBER == "000000" | # Not Applicable
+    NUMBER == "100000" | # General Government
+    NUMBER == "200000" | # Public Safety
+    NUMBER == "300000" | # Public Works
+    NUMBER == "400000" | # Health
+    NUMBER == "500000")  # Community
+
+ucoa_vague_exp <- 
+  ucoa_account_exp %>% 
+  filter(                  # DESCRIPTION of Expeditures accounts
+    NUMBER == "40000000" | # Expenditures
+    NUMBER == "40010000" | # Personnel Services
+    NUMBER == "40020000" | # General and Contracted Services
+    NUMBER == "40030000" | # Utilities and Utility Services
+    NUMBER == "40040000" | # Taxes and Fees
+    NUMBER == "40050000" | # Supplies and Materials
+    NUMBER == "40060000" | # Grants and Contracts
+    NUMBER == "40070000" | # Direct Payments
+    NUMBER == "40080000" | # Capital Outlays
+      # Notice that I think that 40090000 Interdepartmental Charges, and
+      # 40100000 Judgements and Losses are considered non-vague. Since they
+      # cannot be broken down further. If this ever change then we would need to
+      # include them here.
+    NUMBER == "40110000" | # Other financing Uses
+      # As noted above, 40120000:40160000 cannot be broken down into more
+      # specific accounts
+    NUMBER == "40170000" ) # Debt Service
+
+ucoa_vague_rev <- 
+  ucoa_account_rev %>% 
+  filter(                  # DESCRIPTION OF Revenue accounts
+    NUMBER == "30000000" | # Revenues
+    NUMBER == "30010000" | # Taxes
+    NUMBER == "30020000" | # Licenses and Permits
+    NUMBER == "30030000" | # Intergovernmental
+    NUMBER == "30040000" | # Charges For Service
+    NUMBER == "30050000" | # Fines and Forfeitures
+    NUMBER == "30060000" | # Miscellaneous
+    NUMBER == "30070000" ) # Other Sources of Funding
+
+ucoa <-
+  list(
+    fund        = ucoa_fund,
+    funct       = ucoa_function,
+    account     = ucoa_account,
+    account_exp = ucoa_account_exp,
+    account_rev = ucoa_account_rev,
+    vague_funct = ucoa_vague_funct,
+    vague_exp   = ucoa_vague_exp,
+    vague_rev   = ucoa_vague_rev)
+
+rm(ucoa_fund, ucoa_function, ucoa_account, extra_fund_numbers, ucoa_account_exp,
+   ucoa_account_rev, ucoa_vague_funct, ucoa_vague_exp, ucoa_vague_rev)
+```
+
+## Analysis
+```{r}
+
+# temp_report %>% sf_data %>% 
+#   slice(100) %>% #take first 100 rows so the report does not take too long
+#   filter(!is.na(t_id)) %>% 
+#   group_by()
+
+
+
+#!!!!!!!!!Takes a while since it must go through nearly 45 million records. About 20 minuts. 
+  reported_ucoa <-
+  dbGetQuery(
+    odbc_aws,
+    paste("
+          SELECT id,
+            batch_id,
+            fiscal_year,
+            entity_trans_id,
+            account_number,
+            type,
+            vendor_id 
+          FROM transaction
+          WHERE account_number IS NOT NULL")) %>%
+  as_tibble() %>%
+  # note nchar returns the number of characters.
+  filter(nchar(account_number, allowNA = TRUE) == 19) %>%
+  filter(!is.na(account_number))
+
+  #get acceptable batch_ids.
+  # acceptable_batch_ids <- 
+  #   dbGetQuery(
+  #     odbc_aws,
+  #     paste(" SELECT id
+  #             FROM batch
+  #             WHERE status IN ('PROCESSED', 'PROCESSING', 'DONTDELETE')"))
+
+  # takes like one minute. This breaks out the account numbers into fund, function, and account. 
+  brokenout_reported_ucoa <- reported_ucoa %>% 
+    mutate(
+      fund = .[["account_number"]] %>% substr(0, 3),
+      funct = .[["account_number"]] %>% substr(5, 10),
+      account = .[["account_number"]] %>%  substr(12, 19),
+    ) %>% 
+  
+    #ALEX: add a validation here which checks that there are two dashes, and they are spaced appropriately. 
+    #probably use regex to do this.
+    
+  # join, so we know what the codes mean. note:takes about 30-60 seconds.
+  # join the funds
+  left_join(ucoa[["fund"]] %>%
+              as_tibble() %>%
+              select(NUMBER, fund_description =`FULL DESCRIPTION`),
+            by = c("fund"="NUMBER")
+            ) %>% 
+  # join the functions
+  left_join(ucoa[["funct"]] %>%
+              as_tibble() %>%
+              select(NUMBER, function_description = `FULL DESCRIPTION`),
+            by = c("funct" = "NUMBER")
+            ) %>% 
+  # join the accounts
+  left_join(ucoa[["account"]] %>% 
+              as_tibble() %>% 
+              select(NUMBER, account_description = `FULL DESCRIPTION`),
+            by = c("account" = "NUMBER")
+            )
+  # Great, now we have a tidy version of the accounts. 
+
+```
+
+##generate agg tables of interest
+
+### aggregate by description and code
+```{r}
+agg_fund<-brokenout_reported_ucoa %>%
+  group_by(fund_description, fund) %>% 
+  count(fund)%>% 
+  arrange(desc(n))
+
+agg_function<-brokenout_reported_ucoa %>%
+  group_by(function_description, funct) %>% 
+  count(funct)%>% 
+  arrange(desc(n))
+
+agg_account<-brokenout_reported_ucoa %>%
+  group_by(account_description, account) %>% 
+  count(account)%>% 
+  arrange(desc(n))
+
+```
+
+note that the next two aggregations are only contigently useful. If the data is properly cleaned, then they are redundant. 
+
+### aggregate by description only
+```{r}
+agg_fund_by_description<-brokenout_reported_ucoa %>%
+  group_by(fund_description) %>% 
+  count(fund_description)%>% 
+  arrange(desc(n))
+
+agg_function_by_description<-brokenout_reported_ucoa %>%
+  group_by(function_description) %>% 
+  count(function_description)%>% 
+  arrange(desc(n))
+
+agg_account_by_description<-brokenout_reported_ucoa %>%
+  group_by(account_description) %>% 
+  count(account_description)%>% 
+  arrange(desc(n))
+```
+
+#aggregate by code only
+```{r}
+agg_fund_by_code<-brokenout_reported_ucoa %>%
+  group_by(fund) %>% 
+  count(fund)%>% 
+  arrange(desc(n))
+
+agg_function_by_code<-brokenout_reported_ucoa %>%
+  group_by(funct) %>% 
+  count(funct)%>% 
+  arrange(desc(n))
+
+agg_account_by_code<-brokenout_reported_ucoa %>%
+  group_by(account) %>% 
+  count(account) %>% 
+  arrange(desc(n))
+```
+
+
+
+#Visualizations
+
+##visualizae aggregate tables
+
+### Visualizing the the "Fund" category
+```{r}
+#create a simple histogram to show the different types of ucoa codes for funds only
+agg_fund_by_description %>% 
+  #filter(n < 1000000) %>% 
+  ggplot(aes(x=fund_description, y=n))+ geom_bar(stat = "identity", fill = "lightcoral")+
+  coord_flip()+
+  geom_text(aes(label=n), hjust = -.25,vjust=0, size=2)
+```
+
+###visualizing the "Function" category
+
+
+###visualizing the "Account" category
+```{r}
+
+temp_sequence_revenues <- seq(from = 3000, to = 3009,  by=1)
+
+plot_in_range <- function(temp_range,range_begin,range_end,range_incrementor ){
+  
+    temp_sequence_revenues <- seq(from = range_begin,
+                                  to = range_end,
+                                  by= range_incrementor )
+    p <- agg_account %>% 
+    #filter(n < 1000000) %>% 
+    filter(str_detect(account, paste0("^",temp_range))) %>% #only selects taxes
+    ggplot(aes(x=account, y=n))+ geom_bar(stat = "identity", fill = "lightcoral")+
+    coord_flip()+
+    # facet_grid(n)+
+    geom_text(aes(label=n), hjust = -.25,vjust=0, size=3)+
+    labs(title = paste0("Barplot of Account Revenues in Range: ", temp_range,"0000") )
+    p
+}
+
+
+plots<- temp_sequence_revenues %>% map(plot_in_range(range_begin = 3000, range_end = 3009, range_incrementor = 1))
+#view  plot elements by like plots[[1]]
+
+```
+
+#Validation / Generate A Problem List
+
+# Find a list of entities who used the wrong fund code
+```{r}
+bad_fund_code<-brokenout_reported_ucoa %>%
+ # slice(1:1000000) %>% #take the first million records
+filter(!fund %in% ucoa[["fund"]]$NUMBER)
+```
+
+#find a list of entities who used the wrong function code
+```{r}
+bad_funct_code<-brokenout_reported_ucoa %>%
+  #slice(1:1000000) %>% #take the first million records
+filter(!funct %in% ucoa[["funct"]]$NUMBER)
+```
+
+# find a list of entities who used the wrong account code
+```{r}
+bad_account_code<-brokenout_reported_ucoa %>%
+  #slice(1:1000000) %>% #take the first million records
+filter(!account %in% ucoa[["account"]]$NUMBER)
+```
+

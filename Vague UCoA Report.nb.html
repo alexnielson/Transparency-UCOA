@@ -9,7 +9,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
 
-<meta name="author" content="Michael Jensen" />
+<meta name="author" content="Michael Jensen- Amended by Alexander Nielson" />
 
 
 <title>Vague UCoA Report</title>
@@ -1745,7 +1745,7 @@ summary {
 
 
 <h1 class="title toc-ignore">Vague UCoA Report</h1>
-<h4 class="author">Michael Jensen</h4>
+<h4 class="author">Michael Jensen- Amended by Alexander Nielson</h4>
 <h4 class="date">September 2019</h4>
 
 </div>
@@ -1757,6 +1757,7 @@ summary {
 <p><strong>Purpose</strong></p>
 <p>For non-archived Transparent Utah data, determine the percentage of UCoA function and account codes that are vague.</p>
 <p>Valid-but-vague UCoA values are an obstacle to making the data useful for analysis. We want to identify entities with a high percentage of vague UCoA values so we can work with them to get more detailed financial information.</p>
+<p>NOTE: a vague UCoA is usually considered one that can be broken down further at a function, or accounts level.</p>
 <p><strong>Input(s)</strong></p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
@@ -1832,10 +1833,9 @@ download.file(
   &quot;ucoa.xlsx&quot;,
   mode = &quot;wb&quot;)</code></pre>
 <!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoidHJ5aW5nIFVSTCAnaHR0cDovL2ZpbmFuY2lhbHJlcG9ydHMudXRhaC5nb3YvY2hhcnRvZmFjY291bnRzL0NoYXJ0b2ZBY2NvdW50RnVsbC54bHN4J1xuQ29udGVudCB0eXBlICdhcHBsaWNhdGlvbi92bmQub3BlbnhtbGZvcm1hdHMtb2ZmaWNlZG9jdW1lbnQuc3ByZWFkc2hlZXRtbC5zaGVldCcgbGVuZ3RoIDcxMzM3IGJ5dGVzICg2OSBLQilcbmRvd25sb2FkZWQgNjkgS0JcbiJ9 -->
-<pre><code>trying URL &#39;http://financialreports.utah.gov/chartofaccounts/ChartofAccountFull.xlsx&#39;
-Content type &#39;application/vnd.openxmlformats-officedocument.spreadsheetml.sheet&#39; length 71337 bytes (69 KB)
-downloaded 69 KB</code></pre>
+<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gZG93bmxvYWQuZmlsZShcImh0dHA6Ly9maW5hbmNpYWxyZXBvcnRzLnV0YWguZ292L2NoYXJ0b2ZhY2NvdW50cy9DaGFydG9mQWNjb3VudEZ1bGwueGxzeFwiLCAgOiBcbiAgY2Fubm90IG9wZW4gZGVzdGZpbGUgJ3Vjb2EueGxzeCcsIHJlYXNvbiAnUGVybWlzc2lvbiBkZW5pZWQnXG4ifQ== -->
+<pre><code>Error in download.file(&quot;http://financialreports.utah.gov/chartofaccounts/ChartofAccountFull.xlsx&quot;,  : 
+  cannot open destfile &#39;ucoa.xlsx&#39;, reason &#39;Permission denied&#39;</code></pre>
 <!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
@@ -1861,29 +1861,8 @@ downloaded 69 KB</code></pre>
 <h2>check_percentage_of_vague_ucoa</h2>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuY2hlY2tfcGVyY2VudGFnZV9vZl92YWd1ZV91Y29hIDwtIGZ1bmN0aW9uKHRfaWQsIHVjb2FfdHlwZSwgdWNvYSkge1xuICAjIERldGVybWluZSB0aGUgcGVyY2VudGFnZSBvZiBhbiBlbnRpdHkncyB0cmFuc2FjdGlvbnMgdGhhdCB1c2UgYSB2YWxpZCBidXQgXG4gICMgdmFndWUgVUNvQSBjb2RlLlxuICAjXG4gICMgQXJndW1lbnRzOlxuICAjICAgdF9pZCAobnVtKTogVGhlIGVudGl0eSdzIFRyYW5zcGFyZW5jeSBJRCwgYXMgcXVlcmllZCBmcm9tIFNhbGVzZm9yY2VcbiAgIyAgICAgcmF0aGVyIHRoYW4gVHJhbnNwYXJlbmN5LlxuICAjICAgdWNvYV90eXBlIChjaGFyKTogVGhlIFVDb0EgY29tcG9uZW50IHRvIGNoZWNrIChcImZ1bmN0XCIgPSBmdW5jdGlvbixcbiAgIyAgICAgXCJleHBcIiA9IGV4cGVuc2UsIFwicmV2XCIgPSByZXZlbnVlKS5cbiAgIyAgIHVjb2EgKGxpc3QpOiBUaGUgbGlzdCBjb250YWluaW5nIHRoZSBGdW5kLCBGdW5jdGlvbiwgYW5kIEFjY291bnQgY29kZXMgXG4gICMgICAgIGZyb20gT1NBJ3MgVW5pZm9ybSBDaGFydCBvZiBBY2NvdW50cy5cbiAgI1xuICAjIFZhbHVlOlxuICAjICAgTnVtZXJpYy5cbiAgIyBcbiAgIyBDb21tZW50czpcbiAgIyAgIFRoZSBVQ29BIGNvZGUgaXMgdGhlIGtleSB0byBhbmFseXppbmcsIGluIGFnZ3JlZ2F0ZSwgbG9jYWwgZ292ZXJubWVudCBcbiAgIyAgIGZpbmFuY2lhbCBkYXRhLiBUaGUgVUNvQSBjb2RlIGlzIG1pbmltYWxseSB1c2VmdWwgaWYgZ292ZXJubWVudHMgYXJlIFxuICAjICAgdXNpbmcgb25seSB0aGUgbW9zdCBnZW5lcmFsIGNvZGUgKGUuZy4sIGNvZGluZyBhIHRyYW5zYWN0aW9uIGFzXG4gICMgICAxMDAtMDAwMDAwLTMwMDAwMDAwIGlzbid0IHVzZWZ1bCkuXG4gIFxuICByZXBvcnRlZF91Y29hIDwtIFxuICAgIGRiR2V0UXVlcnkoXG4gICAgICBvZGJjX2F3cyxcbiAgICAgIHBhc3RlKFwiXG4gICAgICAgICAgICBTRUxFQ1QgYWNjb3VudF9udW1iZXIsIHR5cGVcbiAgICAgICAgICAgIEZST00gdHJhbnNhY3Rpb25cbiAgICAgICAgICAgIFdIRVJFIGJhdGNoX2lkIElOIChcbiAgICAgICAgICAgICAgU0VMRUNUIGlkXG4gICAgICAgICAgICAgIEZST00gYmF0Y2hcbiAgICAgICAgICAgICAgV0hFUkUgZW50aXR5X2lkID0gXCIsIHRfaWQsIFwiXG4gICAgICAgICAgICAgIEFORCBzdGF0dXMgSU4gKCdQUk9DRVNTRUQnLCAnUFJPQ0VTU0lORycsICdET05UREVMRVRFJykpXCIpKSAlPiUgXG4gICAgYXNfdGliYmxlKCkgJT4lIFxuICAgIGZpbHRlcihuY2hhcihhY2NvdW50X251bWJlciwgYWxsb3dOQSA9IFRSVUUpID09IDE5KSAlPiUgXG4gICAgZmlsdGVyKCFpcy5uYShhY2NvdW50X251bWJlcikpXG5cbiAgaWYgKHVjb2FfdHlwZSA9PSBcImZ1bmN0XCIpIHtcbiAgICBcbiAgICB2YWd1ZV91Y29hX2NvZGVzIDwtIHVjb2FbW1widmFndWVfZnVuY3RcIl1dW1tcIk5VTUJFUlwiXV1cbiAgICBcbiAgICByZXBvcnRlZF91Y29hIDwtIFxuICAgICAgcmVwb3J0ZWRfdWNvYSAlPiUgXG4gICAgICAuW1tcImFjY291bnRfbnVtYmVyXCJdXSAlPiUgXG4gICAgICBzdWJzdHIoNSwgMTApXG4gICAgXG4gIH0gZWxzZSBpZiAodWNvYV90eXBlID09IFwiZXhwXCIpIHtcbiAgICBcbiAgICB2YWd1ZV91Y29hX2NvZGVzIDwtIHVjb2FbW1widmFndWVfZXhwXCJdXVtbXCJOVU1CRVJcIl1dXG4gICAgXG4gICAgcmVwb3J0ZWRfdWNvYSA8LSBcbiAgICAgIHJlcG9ydGVkX3Vjb2EgJT4lIFxuICAgICAgZmlsdGVyKHR5cGUgPT0gMSkgJT4lIFxuICAgICAgLltbXCJhY2NvdW50X251bWJlclwiXV0gJT4lIFxuICAgICAgc3Vic3RyKDEyLCAxOSlcbiAgICBcbiAgfSBlbHNlIGlmICh1Y29hX3R5cGUgPT0gXCJyZXZcIikge1xuICAgIFxuICAgIHZhZ3VlX3Vjb2FfY29kZXMgPC0gdWNvYVtbXCJ2YWd1ZV9yZXZcIl1dW1tcIk5VTUJFUlwiXV1cbiAgICBcbiAgICByZXBvcnRlZF91Y29hIDwtIFxuICAgICAgcmVwb3J0ZWRfdWNvYSAlPiUgXG4gICAgICBmaWx0ZXIodHlwZSA9PSAyKSAlPiUgXG4gICAgICAuW1tcImFjY291bnRfbnVtYmVyXCJdXSAlPiUgXG4gICAgICBzdWJzdHIoMTIsIDE5KVxuICB9XG4gIFxuICByZXBvcnRlZF92YWd1ZV91Y29hIDwtIFxuICAgIHJlcG9ydGVkX3Vjb2FbcmVwb3J0ZWRfdWNvYSAlaW4lIHZhZ3VlX3Vjb2FfY29kZXNdXG4gIFxuICBwZXJjZW50X3ZhZ3VlIDwtIFxuICAgIChsZW5ndGgocmVwb3J0ZWRfdmFndWVfdWNvYSkgLyBsZW5ndGgocmVwb3J0ZWRfdWNvYSkpICogMTAwXG5cbiAgcm91bmQocGVyY2VudF92YWd1ZSlcbn1cbmBgYCJ9 -->
-<pre class="r"><code>check_percentage_of_vague_ucoa &lt;- function(t_id, ucoa_type, ucoa) {
-  # Determine the percentage of an entity&#39;s transactions that use a valid but 
-  # vague UCoA code.
-  #
-  # Arguments:
-  #   t_id (num): The entity&#39;s Transparency ID, as queried from Salesforce
-  #     rather than Transparency.
-  #   ucoa_type (char): The UCoA component to check (&quot;funct&quot; = function,
-  #     &quot;exp&quot; = expense, &quot;rev&quot; = revenue).
-  #   ucoa (list): The list containing the Fund, Function, and Account codes 
-  #     from OSA&#39;s Uniform Chart of Accounts.
-  #
-  # Value:
-  #   Numeric.
-  # 
-  # Comments:
-  #   The UCoA code is the key to analyzing, in aggregate, local government 
-  #   financial data. The UCoA code is minimally useful if governments are 
-  #   using only the most general code (e.g., coding a transaction as
-  #   100-000000-30000000 isn&#39;t useful).
-  
-  reported_ucoa &lt;- 
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuICByZXBvcnRlZF91Y29hIDwtIFxuICAgIGRiR2V0UXVlcnkoXG4gICAgICBvZGJjX2F3cyxcbiAgICAgIHBhc3RlKFwiXG4gICAgICAgICAgICBTRUxFQ1QgYWNjb3VudF9udW1iZXIsIHR5cGVcbiAgICAgICAgICAgIEZST00gdHJhbnNhY3Rpb25cbiAgICAgICAgICAgIFdIRVJFIGJhdGNoX2lkIElOIChcbiAgICAgICAgICAgICAgU0VMRUNUIGlkXG4gICAgICAgICAgICAgIEZST00gYmF0Y2hcbiAgICAgICAgICAgICAgV0hFUkUgZW50aXR5X2lkID0gXCIsIDUxLCBcIlxuICAgICAgICAgICAgICBBTkQgc3RhdHVzIElOICgnUFJPQ0VTU0VEJywgJ1BST0NFU1NJTkcnLCAnRE9OVERFTEVURScpKVwiKSkgJT4lIFxuICAgIGFzX3RpYmJsZSgpICU+JSBcbiAgICAjbm90ZSBuY2hhciByZXR1cm5zIHRoZSBudW1iZXIgb2YgY2hhcmFjdGVycy5cbiAgICBmaWx0ZXIobmNoYXIoYWNjb3VudF9udW1iZXIsIGFsbG93TkEgPSBUUlVFKSA9PSAxOSkgJT4lIFxuICAgIGZpbHRlcighaXMubmEoYWNjb3VudF9udW1iZXIpKVxuXG5gYGAifQ== -->
+<pre class="r"><code>  reported_ucoa &lt;- 
     dbGetQuery(
       odbc_aws,
       paste(&quot;
@@ -1892,51 +1871,18 @@ downloaded 69 KB</code></pre>
             WHERE batch_id IN (
               SELECT id
               FROM batch
-              WHERE entity_id = &quot;, t_id, &quot;
+              WHERE entity_id = &quot;, 51, &quot;
               AND status IN (&#39;PROCESSED&#39;, &#39;PROCESSING&#39;, &#39;DONTDELETE&#39;))&quot;)) %&gt;% 
     as_tibble() %&gt;% 
+    #note nchar returns the number of characters.
     filter(nchar(account_number, allowNA = TRUE) == 19) %&gt;% 
     filter(!is.na(account_number))
-
-  if (ucoa_type == &quot;funct&quot;) {
-    
-    vague_ucoa_codes &lt;- ucoa[[&quot;vague_funct&quot;]][[&quot;NUMBER&quot;]]
-    
-    reported_ucoa &lt;- 
-      reported_ucoa %&gt;% 
-      .[[&quot;account_number&quot;]] %&gt;% 
-      substr(5, 10)
-    
-  } else if (ucoa_type == &quot;exp&quot;) {
-    
-    vague_ucoa_codes &lt;- ucoa[[&quot;vague_exp&quot;]][[&quot;NUMBER&quot;]]
-    
-    reported_ucoa &lt;- 
-      reported_ucoa %&gt;% 
-      filter(type == 1) %&gt;% 
-      .[[&quot;account_number&quot;]] %&gt;% 
-      substr(12, 19)
-    
-  } else if (ucoa_type == &quot;rev&quot;) {
-    
-    vague_ucoa_codes &lt;- ucoa[[&quot;vague_rev&quot;]][[&quot;NUMBER&quot;]]
-    
-    reported_ucoa &lt;- 
-      reported_ucoa %&gt;% 
-      filter(type == 2) %&gt;% 
-      .[[&quot;account_number&quot;]] %&gt;% 
-      substr(12, 19)
-  }
-  
-  reported_vague_ucoa &lt;- 
-    reported_ucoa[reported_ucoa %in% vague_ucoa_codes]
-  
-  percent_vague &lt;- 
-    (length(reported_vague_ucoa) / length(reported_ucoa)) * 100
-
-  round(percent_vague)
-}</code></pre>
+</code></pre>
 <!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiV2FybmluZyBtZXNzYWdlOlxuUGVuZGluZyByb3dzIFxuIn0= -->
+<pre><code>Warning message:
+Pending rows </code></pre>
+<!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 </div>
@@ -2001,44 +1947,48 @@ sf_data &lt;-
 <h2>UCoA</h2>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxudWNvYV9mdW5kIDwtIFxuICByZWFkX3hsc3goXCJ1Y29hLnhsc3hcIiwgc2hlZXQgPSBleGNlbF9zaGVldHMoXCJ1Y29hLnhsc3hcIilbWzFdXSlcbmBgYCJ9 -->
-<pre class="r"><code>ucoa_fund &lt;- 
-  read_xlsx(&quot;ucoa.xlsx&quot;, sheet = excel_sheets(&quot;ucoa.xlsx&quot;)[[1]])</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiTmV3IG5hbWVzOlxuKiBgYCAtPiAuLi4yXG4qIGBgIC0+IC4uLjNcbiogYGAgLT4gLi4uNFxuIn0= -->
-<pre><code>New names:
-* `` -&gt; ...2
-* `` -&gt; ...3
-* `` -&gt; ...4</code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxudWNvYV9mdW5jdGlvbiA8LSBcbiAgcmVhZF94bHN4KFwidWNvYS54bHN4XCIsIHNoZWV0ID0gZXhjZWxfc2hlZXRzKFwidWNvYS54bHN4XCIpW1syXV0pXG5gYGAifQ== -->
-<pre class="r"><code>ucoa_function &lt;- 
-  read_xlsx(&quot;ucoa.xlsx&quot;, sheet = excel_sheets(&quot;ucoa.xlsx&quot;)[[2]])</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiTmV3IG5hbWVzOlxuKiBgYCAtPiAuLi4yXG4qIGBgIC0+IC4uLjNcbiogYGAgLT4gLi4uNFxuIn0= -->
-<pre><code>New names:
-* `` -&gt; ...2
-* `` -&gt; ...3
-* `` -&gt; ...4</code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxudWNvYV9hY2NvdW50IDwtIFxuICByZWFkX3hsc3goXCJ1Y29hLnhsc3hcIiwgc2hlZXQgPSBleGNlbF9zaGVldHMoXCJ1Y29hLnhsc3hcIilbWzNdXSlcbmBgYCJ9 -->
-<pre class="r"><code>ucoa_account &lt;- 
-  read_xlsx(&quot;ucoa.xlsx&quot;, sheet = excel_sheets(&quot;ucoa.xlsx&quot;)[[3]])</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiTmV3IG5hbWVzOlxuKiBgYCAtPiAuLi4yXG4qIGBgIC0+IC4uLjNcbiogYGAgLT4gLi4uNFxuIn0= -->
-<pre><code>New names:
-* `` -&gt; ...2
-* `` -&gt; ...3
-* `` -&gt; ...4</code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBTb21lIG9mIHRoZSBjb2RlIGJlbG93IHdpbGwgYmVjb21lIHVubmVjZXNzYXJ5IGFmdGVyIEkgZWRpdCBPU0EncyBVbmlmb3JtXG4jIENoYXJ0IG9mIEFjY291bnRzIGFuZCBwdWJsaXNoIGl0IG9uIHRoZSBPU0Egd2Vic2l0ZS5cblxuY29sbmFtZXModWNvYV9mdW5kKSAgICAgPC0gdWNvYV9mdW5kWzIsIF1cbmNvbG5hbWVzKHVjb2FfZnVuY3Rpb24pIDwtIGMoXCJOVU1CRVJcIiwgdWNvYV9mdW5jdGlvblsxLCAyOjRdKVxuY29sbmFtZXModWNvYV9hY2NvdW50KSAgPC0gdWNvYV9hY2NvdW50WzIsIF1cblxudWNvYV9mdW5kICAgICA8LSB1Y29hX2Z1bmQgICAgICU+JSBzbGljZSgtMSwgLTIpXG51Y29hX2Z1bmN0aW9uIDwtIHVjb2FfZnVuY3Rpb24gJT4lIHNsaWNlKC0xKVxudWNvYV9hY2NvdW50ICA8LSB1Y29hX2FjY291bnQgICU+JSBzbGljZSgtMSwgLTIpXG5cbiMgSSBkb24ndCB0aGluayBJIG5lZWQgdGhlIGZ1bmQgbnVtYmVycyBpbiB0aGlzIGNvZGUuLi4gaG9sZCBvbiB0byBpdCB1bnRpbCBJJ21cbiMgZG9uZSB3aXRoIHRoZSBwcm9ncmFtLCBqdXN0IGluIGNhc2UuXG5leHRyYV9mdW5kX251bWJlcnMgPC0gXG4gIGMoMjAyOjI5OCwgMzAyOjM5OCwgNDAyOjQ0OCwgNDUyOjQ5OCwgNTAyOjU5OCwgNjAyOjY5OCwgNzAyOjc5OCkgJT4lIFxuICBhcy5jaGFyYWN0ZXIoKSAlPiUgXG4gIGVuZnJhbWUobmFtZSA9IE5VTEwpICU+JSBcbiAgcmVuYW1lKFwiTlVNQkVSXCIgPSBcInZhbHVlXCIpICU+JSBcbiAgbXV0YXRlKFwiU0hPUlQgREVTQ1JJUFRJT05cIiA9IE5BLCBcIkZVTEwgREVTQ1JJUFRJT05cIiA9IE5BLCBcIkRFVEFJTFwiID0gTkEsXG4gICAgICAgICBOVU1CRVIgPSBpZl9lbHNlKG5jaGFyKE5VTUJFUikgPT0gMiwgXG4gICAgICAgICAgICAgICAgICAgICAgICAgIHN0cl9wYWQoTlVNQkVSLCB3aWR0aCA9IDMsIHNpZGUgPSBcImxlZnRcIiwgXCIwXCIpLCBcbiAgICAgICAgICAgICAgICAgICAgICAgICAgTlVNQkVSKSlcblxudWNvYV9mdW5kIDwtIFxuICB1Y29hX2Z1bmQgJT4lIFxuICBiaW5kX3Jvd3MoZXh0cmFfZnVuZF9udW1iZXJzKVxuXG51Y29hX2Z1bmQkTlVNQkVSW1sxXV0gICAgIDwtIFwiMDEwXCJcbnVjb2FfZnVuZCROVU1CRVJbWzJdXSAgICAgPC0gXCIwMjBcIlxudWNvYV9mdW5kJE5VTUJFUltbM11dICAgICA8LSBcIjAzMFwiXG51Y29hX2Z1bmN0aW9uJE5VTUJFUltbMV1dIDwtIFwiMDAwMDAwXCJcblxudWNvYV9hY2NvdW50X2V4cCA8LVxuICB1Y29hX2FjY291bnQgJT4lIFxuICBmaWx0ZXIoc3RyX2RldGVjdChOVU1CRVIsIFwiXjRcIikpXG5cbnVjb2FfYWNjb3VudF9yZXYgPC0gXG4gIHVjb2FfYWNjb3VudCAlPiUgXG4gIGZpbHRlcihzdHJfZGV0ZWN0KE5VTUJFUiwgXCJeM1wiKSlcbiAgXG4jIHVjb2FfYWNjb3VudF93MiA8LSBcbiMgICB1Y29hX2FjY291bnQgJT4lIFxuIyAgIGZpbHRlcihzdHJfZGV0ZWN0KE5VTUJFUiwgXCJeNDAwMVwiKSlcblxudWNvYV92YWd1ZV9mdW5jdCA8LSBcbiAgdWNvYV9mdW5jdGlvbiAlPiUgXG4gIGZpbHRlcihcbiAgICBOVU1CRVIgPT0gXCIwMDAwMDBcIiB8XG4gICAgTlVNQkVSID09IFwiMTAwMDAwXCIgfFxuICAgIE5VTUJFUiA9PSBcIjIwMDAwMFwiIHxcbiAgICBOVU1CRVIgPT0gXCIzMDAwMDBcIiB8XG4gICAgTlVNQkVSID09IFwiNDAwMDAwXCIgfFxuICAgIE5VTUJFUiA9PSBcIjUwMDAwMFwiKVxuXG51Y29hX3ZhZ3VlX2V4cCA8LSBcbiAgdWNvYV9hY2NvdW50X2V4cCAlPiUgXG4gIGZpbHRlcihcbiAgICBOVU1CRVIgPT0gXCI0MDAwMDAwMFwiIHxcbiAgICBOVU1CRVIgPT0gXCI0MDAxMDAwMFwiIHxcbiAgICBOVU1CRVIgPT0gXCI0MDAyMDAwMFwiIHxcbiAgICBOVU1CRVIgPT0gXCI0MDAzMDAwMFwiIHxcbiAgICBOVU1CRVIgPT0gXCI0MDA0MDAwMFwiIHxcbiAgICBOVU1CRVIgPT0gXCI0MDA1MDAwMFwiIHxcbiAgICBOVU1CRVIgPT0gXCI0MDA2MDAwMFwiIHxcbiAgICBOVU1CRVIgPT0gXCI0MDA3MDAwMFwiIHxcbiAgICBOVU1CRVIgPT0gXCI0MDA4MDAwMFwiIHxcbiAgICBOVU1CRVIgPT0gXCI0MDExMDAwMFwiIHxcbiAgICBOVU1CRVIgPT0gXCI0MDE3MDAwMFwiIClcblxudWNvYV92YWd1ZV9yZXYgPC0gXG4gIHVjb2FfYWNjb3VudF9yZXYgJT4lIFxuICBmaWx0ZXIoXG4gICAgTlVNQkVSID09IFwiMzAwMDAwMDBcIiB8XG4gICAgTlVNQkVSID09IFwiMzAwMTAwMDBcIiB8XG4gICAgTlVNQkVSID09IFwiMzAwMjAwMDBcIiB8XG4gICAgTlVNQkVSID09IFwiMzAwMzAwMDBcIiB8XG4gICAgTlVNQkVSID09IFwiMzAwNDAwMDBcIiB8XG4gICAgTlVNQkVSID09IFwiMzAwNTAwMDBcIiB8XG4gICAgTlVNQkVSID09IFwiMzAwNjAwMDBcIiB8XG4gICAgTlVNQkVSID09IFwiMzAwNzAwMDBcIiApXG5cbnVjb2EgPC1cbiAgbGlzdChcbiAgICBmdW5kICAgICAgICA9IHVjb2FfZnVuZCxcbiAgICBmdW5jdCAgICAgICA9IHVjb2FfZnVuY3Rpb24sXG4gICAgYWNjb3VudCAgICAgPSB1Y29hX2FjY291bnQsXG4gICAgYWNjb3VudF9leHAgPSB1Y29hX2FjY291bnRfZXhwLFxuICAgIGFjY291bnRfcmV2ID0gdWNvYV9hY2NvdW50X3JldixcbiAgICB2YWd1ZV9mdW5jdCA9IHVjb2FfdmFndWVfZnVuY3QsXG4gICAgdmFndWVfZXhwICAgPSB1Y29hX3ZhZ3VlX2V4cCxcbiAgICB2YWd1ZV9yZXYgICA9IHVjb2FfdmFndWVfcmV2KVxuXG5ybSh1Y29hX2Z1bmQsIHVjb2FfZnVuY3Rpb24sIHVjb2FfYWNjb3VudCwgZXh0cmFfZnVuZF9udW1iZXJzLCB1Y29hX2FjY291bnRfZXhwLFxuICAgdWNvYV9hY2NvdW50X3JldiwgdWNvYV92YWd1ZV9mdW5jdCwgdWNvYV92YWd1ZV9leHAsIHVjb2FfdmFndWVfcmV2KVxuYGBgIn0= -->
-<pre class="r"><code># Some of the code below will become unnecessary after I edit OSA&#39;s Uniform
-# Chart of Accounts and publish it on the OSA website.
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuI25vdGUgdGhhdCBleGNlbF9zaGVldHMgcmV0dXJucyBhIGxpc3QsIGhlbmNlIHRoZSBsaXN0IGFjY2VzcyBzeW50YXguXG5cbnVjb2FfZnVuZCA8LSBcbiAgcmVhZF94bHN4KFwidWNvYS54bHN4XCIsIHNoZWV0ID0gZXhjZWxfc2hlZXRzKFwidWNvYS54bHN4XCIpW1sxXV0gKVxuYGBgIn0= -->
+<pre class="r"><code>#note that excel_sheets returns a list, hence the list access syntax.
 
+ucoa_fund &lt;- 
+  read_xlsx(&quot;ucoa.xlsx&quot;, sheet = excel_sheets(&quot;ucoa.xlsx&quot;)[[1]] )</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiTmV3IG5hbWVzOlxuKiBgYCAtPiAuLi4yXG4qIGBgIC0+IC4uLjNcbiogYGAgLT4gLi4uNFxuIn0= -->
+<pre><code>New names:
+* `` -&gt; ...2
+* `` -&gt; ...3
+* `` -&gt; ...4</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxudWNvYV9mdW5jdGlvbiA8LSBcbiAgcmVhZF94bHN4KFwidWNvYS54bHN4XCIsIHNoZWV0ID0gZXhjZWxfc2hlZXRzKFwidWNvYS54bHN4XCIpW1syXV0gKVxuYGBgIn0= -->
+<pre class="r"><code>ucoa_function &lt;- 
+  read_xlsx(&quot;ucoa.xlsx&quot;, sheet = excel_sheets(&quot;ucoa.xlsx&quot;)[[2]] )</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiTmV3IG5hbWVzOlxuKiBgYCAtPiAuLi4yXG4qIGBgIC0+IC4uLjNcbiogYGAgLT4gLi4uNFxuIn0= -->
+<pre><code>New names:
+* `` -&gt; ...2
+* `` -&gt; ...3
+* `` -&gt; ...4</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxudWNvYV9hY2NvdW50IDwtIFxuICByZWFkX3hsc3goXCJ1Y29hLnhsc3hcIiwgc2hlZXQgPSBleGNlbF9zaGVldHMoXCJ1Y29hLnhsc3hcIilbWzNdXSApXG5gYGAifQ== -->
+<pre class="r"><code>ucoa_account &lt;- 
+  read_xlsx(&quot;ucoa.xlsx&quot;, sheet = excel_sheets(&quot;ucoa.xlsx&quot;)[[3]] )</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiTmV3IG5hbWVzOlxuKiBgYCAtPiAuLi4yXG4qIGBgIC0+IC4uLjNcbiogYGAgLT4gLi4uNFxuIn0= -->
+<pre><code>New names:
+* `` -&gt; ...2
+* `` -&gt; ...3
+* `` -&gt; ...4</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuI1NpbmNlIHRoZSB4bHN4IGZpbGUgd2FzIGJ1aWx0IHRvIGJlIHJlYWRhYmxlLCBhbmQgbm90IG5lY2Vzc2FyaWx5IGVhc2lseVxuI3BhcnNlZCwgdGhlIGZpcnN0IHR3byByb3dzIG11c3QgYmUgY2xlYW5lZC4gXG5cbiNmaXggdGhlIGNvbHVtbiBuYW1lc1xuY29sbmFtZXModWNvYV9mdW5kKSAgICAgPC0gdWNvYV9mdW5kWzIsIF1cbmNvbG5hbWVzKHVjb2FfZnVuY3Rpb24pIDwtIGMoXCJOVU1CRVJcIiwgdWNvYV9mdW5jdGlvblsxLCAyOjRdKVxuY29sbmFtZXModWNvYV9hY2NvdW50KSAgPC0gdWNvYV9hY2NvdW50WzIsIF1cblxuI3JlbW92ZSB0aGUgdXNlbGVzcyByb3dzLlxudWNvYV9mdW5kICAgICA8LSB1Y29hX2Z1bmQgICAgICU+JSBzbGljZSgtMSwgLTIpXG51Y29hX2Z1bmN0aW9uIDwtIHVjb2FfZnVuY3Rpb24gJT4lIHNsaWNlKC0xKVxudWNvYV9hY2NvdW50ICA8LSB1Y29hX2FjY291bnQgICU+JSBzbGljZSgtMSwgLTIpXG5cbiMgSSBkb24ndCB0aGluayBJIG5lZWQgdGhlIGZ1bmQgbnVtYmVycyBpbiB0aGlzIGNvZGUuLi4gaG9sZCBvbiB0byBpdCB1bnRpbCBJJ21cbiMgZG9uZSB3aXRoIHRoZSBwcm9ncmFtLCBqdXN0IGluIGNhc2UuXG5leHRyYV9mdW5kX251bWJlcnMgPC0gXG4gIGMoMjAyOjI5OCwgMzAyOjM5OCwgNDAyOjQ0OCwgNDUyOjQ5OCwgNTAyOjU5OCwgNjAyOjY5OCwgNzAyOjc5OCkgJT4lIFxuICBhcy5jaGFyYWN0ZXIoKSAlPiUgXG4gIGVuZnJhbWUobmFtZSA9IE5VTEwpICU+JSBcbiAgcmVuYW1lKFwiTlVNQkVSXCIgPSBcInZhbHVlXCIpICU+JSBcbiAgbXV0YXRlKFwiU0hPUlQgREVTQ1JJUFRJT05cIiA9IE5BLCBcIkZVTEwgREVTQ1JJUFRJT05cIiA9IE5BLCBcIkRFVEFJTFwiID0gTkEsXG4gICAgICAgICBOVU1CRVIgPSBpZl9lbHNlKG5jaGFyKE5VTUJFUikgPT0gMiwgXG4gICAgICAgICAgICAgICAgICAgICAgICAgIHN0cl9wYWQoTlVNQkVSLCB3aWR0aCA9IDMsIHNpZGUgPSBcImxlZnRcIiwgXCIwXCIpLCBcbiAgICAgICAgICAgICAgICAgICAgICAgICAgTlVNQkVSKSlcblxudWNvYV9mdW5kIDwtIFxuICB1Y29hX2Z1bmQgJT4lIFxuICBiaW5kX3Jvd3MoZXh0cmFfZnVuZF9udW1iZXJzKVxuXG51Y29hX2Z1bmQkTlVNQkVSW1sxXV0gICAgIDwtIFwiMDEwXCJcbnVjb2FfZnVuZCROVU1CRVJbWzJdXSAgICAgPC0gXCIwMjBcIlxudWNvYV9mdW5kJE5VTUJFUltbM11dICAgICA8LSBcIjAzMFwiXG51Y29hX2Z1bmN0aW9uJE5VTUJFUltbMV1dIDwtIFwiMDAwMDAwXCJcblxudWNvYV9hY2NvdW50X2V4cCA8LVxuICB1Y29hX2FjY291bnQgJT4lIFxuICBmaWx0ZXIoc3RyX2RldGVjdChOVU1CRVIsIFwiXjRcIikpIyBmaWx0ZXIgZm9yIGFueSByb3cgd2hpY2ggc3RhcnRzIHdpdGggNCxcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAjIHRoaXMgaXMgYmVjYXVzZSBVQ29BIGF0dHJpYnV0ZXMgYW55dGhpbmcgaW4gXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIyB0aGUgMzAwMC0zOTk5IHRvIHJldmVudWVzXG5cbnVjb2FfYWNjb3VudF9yZXYgPC0gXG4gIHVjb2FfYWNjb3VudCAlPiUgXG4gIGZpbHRlcihzdHJfZGV0ZWN0KE5VTUJFUiwgXCJeM1wiKSkjIGZpbHRlciBmb3IgYW55IHJvdyB3aGljaCBzdGFydHMgd2l0aCAzXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIyB0aGlzIGlzIGJlY2F1c2UgVUNvQSBhdHRyaWJ0ZXMgYW55dGhpbmcgaW5cbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAjIHRoZSAzMDAwLTM5OTkgdG8gcmV2ZW51ZXNcbiAgXG4jIHVjb2FfYWNjb3VudF93MiA8LSBcbiMgICB1Y29hX2FjY291bnQgJT4lIFxuIyAgIGZpbHRlcihzdHJfZGV0ZWN0KE5VTUJFUiwgXCJeNDAwMVwiKSlcblxudWNvYV92YWd1ZV9mdW5jdCA8LSBcbiAgdWNvYV9mdW5jdGlvbiAlPiUgXG4gIGZpbHRlciggICAgICAgICAgICAgICAgI0RFU0NSSVBUSU9OIE9GIEZVTkNUSU9OXG4gICAgTlVNQkVSID09IFwiMDAwMDAwXCIgfCAjIE5vdCBBcHBsaWNhYmxlXG4gICAgTlVNQkVSID09IFwiMTAwMDAwXCIgfCAjIEdlbmVyYWwgR292ZXJubWVudFxuICAgIE5VTUJFUiA9PSBcIjIwMDAwMFwiIHwgIyBQdWJsaWMgU2FmZXR5XG4gICAgTlVNQkVSID09IFwiMzAwMDAwXCIgfCAjIFB1YmxpYyBXb3Jrc1xuICAgIE5VTUJFUiA9PSBcIjQwMDAwMFwiIHwgIyBIZWFsdGhcbiAgICBOVU1CRVIgPT0gXCI1MDAwMDBcIikgICMgQ29tbXVuaXR5XG5cbnVjb2FfdmFndWVfZXhwIDwtIFxuICB1Y29hX2FjY291bnRfZXhwICU+JSBcbiAgZmlsdGVyKCAgICAgICAgICAgICAgICAgICMgREVTQ1JJUFRJT04gb2YgRXhwZWRpdHVyZXMgYWNjb3VudHNcbiAgICBOVU1CRVIgPT0gXCI0MDAwMDAwMFwiIHwgIyBFeHBlbmRpdHVyZXNcbiAgICBOVU1CRVIgPT0gXCI0MDAxMDAwMFwiIHwgIyBQZXJzb25uZWwgU2VydmljZXNcbiAgICBOVU1CRVIgPT0gXCI0MDAyMDAwMFwiIHwgIyBHZW5lcmFsIGFuZCBDb250cmFjdGVkIFNlcnZpY2VzXG4gICAgTlVNQkVSID09IFwiNDAwMzAwMDBcIiB8ICMgVXRpbGl0aWVzIGFuZCBVdGlsaXR5IFNlcnZpY2VzXG4gICAgTlVNQkVSID09IFwiNDAwNDAwMDBcIiB8ICMgVGF4ZXMgYW5kIEZlZXNcbiAgICBOVU1CRVIgPT0gXCI0MDA1MDAwMFwiIHwgIyBTdXBwbGllcyBhbmQgTWF0ZXJpYWxzXG4gICAgTlVNQkVSID09IFwiNDAwNjAwMDBcIiB8ICMgR3JhbnRzIGFuZCBDb250cmFjdHNcbiAgICBOVU1CRVIgPT0gXCI0MDA3MDAwMFwiIHwgIyBEaXJlY3QgUGF5bWVudHNcbiAgICBOVU1CRVIgPT0gXCI0MDA4MDAwMFwiIHwgIyBDYXBpdGFsIE91dGxheXNcbiAgICAgICMgTm90aWNlIHRoYXQgSSB0aGluayB0aGF0IDQwMDkwMDAwIEludGVyZGVwYXJ0bWVudGFsIENoYXJnZXMsIGFuZFxuICAgICAgIyA0MDEwMDAwMCBKdWRnZW1lbnRzIGFuZCBMb3NzZXMgYXJlIGNvbnNpZGVyZWQgbm9uLXZhZ3VlLiBTaW5jZSB0aGV5XG4gICAgICAjIGNhbm5vdCBiZSBicm9rZW4gZG93biBmdXJ0aGVyLiBJZiB0aGlzIGV2ZXIgY2hhbmdlIHRoZW4gd2Ugd291bGQgbmVlZCB0b1xuICAgICAgIyBpbmNsdWRlIHRoZW0gaGVyZS5cbiAgICBOVU1CRVIgPT0gXCI0MDExMDAwMFwiIHwgIyBPdGhlciBmaW5hbmNpbmcgVXNlc1xuICAgICAgIyBBcyBub3RlZCBhYm92ZSwgNDAxMjAwMDA6NDAxNjAwMDAgY2Fubm90IGJlIGJyb2tlbiBkb3duIGludG8gbW9yZVxuICAgICAgIyBzcGVjaWZpYyBhY2NvdW50c1xuICAgIE5VTUJFUiA9PSBcIjQwMTcwMDAwXCIgKSAjIERlYnQgU2VydmljZVxuXG51Y29hX3ZhZ3VlX3JldiA8LSBcbiAgdWNvYV9hY2NvdW50X3JldiAlPiUgXG4gIGZpbHRlciggICAgICAgICAgICAgICAgICAjIERFU0NSSVBUSU9OIE9GIFJldmVudWUgYWNjb3VudHNcbiAgICBOVU1CRVIgPT0gXCIzMDAwMDAwMFwiIHwgIyBSZXZlbnVlc1xuICAgIE5VTUJFUiA9PSBcIjMwMDEwMDAwXCIgfCAjIFRheGVzXG4gICAgTlVNQkVSID09IFwiMzAwMjAwMDBcIiB8ICMgTGljZW5zZXMgYW5kIFBlcm1pdHNcbiAgICBOVU1CRVIgPT0gXCIzMDAzMDAwMFwiIHwgIyBJbnRlcmdvdmVybm1lbnRhbFxuICAgIE5VTUJFUiA9PSBcIjMwMDQwMDAwXCIgfCAjIENoYXJnZXMgRm9yIFNlcnZpY2VcbiAgICBOVU1CRVIgPT0gXCIzMDA1MDAwMFwiIHwgIyBGaW5lcyBhbmQgRm9yZmVpdHVyZXNcbiAgICBOVU1CRVIgPT0gXCIzMDA2MDAwMFwiIHwgIyBNaXNjZWxsYW5lb3VzXG4gICAgTlVNQkVSID09IFwiMzAwNzAwMDBcIiApICMgT3RoZXIgU291cmNlcyBvZiBGdW5kaW5nXG5cbnVjb2EgPC1cbiAgbGlzdChcbiAgICBmdW5kICAgICAgICA9IHVjb2FfZnVuZCxcbiAgICBmdW5jdCAgICAgICA9IHVjb2FfZnVuY3Rpb24sXG4gICAgYWNjb3VudCAgICAgPSB1Y29hX2FjY291bnQsXG4gICAgYWNjb3VudF9leHAgPSB1Y29hX2FjY291bnRfZXhwLFxuICAgIGFjY291bnRfcmV2ID0gdWNvYV9hY2NvdW50X3JldixcbiAgICB2YWd1ZV9mdW5jdCA9IHVjb2FfdmFndWVfZnVuY3QsXG4gICAgdmFndWVfZXhwICAgPSB1Y29hX3ZhZ3VlX2V4cCxcbiAgICB2YWd1ZV9yZXYgICA9IHVjb2FfdmFndWVfcmV2KVxuXG5ybSh1Y29hX2Z1bmQsIHVjb2FfZnVuY3Rpb24sIHVjb2FfYWNjb3VudCwgZXh0cmFfZnVuZF9udW1iZXJzLCB1Y29hX2FjY291bnRfZXhwLFxuICAgdWNvYV9hY2NvdW50X3JldiwgdWNvYV92YWd1ZV9mdW5jdCwgdWNvYV92YWd1ZV9leHAsIHVjb2FfdmFndWVfcmV2KVxuYGBgIn0= -->
+<pre class="r"><code>#Since the xlsx file was built to be readable, and not necessarily easily
+#parsed, the first two rows must be cleaned. 
+
+#fix the column names
 colnames(ucoa_fund)     &lt;- ucoa_fund[2, ]
 colnames(ucoa_function) &lt;- c(&quot;NUMBER&quot;, ucoa_function[1, 2:4])
 colnames(ucoa_account)  &lt;- ucoa_account[2, ]
 
+#remove the useless rows.
 ucoa_fund     &lt;- ucoa_fund     %&gt;% slice(-1, -2)
 ucoa_function &lt;- ucoa_function %&gt;% slice(-1)
 ucoa_account  &lt;- ucoa_account  %&gt;% slice(-1, -2)
@@ -2066,11 +2016,15 @@ ucoa_function$NUMBER[[1]] &lt;- &quot;000000&quot;
 
 ucoa_account_exp &lt;-
   ucoa_account %&gt;% 
-  filter(str_detect(NUMBER, &quot;^4&quot;))
+  filter(str_detect(NUMBER, &quot;^4&quot;))# filter for any row which starts with 4,
+                                  # this is because UCoA attributes anything in 
+                                  # the 3000-3999 to revenues
 
 ucoa_account_rev &lt;- 
   ucoa_account %&gt;% 
-  filter(str_detect(NUMBER, &quot;^3&quot;))
+  filter(str_detect(NUMBER, &quot;^3&quot;))# filter for any row which starts with 3
+                                  # this is because UCoA attribtes anything in
+                                  # the 3000-3999 to revenues
   
 # ucoa_account_w2 &lt;- 
 #   ucoa_account %&gt;% 
@@ -2078,40 +2032,46 @@ ucoa_account_rev &lt;-
 
 ucoa_vague_funct &lt;- 
   ucoa_function %&gt;% 
-  filter(
-    NUMBER == &quot;000000&quot; |
-    NUMBER == &quot;100000&quot; |
-    NUMBER == &quot;200000&quot; |
-    NUMBER == &quot;300000&quot; |
-    NUMBER == &quot;400000&quot; |
-    NUMBER == &quot;500000&quot;)
+  filter(                #DESCRIPTION OF FUNCTION
+    NUMBER == &quot;000000&quot; | # Not Applicable
+    NUMBER == &quot;100000&quot; | # General Government
+    NUMBER == &quot;200000&quot; | # Public Safety
+    NUMBER == &quot;300000&quot; | # Public Works
+    NUMBER == &quot;400000&quot; | # Health
+    NUMBER == &quot;500000&quot;)  # Community
 
 ucoa_vague_exp &lt;- 
   ucoa_account_exp %&gt;% 
-  filter(
-    NUMBER == &quot;40000000&quot; |
-    NUMBER == &quot;40010000&quot; |
-    NUMBER == &quot;40020000&quot; |
-    NUMBER == &quot;40030000&quot; |
-    NUMBER == &quot;40040000&quot; |
-    NUMBER == &quot;40050000&quot; |
-    NUMBER == &quot;40060000&quot; |
-    NUMBER == &quot;40070000&quot; |
-    NUMBER == &quot;40080000&quot; |
-    NUMBER == &quot;40110000&quot; |
-    NUMBER == &quot;40170000&quot; )
+  filter(                  # DESCRIPTION of Expeditures accounts
+    NUMBER == &quot;40000000&quot; | # Expenditures
+    NUMBER == &quot;40010000&quot; | # Personnel Services
+    NUMBER == &quot;40020000&quot; | # General and Contracted Services
+    NUMBER == &quot;40030000&quot; | # Utilities and Utility Services
+    NUMBER == &quot;40040000&quot; | # Taxes and Fees
+    NUMBER == &quot;40050000&quot; | # Supplies and Materials
+    NUMBER == &quot;40060000&quot; | # Grants and Contracts
+    NUMBER == &quot;40070000&quot; | # Direct Payments
+    NUMBER == &quot;40080000&quot; | # Capital Outlays
+      # Notice that I think that 40090000 Interdepartmental Charges, and
+      # 40100000 Judgements and Losses are considered non-vague. Since they
+      # cannot be broken down further. If this ever change then we would need to
+      # include them here.
+    NUMBER == &quot;40110000&quot; | # Other financing Uses
+      # As noted above, 40120000:40160000 cannot be broken down into more
+      # specific accounts
+    NUMBER == &quot;40170000&quot; ) # Debt Service
 
 ucoa_vague_rev &lt;- 
   ucoa_account_rev %&gt;% 
-  filter(
-    NUMBER == &quot;30000000&quot; |
-    NUMBER == &quot;30010000&quot; |
-    NUMBER == &quot;30020000&quot; |
-    NUMBER == &quot;30030000&quot; |
-    NUMBER == &quot;30040000&quot; |
-    NUMBER == &quot;30050000&quot; |
-    NUMBER == &quot;30060000&quot; |
-    NUMBER == &quot;30070000&quot; )
+  filter(                  # DESCRIPTION OF Revenue accounts
+    NUMBER == &quot;30000000&quot; | # Revenues
+    NUMBER == &quot;30010000&quot; | # Taxes
+    NUMBER == &quot;30020000&quot; | # Licenses and Permits
+    NUMBER == &quot;30030000&quot; | # Intergovernmental
+    NUMBER == &quot;30040000&quot; | # Charges For Service
+    NUMBER == &quot;30050000&quot; | # Fines and Forfeitures
+    NUMBER == &quot;30060000&quot; | # Miscellaneous
+    NUMBER == &quot;30070000&quot; ) # Other Sources of Funding
 
 ucoa &lt;-
   list(
@@ -2186,7 +2146,7 @@ report &lt;-
 <!-- rnb-chunk-end -->
 </div>
 
-<div id="rmd-source-code">LS0tDQp0aXRsZTogIlZhZ3VlIFVDb0EgUmVwb3J0Ig0KYXV0aG9yOiAiTWljaGFlbCBKZW5zZW4iDQpkYXRlOiAiU2VwdGVtYmVyIDIwMTkiDQpvdXRwdXQ6IGh0bWxfbm90ZWJvb2sNCi0tLQ0KIyBQcm9ncmFtIERlc2NyaXB0aW9uDQoNCioqUHVycG9zZSoqDQoNCkZvciBub24tYXJjaGl2ZWQgVHJhbnNwYXJlbnQgVXRhaCBkYXRhLCBkZXRlcm1pbmUgdGhlIHBlcmNlbnRhZ2Ugb2YgVUNvQSBmdW5jdGlvbiBhbmQgYWNjb3VudCBjb2RlcyB0aGF0IGFyZSB2YWd1ZS4gDQoNClZhbGlkLWJ1dC12YWd1ZSBVQ29BIHZhbHVlcyBhcmUgYW4gb2JzdGFjbGUgdG8gbWFraW5nIHRoZSBkYXRhIHVzZWZ1bCBmb3IgYW5hbHlzaXMuIFdlIHdhbnQgdG8gaWRlbnRpZnkgZW50aXRpZXMgd2l0aCBhIGhpZ2ggcGVyY2VudGFnZSBvZiB2YWd1ZSBVQ29BIHZhbHVlcyBzbyB3ZSBjYW4gd29yayB3aXRoIHRoZW0gdG8gZ2V0IG1vcmUgZGV0YWlsZWQgZmluYW5jaWFsIGluZm9ybWF0aW9uLg0KDQoqKklucHV0KHMpKioNCg0KYGBge3J9DQpkc25fYXdzICAgICAgICA8LSAidHJhbnNwQVdTIg0KZHNuX3NhbGVzZm9yY2UgPC0gInNhbGVzZm9yY2UiDQpgYGANCg0KKipPdXRwdXQocykqKg0KDQoqIEEgLmNzdiBmaWxlIGNvbnRhaW5pbmcgdGhlIGZvbGxvd2luZyBmb3IgZWFjaCBhY3RpdmUgYW5kIHBhcnRpY2lwYXRpbmcgZW50aXR5IHdpdGggYSBUcmFuc3BhcmVuY3kgSUQgbGlzdGVkIGluIFNhbGVzZm9yY2U6DQogICsgVGhlIHBlcmNlbnRhZ2Ugb2YgdHJhbnNhY3Rpb25zIHRoYXQgaGF2ZSBhIHZhZ3VlIGZ1bmN0aW9uIGNvZGUNCiAgKyBUaGUgcGVyY2VudGFnZSBvZiB0cmFuc2FjdGlvbnMgdGhhdCBoYXZlIGEgdmFndWUgZXhwZW5zZSBhY2NvdW50IGNvZGUNCiAgKyBUaGUgcGVyY2VudGFnZSBvZiB0cmFuc2FjdGlvbnMgdGhhdCBoYXZlIGEgdmFndWUgcmV2ZW51ZSBhY2NvdW50IGNvZGUNCg0KIyBMaWJyYXJpZXMgYW5kIERhdGEgU291cmNlcw0KDQpgYGB7cn0NCmxpYnJhcnkobHVicmlkYXRlKQ0KbGlicmFyeShtYWdyaXR0cikNCmxpYnJhcnkob2RiYykNCmxpYnJhcnkocmVhZHhsKQ0KbGlicmFyeSh0aWR5dmVyc2UpDQoNCm9kYmNfYXdzIDwtIGRiQ29ubmVjdChvZGJjOjpvZGJjKCksIGRzbl9hd3MpDQpvZGJjX3NmICA8LSBkYkNvbm5lY3Qob2RiYzo6b2RiYygpLCBkc25fc2FsZXNmb3JjZSkNCg0Kcm0oZHNuX2F3cywgZHNuX3NhbGVzZm9yY2UpDQoNCmRvd25sb2FkLmZpbGUoDQogICJodHRwOi8vZmluYW5jaWFscmVwb3J0cy51dGFoLmdvdi9jaGFydG9mYWNjb3VudHMvQ2hhcnRvZkFjY291bnRGdWxsLnhsc3giLA0KICAidWNvYS54bHN4IiwNCiAgbW9kZSA9ICJ3YiIpDQpgYGANCg0KIyBGdW5jdGlvbiBEZWZpbml0aW9ucw0KDQojIyBBcmd1bWVudCBEZWZpbml0aW9ucw0KDQpgYGB7ciwgZXZhbD1GQUxTRX0NCiAgIyAgIHRfaWQgKG51bSk6IFRoZSBlbnRpdHkncyBUcmFuc3BhcmVuY3kgSUQsIGFzIHF1ZXJpZWQgZnJvbSBTYWxlc2ZvcmNlDQogICMgICAgIHJhdGhlciB0aGFuIFRyYW5zcGFyZW5jeS4NCiAgIyAgIHVjb2EgKGxpc3QpOiBUaGUgbGlzdCBjb250YWluaW5nIHRoZSBGdW5kLCBGdW5jdGlvbiwgYW5kIEFjY291bnQgY29kZXMgDQogICMgICAgIGZyb20gT1NBJ3MgVW5pZm9ybSBDaGFydCBvZiBBY2NvdW50cy4NCiAgIyAgIHVjb2FfdHlwZSAoY2hhcik6IFRoZSBVQ29BIGNvbXBvbmVudCB0byBjaGVjayAoImZ1bmN0IiA9IGZ1bmN0aW9uLA0KICAjICAgICAiZXhwIiA9IGV4cGVuc2UsICJyZXYiID0gcmV2ZW51ZSkuDQpgYGANCg0KIyMgY2hlY2tfcGVyY2VudGFnZV9vZl92YWd1ZV91Y29hDQoNCmBgYHtyfQ0KY2hlY2tfcGVyY2VudGFnZV9vZl92YWd1ZV91Y29hIDwtIGZ1bmN0aW9uKHRfaWQsIHVjb2FfdHlwZSwgdWNvYSkgew0KICAjIERldGVybWluZSB0aGUgcGVyY2VudGFnZSBvZiBhbiBlbnRpdHkncyB0cmFuc2FjdGlvbnMgdGhhdCB1c2UgYSB2YWxpZCBidXQgDQogICMgdmFndWUgVUNvQSBjb2RlLg0KICAjDQogICMgQXJndW1lbnRzOg0KICAjICAgdF9pZCAobnVtKTogVGhlIGVudGl0eSdzIFRyYW5zcGFyZW5jeSBJRCwgYXMgcXVlcmllZCBmcm9tIFNhbGVzZm9yY2UNCiAgIyAgICAgcmF0aGVyIHRoYW4gVHJhbnNwYXJlbmN5Lg0KICAjICAgdWNvYV90eXBlIChjaGFyKTogVGhlIFVDb0EgY29tcG9uZW50IHRvIGNoZWNrICgiZnVuY3QiID0gZnVuY3Rpb24sDQogICMgICAgICJleHAiID0gZXhwZW5zZSwgInJldiIgPSByZXZlbnVlKS4NCiAgIyAgIHVjb2EgKGxpc3QpOiBUaGUgbGlzdCBjb250YWluaW5nIHRoZSBGdW5kLCBGdW5jdGlvbiwgYW5kIEFjY291bnQgY29kZXMgDQogICMgICAgIGZyb20gT1NBJ3MgVW5pZm9ybSBDaGFydCBvZiBBY2NvdW50cy4NCiAgIw0KICAjIFZhbHVlOg0KICAjICAgTnVtZXJpYy4NCiAgIyANCiAgIyBDb21tZW50czoNCiAgIyAgIFRoZSBVQ29BIGNvZGUgaXMgdGhlIGtleSB0byBhbmFseXppbmcsIGluIGFnZ3JlZ2F0ZSwgbG9jYWwgZ292ZXJubWVudCANCiAgIyAgIGZpbmFuY2lhbCBkYXRhLiBUaGUgVUNvQSBjb2RlIGlzIG1pbmltYWxseSB1c2VmdWwgaWYgZ292ZXJubWVudHMgYXJlIA0KICAjICAgdXNpbmcgb25seSB0aGUgbW9zdCBnZW5lcmFsIGNvZGUgKGUuZy4sIGNvZGluZyBhIHRyYW5zYWN0aW9uIGFzDQogICMgICAxMDAtMDAwMDAwLTMwMDAwMDAwIGlzbid0IHVzZWZ1bCkuDQogIA0KICByZXBvcnRlZF91Y29hIDwtIA0KICAgIGRiR2V0UXVlcnkoDQogICAgICBvZGJjX2F3cywNCiAgICAgIHBhc3RlKCINCiAgICAgICAgICAgIFNFTEVDVCBhY2NvdW50X251bWJlciwgdHlwZQ0KICAgICAgICAgICAgRlJPTSB0cmFuc2FjdGlvbg0KICAgICAgICAgICAgV0hFUkUgYmF0Y2hfaWQgSU4gKA0KICAgICAgICAgICAgICBTRUxFQ1QgaWQNCiAgICAgICAgICAgICAgRlJPTSBiYXRjaA0KICAgICAgICAgICAgICBXSEVSRSBlbnRpdHlfaWQgPSAiLCB0X2lkLCAiDQogICAgICAgICAgICAgIEFORCBzdGF0dXMgSU4gKCdQUk9DRVNTRUQnLCAnUFJPQ0VTU0lORycsICdET05UREVMRVRFJykpIikpICU+JSANCiAgICBhc190aWJibGUoKSAlPiUgDQogICAgZmlsdGVyKG5jaGFyKGFjY291bnRfbnVtYmVyLCBhbGxvd05BID0gVFJVRSkgPT0gMTkpICU+JSANCiAgICBmaWx0ZXIoIWlzLm5hKGFjY291bnRfbnVtYmVyKSkNCg0KICBpZiAodWNvYV90eXBlID09ICJmdW5jdCIpIHsNCiAgICANCiAgICB2YWd1ZV91Y29hX2NvZGVzIDwtIHVjb2FbWyJ2YWd1ZV9mdW5jdCJdXVtbIk5VTUJFUiJdXQ0KICAgIA0KICAgIHJlcG9ydGVkX3Vjb2EgPC0gDQogICAgICByZXBvcnRlZF91Y29hICU+JSANCiAgICAgIC5bWyJhY2NvdW50X251bWJlciJdXSAlPiUgDQogICAgICBzdWJzdHIoNSwgMTApDQogICAgDQogIH0gZWxzZSBpZiAodWNvYV90eXBlID09ICJleHAiKSB7DQogICAgDQogICAgdmFndWVfdWNvYV9jb2RlcyA8LSB1Y29hW1sidmFndWVfZXhwIl1dW1siTlVNQkVSIl1dDQogICAgDQogICAgcmVwb3J0ZWRfdWNvYSA8LSANCiAgICAgIHJlcG9ydGVkX3Vjb2EgJT4lIA0KICAgICAgZmlsdGVyKHR5cGUgPT0gMSkgJT4lIA0KICAgICAgLltbImFjY291bnRfbnVtYmVyIl1dICU+JSANCiAgICAgIHN1YnN0cigxMiwgMTkpDQogICAgDQogIH0gZWxzZSBpZiAodWNvYV90eXBlID09ICJyZXYiKSB7DQogICAgDQogICAgdmFndWVfdWNvYV9jb2RlcyA8LSB1Y29hW1sidmFndWVfcmV2Il1dW1siTlVNQkVSIl1dDQogICAgDQogICAgcmVwb3J0ZWRfdWNvYSA8LSANCiAgICAgIHJlcG9ydGVkX3Vjb2EgJT4lIA0KICAgICAgZmlsdGVyKHR5cGUgPT0gMikgJT4lIA0KICAgICAgLltbImFjY291bnRfbnVtYmVyIl1dICU+JSANCiAgICAgIHN1YnN0cigxMiwgMTkpDQogIH0NCiAgDQogIHJlcG9ydGVkX3ZhZ3VlX3Vjb2EgPC0gDQogICAgcmVwb3J0ZWRfdWNvYVtyZXBvcnRlZF91Y29hICVpbiUgdmFndWVfdWNvYV9jb2Rlc10NCiAgDQogIHBlcmNlbnRfdmFndWUgPC0gDQogICAgKGxlbmd0aChyZXBvcnRlZF92YWd1ZV91Y29hKSAvIGxlbmd0aChyZXBvcnRlZF91Y29hKSkgKiAxMDANCg0KICByb3VuZChwZXJjZW50X3ZhZ3VlKQ0KfQ0KYGBgDQoNCiMgRXhlY3V0aW9uDQoNCiMjIFNhbGVzZm9yY2UNCg0KYGBge3J9DQojIE5vdGUgdGhhdCBJIGRvIG5vdCBxdWVyeSBMRUFzLiBUaGV5IGFyZSBtYW5hZ2VkIGJ5IFVTQkUsIHdoaWNoIHVzZXMgYQ0KIyBkaWZmZXJlbnQgY2hhcnQgb2YgYWNjb3VudHMuIEkgYWxzbyBkbyBub3QgcXVlcnkgaGlnaGVyIGVkdWNhdGlvbi4NCg0Kc2ZfZGF0YSA8LQ0KICBkYkdldFF1ZXJ5KA0KICAgIG9kYmNfc2YsDQogICAgcGFzdGUoIg0KICAgICAgICAgIFNFTEVDVA0KICAgICAgICAgICAgQWNjb3VudC5OYW1lICAgICAgICAgICAgICAgICAgQVMgbmFtZSwNCiAgICAgICAgICAgIEFjY291bnQuSWQgICAgICAgICAgICAgICAgICAgIEFTIGlkLA0KICAgICAgICAgICAgQWNjb3VudC5UcmFuc3BhcmVuY3lfSURfX2MgICAgQVMgdF9pZCwNCiAgICAgICAgICAgIEFjY291bnQuRmlzY2FsX1llYXJfQmVnaW5zX19jIEFTIGJlZ2luX2Z5LA0KICAgICAgICAgICAgUmVjb3JkVHlwZS5EZXZlbG9wZXJOYW1lICAgICAgQVMgZ292dF90eXBlDQogICAgICAgICAgRlJPTSBBY2NvdW50DQogICAgICAgICAgSk9JTiBSZWNvcmRUeXBlDQogICAgICAgICAgT04gQWNjb3VudC5SZWNvcmRUeXBlSWQgPSBSZWNvcmRUeXBlLklkDQogICAgICAgICAgV0hFUkUgQWNjb3VudC5SZWNvcmRUeXBlSWQgSU4gKA0KICAgICAgICAgICAgU0VMRUNUIElkDQogICAgICAgICAgICBGUk9NIFJlY29yZFR5cGUNCiAgICAgICAgICAgIFdIRVJFIERldmVsb3Blck5hbWUgSU4gKA0KICAgICAgICAgICAgJ0FPRycsDQogICAgICAgICAgICAnQ2l0eScsDQogICAgICAgICAgICAnQ29uc2VydmF0aW9uX0Rpc3RyaWN0JywNCiAgICAgICAgICAgICdDb3VudHknLA0KICAgICAgICAgICAgJ0Rpc3RyaWN0X0hlYWx0aCcsDQogICAgICAgICAgICAnSG91c2luZycsDQogICAgICAgICAgICAnSW5kZXBlbmRlbnRfUXVhc2lfU3RhdGVfRW50aXR5JywNCiAgICAgICAgICAgICdJbnRlcmxvY2FsJywNCiAgICAgICAgICAgICdMb2NhbF9hbmRfU3BlY2lhbF9TZXJ2aWNlX0Rpc3RyaWN0JywNCiAgICAgICAgICAgICdNZW50YWxfSGVhbHRoJywNCiAgICAgICAgICAgICdSZWRldmVsb3BtZW50X0FnZW5jeV9Qcm9qZWN0X0FyZWEnLA0KICAgICAgICAgICAgJ1Rvd24nKSkNCiAgICAgICAgICBBTkQgQWNjb3VudC5FbnRpdHlfU3RhdHVzX19jIElOICgNCiAgICAgICAgICAgICdDdXJyZW50JywNCiAgICAgICAgICAgICdPbiBob2xkJywNCiAgICAgICAgICAgICdEZWxpbnF1ZW50JywNCiAgICAgICAgICAgICdTdXNwZW5kZWQnKQ0KICAgICAgICAgIEFORCBBY2NvdW50Lk5hbWUgTk9UIElOICgNCiAgICAgICAgICAgICdJbnRlcm1vdW50YWluIFBvd2VyIEFnZW5jeScsDQogICAgICAgICAgICAnVXRhaCBBc3NvY2lhdGVkIE11bmljaXBhbCBQb3dlciBTeXN0ZW1zJywNCiAgICAgICAgICAgICdVdGFoIE11bmljaXBhbCBQb3dlciBBZ2VuY3knKQ0KICAgICAgICAgIEFORCAoDQogICAgICAgICAgICBBY2NvdW50LkV4cGVuc2VfUmV2ZW51ZV9TdGFydF9EYXRlX19jIDw9IERBVEUoKSBPUg0KICAgICAgICAgICAgQWNjb3VudC5FeHBlbnNlX1JldmVudWVfU3RhcnRfRGF0ZV9fYyBJUyBOVUxMKSIpKSAlPiUNCiAgYXNfdGliYmxlKCkNCmBgYA0KDQojIyBVQ29BDQoNCmBgYHtyfQ0KdWNvYV9mdW5kIDwtIA0KICByZWFkX3hsc3goInVjb2EueGxzeCIsIHNoZWV0ID0gZXhjZWxfc2hlZXRzKCJ1Y29hLnhsc3giKVtbMV1dKQ0KDQp1Y29hX2Z1bmN0aW9uIDwtIA0KICByZWFkX3hsc3goInVjb2EueGxzeCIsIHNoZWV0ID0gZXhjZWxfc2hlZXRzKCJ1Y29hLnhsc3giKVtbMl1dKQ0KDQp1Y29hX2FjY291bnQgPC0gDQogIHJlYWRfeGxzeCgidWNvYS54bHN4Iiwgc2hlZXQgPSBleGNlbF9zaGVldHMoInVjb2EueGxzeCIpW1szXV0pDQoNCiMgU29tZSBvZiB0aGUgY29kZSBiZWxvdyB3aWxsIGJlY29tZSB1bm5lY2Vzc2FyeSBhZnRlciBJIGVkaXQgT1NBJ3MgVW5pZm9ybQ0KIyBDaGFydCBvZiBBY2NvdW50cyBhbmQgcHVibGlzaCBpdCBvbiB0aGUgT1NBIHdlYnNpdGUuDQoNCmNvbG5hbWVzKHVjb2FfZnVuZCkgICAgIDwtIHVjb2FfZnVuZFsyLCBdDQpjb2xuYW1lcyh1Y29hX2Z1bmN0aW9uKSA8LSBjKCJOVU1CRVIiLCB1Y29hX2Z1bmN0aW9uWzEsIDI6NF0pDQpjb2xuYW1lcyh1Y29hX2FjY291bnQpICA8LSB1Y29hX2FjY291bnRbMiwgXQ0KDQp1Y29hX2Z1bmQgICAgIDwtIHVjb2FfZnVuZCAgICAgJT4lIHNsaWNlKC0xLCAtMikNCnVjb2FfZnVuY3Rpb24gPC0gdWNvYV9mdW5jdGlvbiAlPiUgc2xpY2UoLTEpDQp1Y29hX2FjY291bnQgIDwtIHVjb2FfYWNjb3VudCAgJT4lIHNsaWNlKC0xLCAtMikNCg0KIyBJIGRvbid0IHRoaW5rIEkgbmVlZCB0aGUgZnVuZCBudW1iZXJzIGluIHRoaXMgY29kZS4uLiBob2xkIG9uIHRvIGl0IHVudGlsIEknbQ0KIyBkb25lIHdpdGggdGhlIHByb2dyYW0sIGp1c3QgaW4gY2FzZS4NCmV4dHJhX2Z1bmRfbnVtYmVycyA8LSANCiAgYygyMDI6Mjk4LCAzMDI6Mzk4LCA0MDI6NDQ4LCA0NTI6NDk4LCA1MDI6NTk4LCA2MDI6Njk4LCA3MDI6Nzk4KSAlPiUgDQogIGFzLmNoYXJhY3RlcigpICU+JSANCiAgZW5mcmFtZShuYW1lID0gTlVMTCkgJT4lIA0KICByZW5hbWUoIk5VTUJFUiIgPSAidmFsdWUiKSAlPiUgDQogIG11dGF0ZSgiU0hPUlQgREVTQ1JJUFRJT04iID0gTkEsICJGVUxMIERFU0NSSVBUSU9OIiA9IE5BLCAiREVUQUlMIiA9IE5BLA0KICAgICAgICAgTlVNQkVSID0gaWZfZWxzZShuY2hhcihOVU1CRVIpID09IDIsIA0KICAgICAgICAgICAgICAgICAgICAgICAgICBzdHJfcGFkKE5VTUJFUiwgd2lkdGggPSAzLCBzaWRlID0gImxlZnQiLCAiMCIpLCANCiAgICAgICAgICAgICAgICAgICAgICAgICAgTlVNQkVSKSkNCg0KdWNvYV9mdW5kIDwtIA0KICB1Y29hX2Z1bmQgJT4lIA0KICBiaW5kX3Jvd3MoZXh0cmFfZnVuZF9udW1iZXJzKQ0KDQp1Y29hX2Z1bmQkTlVNQkVSW1sxXV0gICAgIDwtICIwMTAiDQp1Y29hX2Z1bmQkTlVNQkVSW1syXV0gICAgIDwtICIwMjAiDQp1Y29hX2Z1bmQkTlVNQkVSW1szXV0gICAgIDwtICIwMzAiDQp1Y29hX2Z1bmN0aW9uJE5VTUJFUltbMV1dIDwtICIwMDAwMDAiDQoNCnVjb2FfYWNjb3VudF9leHAgPC0NCiAgdWNvYV9hY2NvdW50ICU+JSANCiAgZmlsdGVyKHN0cl9kZXRlY3QoTlVNQkVSLCAiXjQiKSkNCg0KdWNvYV9hY2NvdW50X3JldiA8LSANCiAgdWNvYV9hY2NvdW50ICU+JSANCiAgZmlsdGVyKHN0cl9kZXRlY3QoTlVNQkVSLCAiXjMiKSkNCiAgDQojIHVjb2FfYWNjb3VudF93MiA8LSANCiMgICB1Y29hX2FjY291bnQgJT4lIA0KIyAgIGZpbHRlcihzdHJfZGV0ZWN0KE5VTUJFUiwgIl40MDAxIikpDQoNCnVjb2FfdmFndWVfZnVuY3QgPC0gDQogIHVjb2FfZnVuY3Rpb24gJT4lIA0KICBmaWx0ZXIoDQogICAgTlVNQkVSID09ICIwMDAwMDAiIHwNCiAgICBOVU1CRVIgPT0gIjEwMDAwMCIgfA0KICAgIE5VTUJFUiA9PSAiMjAwMDAwIiB8DQogICAgTlVNQkVSID09ICIzMDAwMDAiIHwNCiAgICBOVU1CRVIgPT0gIjQwMDAwMCIgfA0KICAgIE5VTUJFUiA9PSAiNTAwMDAwIikNCg0KdWNvYV92YWd1ZV9leHAgPC0gDQogIHVjb2FfYWNjb3VudF9leHAgJT4lIA0KICBmaWx0ZXIoDQogICAgTlVNQkVSID09ICI0MDAwMDAwMCIgfA0KICAgIE5VTUJFUiA9PSAiNDAwMTAwMDAiIHwNCiAgICBOVU1CRVIgPT0gIjQwMDIwMDAwIiB8DQogICAgTlVNQkVSID09ICI0MDAzMDAwMCIgfA0KICAgIE5VTUJFUiA9PSAiNDAwNDAwMDAiIHwNCiAgICBOVU1CRVIgPT0gIjQwMDUwMDAwIiB8DQogICAgTlVNQkVSID09ICI0MDA2MDAwMCIgfA0KICAgIE5VTUJFUiA9PSAiNDAwNzAwMDAiIHwNCiAgICBOVU1CRVIgPT0gIjQwMDgwMDAwIiB8DQogICAgTlVNQkVSID09ICI0MDExMDAwMCIgfA0KICAgIE5VTUJFUiA9PSAiNDAxNzAwMDAiICkNCg0KdWNvYV92YWd1ZV9yZXYgPC0gDQogIHVjb2FfYWNjb3VudF9yZXYgJT4lIA0KICBmaWx0ZXIoDQogICAgTlVNQkVSID09ICIzMDAwMDAwMCIgfA0KICAgIE5VTUJFUiA9PSAiMzAwMTAwMDAiIHwNCiAgICBOVU1CRVIgPT0gIjMwMDIwMDAwIiB8DQogICAgTlVNQkVSID09ICIzMDAzMDAwMCIgfA0KICAgIE5VTUJFUiA9PSAiMzAwNDAwMDAiIHwNCiAgICBOVU1CRVIgPT0gIjMwMDUwMDAwIiB8DQogICAgTlVNQkVSID09ICIzMDA2MDAwMCIgfA0KICAgIE5VTUJFUiA9PSAiMzAwNzAwMDAiICkNCg0KdWNvYSA8LQ0KICBsaXN0KA0KICAgIGZ1bmQgICAgICAgID0gdWNvYV9mdW5kLA0KICAgIGZ1bmN0ICAgICAgID0gdWNvYV9mdW5jdGlvbiwNCiAgICBhY2NvdW50ICAgICA9IHVjb2FfYWNjb3VudCwNCiAgICBhY2NvdW50X2V4cCA9IHVjb2FfYWNjb3VudF9leHAsDQogICAgYWNjb3VudF9yZXYgPSB1Y29hX2FjY291bnRfcmV2LA0KICAgIHZhZ3VlX2Z1bmN0ID0gdWNvYV92YWd1ZV9mdW5jdCwNCiAgICB2YWd1ZV9leHAgICA9IHVjb2FfdmFndWVfZXhwLA0KICAgIHZhZ3VlX3JldiAgID0gdWNvYV92YWd1ZV9yZXYpDQoNCnJtKHVjb2FfZnVuZCwgdWNvYV9mdW5jdGlvbiwgdWNvYV9hY2NvdW50LCBleHRyYV9mdW5kX251bWJlcnMsIHVjb2FfYWNjb3VudF9leHAsDQogICB1Y29hX2FjY291bnRfcmV2LCB1Y29hX3ZhZ3VlX2Z1bmN0LCB1Y29hX3ZhZ3VlX2V4cCwgdWNvYV92YWd1ZV9yZXYpDQpgYGANCg0KIyMgUmVwb3J0DQoNCmBgYHtyfQ0KIyBUaGUgZXJyb3IgSSBvY2Nhc2lvbmFsbHkgc2VlIHdoZW4gSSBydW4gdGhlIGNvZGUgYmVsb3cgaXM6DQojIEVycm9yIGluIG5jaGFyKGFjY291bnRfbnVtYmVyLCBrZWVwTkEgPSBUUlVFKTogaW52YWxpZCBtdWx0aWJ5dGUgc3RyaW5nLA0KIyBlbGVtZW50IDM3NTE4MS4NCiMgSSBzdXNwZWN0IHRoZSBlcnJvciBtYXkgcmVzdWx0IGZyb20gbm9uLVVURi04IGNoYXJhY3RlcnMgaW4gdGhlIGFjY291bnRfbnVtYmVyDQojIHN0cmluZy4uLg0KcmVwb3J0IDwtIA0KICBzZl9kYXRhICU+JSANCiAgZmlsdGVyKCFpcy5uYSh0X2lkKSkgJT4lIA0KICBtdXRhdGUoDQogICAgcGVyY2VudF92YWd1ZV9mdW5jdGlvbiA9IA0KICAgICAgdF9pZCAlPiUgICAgICAgICAgICAgICAgIA0KICAgICAgbWFwX2RibCgNCiAgICAgICAgY2hlY2tfcGVyY2VudGFnZV9vZl92YWd1ZV91Y29hLCANCiAgICAgICAgImZ1bmN0IiwgDQogICAgICAgIHVjb2EpLA0KICAgIHBlcmNlbnRfdmFndWVfZXhwID0gDQogICAgICB0X2lkICU+JSANCiAgICAgIG1hcF9kYmwoDQogICAgICAgIGNoZWNrX3BlcmNlbnRhZ2Vfb2ZfdmFndWVfdWNvYSwNCiAgICAgICAgImV4cCIsDQogICAgICAgIHVjb2EpLA0KICAgIHBlcmNlbnRfdmFndWVfcmV2ID0gDQogICAgICB0X2lkICU+JSANCiAgICAgIG1hcF9kYmwoDQogICAgICAgIGNoZWNrX3BlcmNlbnRhZ2Vfb2ZfdmFndWVfdWNvYSwNCiAgICAgICAgInJldiIsDQogICAgICAgIHVjb2EpKQ0KYGBgDQoNCmBgYHtyfQ0KcmVwb3J0ICU+JSANCiAgd3JpdGVfY3N2KA0KICAgIHBhc3RlMChnZXR3ZCgpLCAiL1ZhZ3VlIFVDb0EgUmVwb3J0LmNzdiIpKQ0KYGBgDQoNCiMgREJNUyBEaXNjb25uZWN0aW9uDQoNCmBgYHtyfQ0KZGJEaXNjb25uZWN0KG9kYmNfYXdzLCBvZGJjX3NmKQ0KYGBg</div>
+<div id="rmd-source-code">LS0tDQp0aXRsZTogIlZhZ3VlIFVDb0EgUmVwb3J0Ig0KYXV0aG9yOiAiTWljaGFlbCBKZW5zZW4tIEFtZW5kZWQgYnkgQWxleGFuZGVyIE5pZWxzb24iDQpkYXRlOiAiU2VwdGVtYmVyIDIwMTkiDQpvdXRwdXQ6IGh0bWxfbm90ZWJvb2sNCi0tLQ0KIyBQcm9ncmFtIERlc2NyaXB0aW9uDQoNCioqUHVycG9zZSoqDQoNCkZvciBub24tYXJjaGl2ZWQgVHJhbnNwYXJlbnQgVXRhaCBkYXRhLCBkZXRlcm1pbmUgdGhlIHBlcmNlbnRhZ2Ugb2YgVUNvQSBmdW5jdGlvbiBhbmQgYWNjb3VudCBjb2RlcyB0aGF0IGFyZSB2YWd1ZS4gDQoNClZhbGlkLWJ1dC12YWd1ZSBVQ29BIHZhbHVlcyBhcmUgYW4gb2JzdGFjbGUgdG8gbWFraW5nIHRoZSBkYXRhIHVzZWZ1bCBmb3IgYW5hbHlzaXMuIFdlIHdhbnQgdG8gaWRlbnRpZnkgZW50aXRpZXMgd2l0aCBhIGhpZ2ggcGVyY2VudGFnZSBvZiB2YWd1ZSBVQ29BIHZhbHVlcyBzbyB3ZSBjYW4gd29yayB3aXRoIHRoZW0gdG8gZ2V0IG1vcmUgZGV0YWlsZWQgZmluYW5jaWFsIGluZm9ybWF0aW9uLg0KDQpOT1RFOiBhIHZhZ3VlIFVDb0EgaXMgdXN1YWxseSBjb25zaWRlcmVkIG9uZSB0aGF0IGNhbiBiZSBicm9rZW4gZG93biBmdXJ0aGVyIGF0IGEgZnVuY3Rpb24sIG9yIGFjY291bnRzIGxldmVsLiANCg0KDQoqKklucHV0KHMpKioNCg0KYGBge3J9DQpkc25fYXdzICAgICAgICA8LSAidHJhbnNwQVdTIg0KZHNuX3NhbGVzZm9yY2UgPC0gInNhbGVzZm9yY2UiDQpgYGANCg0KKipPdXRwdXQocykqKg0KDQoqIEEgLmNzdiBmaWxlIGNvbnRhaW5pbmcgdGhlIGZvbGxvd2luZyBmb3IgZWFjaCBhY3RpdmUgYW5kIHBhcnRpY2lwYXRpbmcgZW50aXR5IHdpdGggYSBUcmFuc3BhcmVuY3kgSUQgbGlzdGVkIGluIFNhbGVzZm9yY2U6DQogICsgVGhlIHBlcmNlbnRhZ2Ugb2YgdHJhbnNhY3Rpb25zIHRoYXQgaGF2ZSBhIHZhZ3VlIGZ1bmN0aW9uIGNvZGUNCiAgKyBUaGUgcGVyY2VudGFnZSBvZiB0cmFuc2FjdGlvbnMgdGhhdCBoYXZlIGEgdmFndWUgZXhwZW5zZSBhY2NvdW50IGNvZGUNCiAgKyBUaGUgcGVyY2VudGFnZSBvZiB0cmFuc2FjdGlvbnMgdGhhdCBoYXZlIGEgdmFndWUgcmV2ZW51ZSBhY2NvdW50IGNvZGUNCg0KIyBMaWJyYXJpZXMgYW5kIERhdGEgU291cmNlcw0KDQpgYGB7cn0NCmxpYnJhcnkobHVicmlkYXRlKQ0KbGlicmFyeShtYWdyaXR0cikNCmxpYnJhcnkob2RiYykNCmxpYnJhcnkocmVhZHhsKQ0KbGlicmFyeSh0aWR5dmVyc2UpDQoNCm9kYmNfYXdzIDwtIGRiQ29ubmVjdChvZGJjOjpvZGJjKCksIGRzbl9hd3MpDQpvZGJjX3NmICA8LSBkYkNvbm5lY3Qob2RiYzo6b2RiYygpLCBkc25fc2FsZXNmb3JjZSkNCg0Kcm0oZHNuX2F3cywgZHNuX3NhbGVzZm9yY2UpDQoNCmRvd25sb2FkLmZpbGUoDQogICJodHRwOi8vZmluYW5jaWFscmVwb3J0cy51dGFoLmdvdi9jaGFydG9mYWNjb3VudHMvQ2hhcnRvZkFjY291bnRGdWxsLnhsc3giLA0KICAidWNvYS54bHN4IiwNCiAgbW9kZSA9ICJ3YiIpDQpgYGANCg0KIyBGdW5jdGlvbiBEZWZpbml0aW9ucw0KDQojIyBBcmd1bWVudCBEZWZpbml0aW9ucw0KDQpgYGB7ciwgZXZhbD1GQUxTRX0NCiAgIyAgIHRfaWQgKG51bSk6IFRoZSBlbnRpdHkncyBUcmFuc3BhcmVuY3kgSUQsIGFzIHF1ZXJpZWQgZnJvbSBTYWxlc2ZvcmNlDQogICMgICAgIHJhdGhlciB0aGFuIFRyYW5zcGFyZW5jeS4NCiAgIyAgIHVjb2EgKGxpc3QpOiBUaGUgbGlzdCBjb250YWluaW5nIHRoZSBGdW5kLCBGdW5jdGlvbiwgYW5kIEFjY291bnQgY29kZXMgDQogICMgICAgIGZyb20gT1NBJ3MgVW5pZm9ybSBDaGFydCBvZiBBY2NvdW50cy4NCiAgIyAgIHVjb2FfdHlwZSAoY2hhcik6IFRoZSBVQ29BIGNvbXBvbmVudCB0byBjaGVjayAoImZ1bmN0IiA9IGZ1bmN0aW9uLA0KICAjICAgICAiZXhwIiA9IGV4cGVuc2UsICJyZXYiID0gcmV2ZW51ZSkuDQpgYGANCg0KIyMgY2hlY2tfcGVyY2VudGFnZV9vZl92YWd1ZV91Y29hDQoNCmBgYHtyfQ0KY2hlY2tfcGVyY2VudGFnZV9vZl92YWd1ZV91Y29hIDwtIGZ1bmN0aW9uKHRfaWQsIHVjb2FfdHlwZSwgdWNvYSkgew0KICAjIERldGVybWluZSB0aGUgcGVyY2VudGFnZSBvZiBhbiBlbnRpdHkncyB0cmFuc2FjdGlvbnMgdGhhdCB1c2UgYSB2YWxpZCBidXQgDQogICMgdmFndWUgVUNvQSBjb2RlLg0KICAjDQogICMgQXJndW1lbnRzOg0KICAjICAgdF9pZCAobnVtKTogVGhlIGVudGl0eSdzIFRyYW5zcGFyZW5jeSBJRCwgYXMgcXVlcmllZCBmcm9tIFNhbGVzZm9yY2UNCiAgIyAgICAgcmF0aGVyIHRoYW4gVHJhbnNwYXJlbmN5Lg0KICAjICAgdWNvYV90eXBlIChjaGFyKTogVGhlIFVDb0EgY29tcG9uZW50IHRvIGNoZWNrICgiZnVuY3QiID0gZnVuY3Rpb24sDQogICMgICAgICJleHAiID0gZXhwZW5zZSwgInJldiIgPSByZXZlbnVlKS4NCiAgIyAgIHVjb2EgKGxpc3QpOiBUaGUgbGlzdCBjb250YWluaW5nIHRoZSBGdW5kLCBGdW5jdGlvbiwgYW5kIEFjY291bnQgY29kZXMgDQogICMgICAgIGZyb20gT1NBJ3MgVW5pZm9ybSBDaGFydCBvZiBBY2NvdW50cy4NCiAgIw0KICAjIFZhbHVlOg0KICAjICAgTnVtZXJpYy4NCiAgIyANCiAgIyBDb21tZW50czoNCiAgIyAgIFRoZSBVQ29BIGNvZGUgaXMgdGhlIGtleSB0byBhbmFseXppbmcsIGluIGFnZ3JlZ2F0ZSwgbG9jYWwgZ292ZXJubWVudCANCiAgIyAgIGZpbmFuY2lhbCBkYXRhLiBUaGUgVUNvQSBjb2RlIGlzIG1pbmltYWxseSB1c2VmdWwgaWYgZ292ZXJubWVudHMgYXJlIA0KICAjICAgdXNpbmcgb25seSB0aGUgbW9zdCBnZW5lcmFsIGNvZGUgKGUuZy4sIGNvZGluZyBhIHRyYW5zYWN0aW9uIGFzDQogICMgICAxMDAtMDAwMDAwLTMwMDAwMDAwIGlzbid0IHVzZWZ1bCkuDQogIA0KICByZXBvcnRlZF91Y29hIDwtIA0KICAgIGRiR2V0UXVlcnkoDQogICAgICBvZGJjX2F3cywNCiAgICAgIHBhc3RlKCINCiAgICAgICAgICAgIFNFTEVDVCBhY2NvdW50X251bWJlciwgdHlwZQ0KICAgICAgICAgICAgRlJPTSB0cmFuc2FjdGlvbg0KICAgICAgICAgICAgV0hFUkUgYmF0Y2hfaWQgSU4gKA0KICAgICAgICAgICAgICBTRUxFQ1QgaWQNCiAgICAgICAgICAgICAgRlJPTSBiYXRjaA0KICAgICAgICAgICAgICBXSEVSRSBlbnRpdHlfaWQgPSAiLCB0X2lkLCAiDQogICAgICAgICAgICAgIEFORCBzdGF0dXMgSU4gKCdQUk9DRVNTRUQnLCAnUFJPQ0VTU0lORycsICdET05UREVMRVRFJykpIikpICU+JSANCiAgICBhc190aWJibGUoKSAlPiUgDQogICAgI25vdGUgbmNoYXIgcmV0dXJucyB0aGUgbnVtYmVyIG9mIGNoYXJhY3RlcnMuDQogICAgZmlsdGVyKG5jaGFyKGFjY291bnRfbnVtYmVyLCBhbGxvd05BID0gVFJVRSkgPT0gMTkpICU+JSANCiAgICBmaWx0ZXIoIWlzLm5hKGFjY291bnRfbnVtYmVyKSkNCg0KICBpZiAodWNvYV90eXBlID09ICJmdW5jdCIpIHsNCiAgICANCiAgICB2YWd1ZV91Y29hX2NvZGVzIDwtIHVjb2FbWyJ2YWd1ZV9mdW5jdCJdXVtbIk5VTUJFUiJdXQ0KICAgIA0KICAgIHJlcG9ydGVkX3Vjb2EgPC0gDQogICAgICByZXBvcnRlZF91Y29hICU+JSANCiAgICAgIC5bWyJhY2NvdW50X251bWJlciJdXSAlPiUgDQogICAgICBzdWJzdHIoNSwgMTApDQogICAgDQogIH0gZWxzZSBpZiAodWNvYV90eXBlID09ICJleHAiKSB7DQogICAgDQogICAgdmFndWVfdWNvYV9jb2RlcyA8LSB1Y29hW1sidmFndWVfZXhwIl1dW1siTlVNQkVSIl1dDQogICAgDQogICAgcmVwb3J0ZWRfdWNvYSA8LSANCiAgICAgIHJlcG9ydGVkX3Vjb2EgJT4lIA0KICAgICAgZmlsdGVyKHR5cGUgPT0gMSkgJT4lIA0KICAgICAgLltbImFjY291bnRfbnVtYmVyIl1dICU+JSANCiAgICAgIHN1YnN0cigxMiwgMTkpDQogICAgDQogIH0gZWxzZSBpZiAodWNvYV90eXBlID09ICJyZXYiKSB7DQogICAgDQogICAgdmFndWVfdWNvYV9jb2RlcyA8LSB1Y29hW1sidmFndWVfcmV2Il1dW1siTlVNQkVSIl1dDQogICAgDQogICAgcmVwb3J0ZWRfdWNvYSA8LSANCiAgICAgIHJlcG9ydGVkX3Vjb2EgJT4lIA0KICAgICAgZmlsdGVyKHR5cGUgPT0gMikgJT4lIA0KICAgICAgLltbImFjY291bnRfbnVtYmVyIl1dICU+JSANCiAgICAgIHN1YnN0cigxMiwgMTkpDQogIH0NCiAgDQogIHJlcG9ydGVkX3ZhZ3VlX3Vjb2EgPC0gDQogICAgcmVwb3J0ZWRfdWNvYVtyZXBvcnRlZF91Y29hICVpbiUgdmFndWVfdWNvYV9jb2Rlc10NCiAgDQogIHBlcmNlbnRfdmFndWUgPC0gDQogICAgKGxlbmd0aChyZXBvcnRlZF92YWd1ZV91Y29hKSAvIGxlbmd0aChyZXBvcnRlZF91Y29hKSkgKiAxMDANCg0KICByb3VuZChwZXJjZW50X3ZhZ3VlKQ0KfQ0KYGBgDQoNCiMgRXhlY3V0aW9uDQoNCiMjIFNhbGVzZm9yY2UNCg0KYGBge3J9DQojIE5vdGUgdGhhdCBJIGRvIG5vdCBxdWVyeSBMRUFzLiBUaGV5IGFyZSBtYW5hZ2VkIGJ5IFVTQkUsIHdoaWNoIHVzZXMgYQ0KIyBkaWZmZXJlbnQgY2hhcnQgb2YgYWNjb3VudHMuIEkgYWxzbyBkbyBub3QgcXVlcnkgaGlnaGVyIGVkdWNhdGlvbi4NCg0Kc2ZfZGF0YSA8LQ0KICBkYkdldFF1ZXJ5KA0KICAgIG9kYmNfc2YsDQogICAgcGFzdGUoIg0KICAgICAgICAgIFNFTEVDVA0KICAgICAgICAgICAgQWNjb3VudC5OYW1lICAgICAgICAgICAgICAgICAgQVMgbmFtZSwNCiAgICAgICAgICAgIEFjY291bnQuSWQgICAgICAgICAgICAgICAgICAgIEFTIGlkLA0KICAgICAgICAgICAgQWNjb3VudC5UcmFuc3BhcmVuY3lfSURfX2MgICAgQVMgdF9pZCwNCiAgICAgICAgICAgIEFjY291bnQuRmlzY2FsX1llYXJfQmVnaW5zX19jIEFTIGJlZ2luX2Z5LA0KICAgICAgICAgICAgUmVjb3JkVHlwZS5EZXZlbG9wZXJOYW1lICAgICAgQVMgZ292dF90eXBlDQogICAgICAgICAgRlJPTSBBY2NvdW50DQogICAgICAgICAgSk9JTiBSZWNvcmRUeXBlDQogICAgICAgICAgT04gQWNjb3VudC5SZWNvcmRUeXBlSWQgPSBSZWNvcmRUeXBlLklkDQogICAgICAgICAgV0hFUkUgQWNjb3VudC5SZWNvcmRUeXBlSWQgSU4gKA0KICAgICAgICAgICAgU0VMRUNUIElkDQogICAgICAgICAgICBGUk9NIFJlY29yZFR5cGUNCiAgICAgICAgICAgIFdIRVJFIERldmVsb3Blck5hbWUgSU4gKA0KICAgICAgICAgICAgJ0FPRycsDQogICAgICAgICAgICAnQ2l0eScsDQogICAgICAgICAgICAnQ29uc2VydmF0aW9uX0Rpc3RyaWN0JywNCiAgICAgICAgICAgICdDb3VudHknLA0KICAgICAgICAgICAgJ0Rpc3RyaWN0X0hlYWx0aCcsDQogICAgICAgICAgICAnSG91c2luZycsDQogICAgICAgICAgICAnSW5kZXBlbmRlbnRfUXVhc2lfU3RhdGVfRW50aXR5JywNCiAgICAgICAgICAgICdJbnRlcmxvY2FsJywNCiAgICAgICAgICAgICdMb2NhbF9hbmRfU3BlY2lhbF9TZXJ2aWNlX0Rpc3RyaWN0JywNCiAgICAgICAgICAgICdNZW50YWxfSGVhbHRoJywNCiAgICAgICAgICAgICdSZWRldmVsb3BtZW50X0FnZW5jeV9Qcm9qZWN0X0FyZWEnLA0KICAgICAgICAgICAgJ1Rvd24nKSkNCiAgICAgICAgICBBTkQgQWNjb3VudC5FbnRpdHlfU3RhdHVzX19jIElOICgNCiAgICAgICAgICAgICdDdXJyZW50JywNCiAgICAgICAgICAgICdPbiBob2xkJywNCiAgICAgICAgICAgICdEZWxpbnF1ZW50JywNCiAgICAgICAgICAgICdTdXNwZW5kZWQnKQ0KICAgICAgICAgIEFORCBBY2NvdW50Lk5hbWUgTk9UIElOICgNCiAgICAgICAgICAgICdJbnRlcm1vdW50YWluIFBvd2VyIEFnZW5jeScsDQogICAgICAgICAgICAnVXRhaCBBc3NvY2lhdGVkIE11bmljaXBhbCBQb3dlciBTeXN0ZW1zJywNCiAgICAgICAgICAgICdVdGFoIE11bmljaXBhbCBQb3dlciBBZ2VuY3knKQ0KICAgICAgICAgIEFORCAoDQogICAgICAgICAgICBBY2NvdW50LkV4cGVuc2VfUmV2ZW51ZV9TdGFydF9EYXRlX19jIDw9IERBVEUoKSBPUg0KICAgICAgICAgICAgQWNjb3VudC5FeHBlbnNlX1JldmVudWVfU3RhcnRfRGF0ZV9fYyBJUyBOVUxMKSIpKSAlPiUNCiAgYXNfdGliYmxlKCkNCmBgYA0KDQojIyBVQ29BDQoNCmBgYHtyfQ0KI25vdGUgdGhhdCBleGNlbF9zaGVldHMoKSByZXR1cm5zIGEgbGlzdCwgaGVuY2UgdGhlIGxpc3QgYWNjZXNzIHN5bnRheC4NCg0KdWNvYV9mdW5kIDwtIA0KICByZWFkX3hsc3goInVjb2EueGxzeCIsIHNoZWV0ID0gZXhjZWxfc2hlZXRzKCJ1Y29hLnhsc3giKVtbMV1dICkNCg0KdWNvYV9mdW5jdGlvbiA8LSANCiAgcmVhZF94bHN4KCJ1Y29hLnhsc3giLCBzaGVldCA9IGV4Y2VsX3NoZWV0cygidWNvYS54bHN4IilbWzJdXSApDQoNCnVjb2FfYWNjb3VudCA8LSANCiAgcmVhZF94bHN4KCJ1Y29hLnhsc3giLCBzaGVldCA9IGV4Y2VsX3NoZWV0cygidWNvYS54bHN4IilbWzNdXSApDQoNCiNTaW5jZSB0aGUgeGxzeCBmaWxlIHdhcyBidWlsdCB0byBiZSByZWFkYWJsZSwgYW5kIG5vdCBuZWNlc3NhcmlseSBlYXNpbHkNCiNwYXJzZWQsIHRoZSBmaXJzdCB0d28gcm93cyBtdXN0IGJlIGNsZWFuZWQuIA0KDQojZml4IHRoZSBjb2x1bW4gbmFtZXMNCmNvbG5hbWVzKHVjb2FfZnVuZCkgICAgIDwtIHVjb2FfZnVuZFsyLCBdDQpjb2xuYW1lcyh1Y29hX2Z1bmN0aW9uKSA8LSBjKCJOVU1CRVIiLCB1Y29hX2Z1bmN0aW9uWzEsIDI6NF0pDQpjb2xuYW1lcyh1Y29hX2FjY291bnQpICA8LSB1Y29hX2FjY291bnRbMiwgXQ0KDQojcmVtb3ZlIHRoZSB1c2VsZXNzIHJvd3MuDQp1Y29hX2Z1bmQgICAgIDwtIHVjb2FfZnVuZCAgICAgJT4lIHNsaWNlKC0xLCAtMikNCnVjb2FfZnVuY3Rpb24gPC0gdWNvYV9mdW5jdGlvbiAlPiUgc2xpY2UoLTEpDQp1Y29hX2FjY291bnQgIDwtIHVjb2FfYWNjb3VudCAgJT4lIHNsaWNlKC0xLCAtMikNCg0KIyBJIGRvbid0IHRoaW5rIEkgbmVlZCB0aGUgZnVuZCBudW1iZXJzIGluIHRoaXMgY29kZS4uLiBob2xkIG9uIHRvIGl0IHVudGlsIEknbQ0KIyBkb25lIHdpdGggdGhlIHByb2dyYW0sIGp1c3QgaW4gY2FzZS4NCmV4dHJhX2Z1bmRfbnVtYmVycyA8LSANCiAgYygyMDI6Mjk4LCAzMDI6Mzk4LCA0MDI6NDQ4LCA0NTI6NDk4LCA1MDI6NTk4LCA2MDI6Njk4LCA3MDI6Nzk4KSAlPiUgDQogIGFzLmNoYXJhY3RlcigpICU+JSANCiAgZW5mcmFtZShuYW1lID0gTlVMTCkgJT4lIA0KICByZW5hbWUoIk5VTUJFUiIgPSAidmFsdWUiKSAlPiUgDQogIG11dGF0ZSgiU0hPUlQgREVTQ1JJUFRJT04iID0gTkEsICJGVUxMIERFU0NSSVBUSU9OIiA9IE5BLCAiREVUQUlMIiA9IE5BLA0KICAgICAgICAgTlVNQkVSID0gaWZfZWxzZShuY2hhcihOVU1CRVIpID09IDIsIA0KICAgICAgICAgICAgICAgICAgICAgICAgICBzdHJfcGFkKE5VTUJFUiwgd2lkdGggPSAzLCBzaWRlID0gImxlZnQiLCAiMCIpLCANCiAgICAgICAgICAgICAgICAgICAgICAgICAgTlVNQkVSKSkNCg0KdWNvYV9mdW5kIDwtIA0KICB1Y29hX2Z1bmQgJT4lIA0KICBiaW5kX3Jvd3MoZXh0cmFfZnVuZF9udW1iZXJzKQ0KDQp1Y29hX2Z1bmQkTlVNQkVSW1sxXV0gICAgIDwtICIwMTAiDQp1Y29hX2Z1bmQkTlVNQkVSW1syXV0gICAgIDwtICIwMjAiDQp1Y29hX2Z1bmQkTlVNQkVSW1szXV0gICAgIDwtICIwMzAiDQp1Y29hX2Z1bmN0aW9uJE5VTUJFUltbMV1dIDwtICIwMDAwMDAiDQoNCnVjb2FfYWNjb3VudF9leHAgPC0NCiAgdWNvYV9hY2NvdW50ICU+JSANCiAgZmlsdGVyKHN0cl9kZXRlY3QoTlVNQkVSLCAiXjQiKSkjIGZpbHRlciBmb3IgYW55IHJvdyB3aGljaCBzdGFydHMgd2l0aCA0LA0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICMgdGhpcyBpcyBiZWNhdXNlIFVDb0EgYXR0cmlidXRlcyBhbnl0aGluZyBpbiANCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAjIHRoZSAzMDAwLTM5OTkgdG8gcmV2ZW51ZXMNCg0KdWNvYV9hY2NvdW50X3JldiA8LSANCiAgdWNvYV9hY2NvdW50ICU+JSANCiAgZmlsdGVyKHN0cl9kZXRlY3QoTlVNQkVSLCAiXjMiKSkjIGZpbHRlciBmb3IgYW55IHJvdyB3aGljaCBzdGFydHMgd2l0aCAzDQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIyB0aGlzIGlzIGJlY2F1c2UgVUNvQSBhdHRyaWJ0ZXMgYW55dGhpbmcgaW4NCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAjIHRoZSAzMDAwLTM5OTkgdG8gcmV2ZW51ZXMNCiAgDQojIHVjb2FfYWNjb3VudF93MiA8LSANCiMgICB1Y29hX2FjY291bnQgJT4lIA0KIyAgIGZpbHRlcihzdHJfZGV0ZWN0KE5VTUJFUiwgIl40MDAxIikpDQoNCnVjb2FfdmFndWVfZnVuY3QgPC0gDQogIHVjb2FfZnVuY3Rpb24gJT4lIA0KICBmaWx0ZXIoICAgICAgICAgICAgICAgICNERVNDUklQVElPTiBPRiBGVU5DVElPTg0KICAgIE5VTUJFUiA9PSAiMDAwMDAwIiB8ICMgTm90IEFwcGxpY2FibGUNCiAgICBOVU1CRVIgPT0gIjEwMDAwMCIgfCAjIEdlbmVyYWwgR292ZXJubWVudA0KICAgIE5VTUJFUiA9PSAiMjAwMDAwIiB8ICMgUHVibGljIFNhZmV0eQ0KICAgIE5VTUJFUiA9PSAiMzAwMDAwIiB8ICMgUHVibGljIFdvcmtzDQogICAgTlVNQkVSID09ICI0MDAwMDAiIHwgIyBIZWFsdGgNCiAgICBOVU1CRVIgPT0gIjUwMDAwMCIpICAjIENvbW11bml0eQ0KDQp1Y29hX3ZhZ3VlX2V4cCA8LSANCiAgdWNvYV9hY2NvdW50X2V4cCAlPiUgDQogIGZpbHRlciggICAgICAgICAgICAgICAgICAjIERFU0NSSVBUSU9OIG9mIEV4cGVkaXR1cmVzIGFjY291bnRzDQogICAgTlVNQkVSID09ICI0MDAwMDAwMCIgfCAjIEV4cGVuZGl0dXJlcw0KICAgIE5VTUJFUiA9PSAiNDAwMTAwMDAiIHwgIyBQZXJzb25uZWwgU2VydmljZXMNCiAgICBOVU1CRVIgPT0gIjQwMDIwMDAwIiB8ICMgR2VuZXJhbCBhbmQgQ29udHJhY3RlZCBTZXJ2aWNlcw0KICAgIE5VTUJFUiA9PSAiNDAwMzAwMDAiIHwgIyBVdGlsaXRpZXMgYW5kIFV0aWxpdHkgU2VydmljZXMNCiAgICBOVU1CRVIgPT0gIjQwMDQwMDAwIiB8ICMgVGF4ZXMgYW5kIEZlZXMNCiAgICBOVU1CRVIgPT0gIjQwMDUwMDAwIiB8ICMgU3VwcGxpZXMgYW5kIE1hdGVyaWFscw0KICAgIE5VTUJFUiA9PSAiNDAwNjAwMDAiIHwgIyBHcmFudHMgYW5kIENvbnRyYWN0cw0KICAgIE5VTUJFUiA9PSAiNDAwNzAwMDAiIHwgIyBEaXJlY3QgUGF5bWVudHMNCiAgICBOVU1CRVIgPT0gIjQwMDgwMDAwIiB8ICMgQ2FwaXRhbCBPdXRsYXlzDQogICAgICAjIE5vdGljZSB0aGF0IEkgdGhpbmsgdGhhdCA0MDA5MDAwMCBJbnRlcmRlcGFydG1lbnRhbCBDaGFyZ2VzLCBhbmQNCiAgICAgICMgNDAxMDAwMDAgSnVkZ2VtZW50cyBhbmQgTG9zc2VzIGFyZSBjb25zaWRlcmVkIG5vbi12YWd1ZS4gU2luY2UgdGhleQ0KICAgICAgIyBjYW5ub3QgYmUgYnJva2VuIGRvd24gZnVydGhlci4gSWYgdGhpcyBldmVyIGNoYW5nZSB0aGVuIHdlIHdvdWxkIG5lZWQgdG8NCiAgICAgICMgaW5jbHVkZSB0aGVtIGhlcmUuDQogICAgTlVNQkVSID09ICI0MDExMDAwMCIgfCAjIE90aGVyIGZpbmFuY2luZyBVc2VzDQogICAgICAjIEFzIG5vdGVkIGFib3ZlLCA0MDEyMDAwMDo0MDE2MDAwMCBjYW5ub3QgYmUgYnJva2VuIGRvd24gaW50byBtb3JlDQogICAgICAjIHNwZWNpZmljIGFjY291bnRzDQogICAgTlVNQkVSID09ICI0MDE3MDAwMCIgKSAjIERlYnQgU2VydmljZQ0KDQp1Y29hX3ZhZ3VlX3JldiA8LSANCiAgdWNvYV9hY2NvdW50X3JldiAlPiUgDQogIGZpbHRlciggICAgICAgICAgICAgICAgICAjIERFU0NSSVBUSU9OIE9GIFJldmVudWUgYWNjb3VudHMNCiAgICBOVU1CRVIgPT0gIjMwMDAwMDAwIiB8ICMgUmV2ZW51ZXMNCiAgICBOVU1CRVIgPT0gIjMwMDEwMDAwIiB8ICMgVGF4ZXMNCiAgICBOVU1CRVIgPT0gIjMwMDIwMDAwIiB8ICMgTGljZW5zZXMgYW5kIFBlcm1pdHMNCiAgICBOVU1CRVIgPT0gIjMwMDMwMDAwIiB8ICMgSW50ZXJnb3Zlcm5tZW50YWwNCiAgICBOVU1CRVIgPT0gIjMwMDQwMDAwIiB8ICMgQ2hhcmdlcyBGb3IgU2VydmljZQ0KICAgIE5VTUJFUiA9PSAiMzAwNTAwMDAiIHwgIyBGaW5lcyBhbmQgRm9yZmVpdHVyZXMNCiAgICBOVU1CRVIgPT0gIjMwMDYwMDAwIiB8ICMgTWlzY2VsbGFuZW91cw0KICAgIE5VTUJFUiA9PSAiMzAwNzAwMDAiICkgIyBPdGhlciBTb3VyY2VzIG9mIEZ1bmRpbmcNCg0KdWNvYSA8LQ0KICBsaXN0KA0KICAgIGZ1bmQgICAgICAgID0gdWNvYV9mdW5kLA0KICAgIGZ1bmN0ICAgICAgID0gdWNvYV9mdW5jdGlvbiwNCiAgICBhY2NvdW50ICAgICA9IHVjb2FfYWNjb3VudCwNCiAgICBhY2NvdW50X2V4cCA9IHVjb2FfYWNjb3VudF9leHAsDQogICAgYWNjb3VudF9yZXYgPSB1Y29hX2FjY291bnRfcmV2LA0KICAgIHZhZ3VlX2Z1bmN0ID0gdWNvYV92YWd1ZV9mdW5jdCwNCiAgICB2YWd1ZV9leHAgICA9IHVjb2FfdmFndWVfZXhwLA0KICAgIHZhZ3VlX3JldiAgID0gdWNvYV92YWd1ZV9yZXYpDQoNCnJtKHVjb2FfZnVuZCwgdWNvYV9mdW5jdGlvbiwgdWNvYV9hY2NvdW50LCBleHRyYV9mdW5kX251bWJlcnMsIHVjb2FfYWNjb3VudF9leHAsDQogICB1Y29hX2FjY291bnRfcmV2LCB1Y29hX3ZhZ3VlX2Z1bmN0LCB1Y29hX3ZhZ3VlX2V4cCwgdWNvYV92YWd1ZV9yZXYpDQpgYGANCg0KIyMgUmVwb3J0DQoNCmBgYHtyfQ0KIyBUaGUgZXJyb3IgSSBvY2Nhc2lvbmFsbHkgc2VlIHdoZW4gSSBydW4gdGhlIGNvZGUgYmVsb3cgaXM6DQojIEVycm9yIGluIG5jaGFyKGFjY291bnRfbnVtYmVyLCBrZWVwTkEgPSBUUlVFKTogaW52YWxpZCBtdWx0aWJ5dGUgc3RyaW5nLA0KIyBlbGVtZW50IDM3NTE4MS4NCiMgSSBzdXNwZWN0IHRoZSBlcnJvciBtYXkgcmVzdWx0IGZyb20gbm9uLVVURi04IGNoYXJhY3RlcnMgaW4gdGhlIGFjY291bnRfbnVtYmVyDQojIHN0cmluZy4uLg0KcmVwb3J0IDwtIA0KICBzZl9kYXRhICU+JSANCiAgZmlsdGVyKCFpcy5uYSh0X2lkKSkgJT4lIA0KICBtdXRhdGUoDQogICAgcGVyY2VudF92YWd1ZV9mdW5jdGlvbiA9IA0KICAgICAgdF9pZCAlPiUgICAgICAgICAgICAgICAgIA0KICAgICAgbWFwX2RibCgNCiAgICAgICAgY2hlY2tfcGVyY2VudGFnZV9vZl92YWd1ZV91Y29hLCANCiAgICAgICAgImZ1bmN0IiwgDQogICAgICAgIHVjb2EpLA0KICAgIHBlcmNlbnRfdmFndWVfZXhwID0gDQogICAgICB0X2lkICU+JSANCiAgICAgIG1hcF9kYmwoDQogICAgICAgIGNoZWNrX3BlcmNlbnRhZ2Vfb2ZfdmFndWVfdWNvYSwNCiAgICAgICAgImV4cCIsDQogICAgICAgIHVjb2EpLA0KICAgIHBlcmNlbnRfdmFndWVfcmV2ID0gDQogICAgICB0X2lkICU+JSANCiAgICAgIG1hcF9kYmwoDQogICAgICAgIGNoZWNrX3BlcmNlbnRhZ2Vfb2ZfdmFndWVfdWNvYSwNCiAgICAgICAgInJldiIsDQogICAgICAgIHVjb2EpKQ0KYGBgDQoNCmBgYHtyfQ0KcmVwb3J0ICU+JSANCiAgd3JpdGVfY3N2KA0KICAgIHBhc3RlMChnZXR3ZCgpLCAiL1ZhZ3VlIFVDb0EgUmVwb3J0LmNzdiIpKQ0KYGBgDQoNCiMgREJNUyBEaXNjb25uZWN0aW9uDQoNCmBgYHtyfQ0KZGJEaXNjb25uZWN0KG9kYmNfYXdzLCBvZGJjX3NmKQ0KYGBg</div>
 
 
 
