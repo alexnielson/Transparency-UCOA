@@ -1,7 +1,7 @@
 # Program Description
 
 **Purpose**
-I am interested in learning more about how to access and pay with the UCOA codes. I decided to conduct some Exploratory Data Analysis in this document as well.
+I am interested in learning more about how to access and pay with the UCOA codes. I decided to conduct some Exploratory Data Analysis in this document as well. This script is not really meant for a single button run-all. It rather is built to allow a data analyst to play around with the data easily. It does contain a few basic reports and interesting plots. 
 
 DURATION: the script will take about 20-30 minutes to run.
 
@@ -253,15 +253,15 @@ rm(ucoa_fund, ucoa_function, ucoa_account, extra_fund_numbers, ucoa_account_exp,
   dbGetQuery(
     odbc_aws,
     paste("
-          SELECT id,
-            batch_id,
-            fiscal_year,
-            entity_trans_id,
-            account_number,
-            type,
-            vendor_id 
+          SELECT id, 
+          batch_id,
+          amount,
+          fiscal_year,
+          account_number,
+          type
           FROM transaction
-          WHERE account_number IS NOT NULL")) %>%
+          WHERE account_number IS NOT NULL
+          LIMIT 10000000")) %>% # note I am limitingto 10000000 so it doesn't take an eternity.
   as_tibble() %>%
   # note nchar returns the number of characters.
   filter(nchar(account_number, allowNA = TRUE) == 19) %>%
@@ -311,24 +311,96 @@ rm(ucoa_fund, ucoa_function, ucoa_account, extra_fund_numbers, ucoa_account_exp,
 
 ##generate agg tables of interest
 
-### aggregate by description and code
+### aggregate by descrition and code
 ```{r}
-agg_fund<-brokenout_reported_ucoa %>%
+
+
+agg_fund_amount <-  brokenout_reported_ucoa %>% 
   group_by(fund_description, fund) %>% 
-  count(fund)%>% 
-  arrange(desc(n))
-
-agg_function<-brokenout_reported_ucoa %>%
+  summarize(total_amount = sum(amount),
+            num_of_trans = n() ) %>% 
+  arrange(desc(total_amount))
+  
+agg_function_amount <-  brokenout_reported_ucoa %>% 
   group_by(function_description, funct) %>% 
-  count(funct)%>% 
-  arrange(desc(n))
+  summarize(total_amount = sum(amount),
+            num_of_trans = n() ) %>% 
+  arrange(desc(total_amount))
 
-agg_account<-brokenout_reported_ucoa %>%
+agg_account_amount <-  brokenout_reported_ucoa %>% 
   group_by(account_description, account) %>% 
-  count(account)%>% 
-  arrange(desc(n))
+  summarize(total_amount = sum(amount),
+            num_of_trans = n() ) %>% 
+  arrange(desc(total_amount))
+
+
+agg_by_ucoa_type<- list(agg_fund_amount,agg_function_amount,agg_account_amount)
+names(agg_by_ucoa_type) <- c("agg_fund", "agg_function", "agg_account")
+
+rm(agg_fund_amount,agg_function_amount,agg_account_amount)
 
 ```
+
+### aggregate by descrition
+```{r}
+
+
+agg_fund_amount <-  brokenout_reported_ucoa %>% 
+  group_by(fund_description) %>% 
+  summarize(total_amount = sum(amount),
+            num_of_trans = n() ) %>% 
+  arrange(desc(total_amount))
+  
+agg_function_amount <-  brokenout_reported_ucoa %>% 
+  group_by(function_description) %>% 
+  summarize(total_amount = sum(amount),
+            num_of_trans = n() ) %>% 
+  arrange(desc(total_amount))
+
+agg_account_amount <-  brokenout_reported_ucoa %>% 
+  group_by(account_description) %>% 
+  summarize(total_amount = sum(amount),
+            num_of_trans = n() ) %>% 
+  arrange(desc(total_amount))
+
+
+agg_by_ucoa_type_description<- list(agg_fund_amount,agg_function_amount,agg_account_amount)
+names(agg_by_ucoa_type_description) <- c("agg_fund", "agg_function", "agg_account")
+
+rm(agg_fund_amount,agg_function_amount,agg_account_amount)
+
+```
+
+### aggregate by code
+```{r}
+
+
+agg_fund_amount <-  brokenout_reported_ucoa %>% 
+  group_by( fund) %>% 
+  summarize(total_amount = sum(amount),
+            num_of_trans = n() ) %>% 
+  arrange(desc(total_amount))
+  
+agg_function_amount <-  brokenout_reported_ucoa %>% 
+  group_by(funct) %>% 
+  summarize(total_amount = sum(amount),
+            num_of_trans = n() ) %>% 
+  arrange(desc(total_amount))
+
+agg_account_amount <-  brokenout_reported_ucoa %>% 
+  group_by(account) %>% 
+  summarize(total_amount = sum(amount),
+            num_of_trans = n() ) %>% 
+  arrange(desc(total_amount))
+
+
+agg_by_ucoa_type_code<- list(agg_fund_amount,agg_function_amount,agg_account_amount)
+names(agg_by_ucoa_type_code) <- c("agg_fund", "agg_function", "agg_account")
+
+rm(agg_fund_amount,agg_function_amount,agg_account_amount)
+
+```
+
 
 note that the next two aggregations are only contigently useful. If the data is properly cleaned, then they are redundant. 
 
@@ -370,6 +442,9 @@ agg_account_by_code<-brokenout_reported_ucoa %>%
 
 
 
+
+
+
 #Visualizations
 
 ##visualizae aggregate tables
@@ -377,63 +452,163 @@ agg_account_by_code<-brokenout_reported_ucoa %>%
 ### Visualizing the the "Fund" category
 ```{r}
 #create a simple histogram to show the different types of ucoa codes for funds only
-agg_fund_by_description %>% 
-  #filter(n < 1000000) %>% 
-  ggplot(aes(x=fund_description, y=n))+ geom_bar(stat = "identity", fill = "lightcoral")+
+
+agg_by_ucoa_type_description %>% 
+  pluck("agg_fund") %>% 
+  ggplot(aes(x=fund_description, y = total_amount))+ geom_bar(stat = "identity", fill = "lightcoral")+
   coord_flip()+
-  geom_text(aes(label=n), hjust = -.25,vjust=0, size=2)
+  geom_text(aes(label=paste0("$",total_amount)), hjust = -.25,vjust=0, size=2)
+  
 ```
 
 ###visualizing the "Function" category
 
 
 ###visualizing the "Account" category
+visualizing revenue by code
 ```{r}
 
 temp_sequence_revenues <- seq(from = 3000, to = 3009,  by=1)
 
-plot_in_range <- function(temp_range,range_begin,range_end,range_incrementor ){
+plot_in_range <- function(temp_range){
   
-    temp_sequence_revenues <- seq(from = range_begin,
-                                  to = range_end,
-                                  by= range_incrementor )
-    p <- agg_account %>% 
-    #filter(n < 1000000) %>% 
-    filter(str_detect(account, paste0("^",temp_range))) %>% #only selects taxes
-    ggplot(aes(x=account, y=n))+ geom_bar(stat = "identity", fill = "lightcoral")+
-    coord_flip()+
-    # facet_grid(n)+
-    geom_text(aes(label=n), hjust = -.25,vjust=0, size=3)+
-    labs(title = paste0("Barplot of Account Revenues in Range: ", temp_range,"0000") )
-    p
+  p <- agg_by_ucoa_type %>% 
+      pluck("agg_account") %>% 
+      filter(str_detect(account, paste0("^",temp_range))) %>% #only selects taxes
+      ggplot(aes(x=account, y=total_amount))+ geom_bar(stat = "identity", fill = "lightcoral")+
+      coord_flip()+
+      geom_text(aes(label=paste0("$",total_amount)), hjust = -.25,vjust=0, size=3)+
+      labs(title = paste0("Barplot of Account Revenues in Range: ", temp_range,"0000") )
+  p
+  
 }
 
 
-plots<- temp_sequence_revenues %>% map(plot_in_range(range_begin = 3000, range_end = 3009, range_incrementor = 1))
+plots<- temp_sequence_revenues %>% map(plot_in_range)
+names(plots) <- c("revenues",
+                  "taxes",
+                  "licenses_and_permits",
+                  "intergovernmental",
+                  "charges_for_service",
+                  "fines_and_forfeitures",
+                  "miscellaneous",
+                  "other_sources_of_funding",
+                  "special_and_extraordinary_gain",
+                  "suspense")
+
+# names(plots) <- c("30000000_Revenues",
+#                   "30010000_Taxes",
+#                   "30020000_Licenses_and_Permits",
+#                   "30030000_Intergovernmental",
+#                   "30040000_Charges_For_Service",
+#                   "30050000_Fines_and_Forfeitures",
+#                   "30060000_Miscellaneous",
+#                   "30070000_Other_Sources_of_Funding",
+#                   "30080000_Special_and_Extraordinary Gain",
+#                   "30090000_Suspense")
 #view  plot elements by like plots[[1]]
 
 ```
+visualizing revenue by description
+```{r}
+
+temp_sequence_revenues <- seq(from = 3000, to = 3009,  by=1)
+
+plot_in_range <- function(temp_range){
+  
+  p <- agg_by_ucoa_type %>% 
+      pluck("agg_account") %>% 
+      filter(str_detect(account, paste0("^",temp_range))) %>% #only selects taxes
+      ggplot(aes(x=account_description, y=total_amount))+ geom_bar(stat = "identity", fill = "lightcoral")+
+      coord_flip()+
+      geom_text(aes(label=paste0("$",total_amount)), hjust = -.25,vjust=0, size=3)+
+      labs(title = paste0("Barplot of Account Revenues in Range: ", temp_range,"0000") )
+  p
+  
+}
+
+
+plots<- temp_sequence_revenues %>% map(plot_in_range)
+names(plots) <- c("revenues",
+                  "taxes",
+                  "licenses_and_permits",
+                  "intergovernmental",
+                  "charges_for_service",
+                  "fines_and_forfeitures",
+                  "miscellaneous",
+                  "other_sources_of_funding",
+                  "special_and_extraordinary_gain",
+                  "suspense")
+
+# names(plots) <- c("30000000_Revenues",
+#                   "30010000_Taxes",
+#                   "30020000_Licenses_and_Permits",
+#                   "30030000_Intergovernmental",
+#                   "30040000_Charges_For_Service",
+#                   "30050000_Fines_and_Forfeitures",
+#                   "30060000_Miscellaneous",
+#                   "30070000_Other_Sources_of_Funding",
+#                   "30080000_Special_and_Extraordinary Gain",
+#                   "30090000_Suspense")
+#view  plot elements by like plots[[1]]
+
+```
+
+```{r}
+temp_range<-3001    
+p <- agg_by_ucoa_type %>% 
+      pluck("agg_account") %>% 
+    #filter(n < 1000000) %>% 
+    filter(str_detect(account, paste0("^",temp_range))) %>% #only selects taxes
+    ggplot(aes(x=account, y=total_amount))+ geom_bar(stat = "identity", fill = "lightcoral")+
+    coord_flip()+
+    # facet_grid(n)+
+    geom_text(aes(label=paste0("$",total_amount)), hjust = -.25,vjust=0, size=3)+
+    labs(title = paste0("Barplot of Account Revenues in Range: ", temp_range,"0000") )
+p
+```
+
+#Drill Down / Zoom in
+Lets say I that after looking at the plots above, I found the Revenues account "Intergovernmental" or 30030000 to be interest. I could quickly zoom into that area by the following code:
+```{r}
+temp_zoom<- agg_by_ucoa_type %>% pluck("agg_account") %>% filter(str_detect(account, paste0("^3003")))
+```
+
 
 #Validation / Generate A Problem List
 
 # Find a list of entities who used the wrong fund code
 ```{r}
+#more readable
 bad_fund_code<-brokenout_reported_ucoa %>%
  # slice(1:1000000) %>% #take the first million records
-filter(!fund %in% ucoa[["fund"]]$NUMBER)
+filter(!fund %in% (ucoa %>% pluck("fund") %>% select(NUMBER) %>% unlist() ) )
+
+# bad_fund_code<-brokenout_reported_ucoa %>%
+#  # slice(1:1000000) %>% #take the first million records
+# filter(!fund %in% ucoa[["fund"]]$NUMBER)
 ```
 
 #find a list of entities who used the wrong function code
 ```{r}
 bad_funct_code<-brokenout_reported_ucoa %>%
-  #slice(1:1000000) %>% #take the first million records
-filter(!funct %in% ucoa[["funct"]]$NUMBER)
+ # slice(1:1000000) %>% #take the first million records
+filter(!funct %in% (ucoa %>% pluck("funct") %>% select(NUMBER) %>% unlist() ) )
+
+#same thing but less readable.
+# bad_funct_code<-brokenout_reported_ucoa %>%
+#   #slice(1:1000000) %>% #take the first million records
+# filter(!funct %in% ucoa[["funct"]]$NUMBER)
 ```
 
 # find a list of entities who used the wrong account code
 ```{r}
 bad_account_code<-brokenout_reported_ucoa %>%
-  #slice(1:1000000) %>% #take the first million records
-filter(!account %in% ucoa[["account"]]$NUMBER)
+ # slice(1:1000000) %>% #take the first million records
+filter(!account %in% (ucoa %>% pluck("account") %>% select(NUMBER) %>% unlist() ))
+# #same thing but less readable.
+# bad_account_code<-brokenout_reported_ucoa %>%
+#   #slice(1:1000000) %>% #take the first million records
+# filter(!account %in% ucoa[["account"]]$NUMBER)
 ```
 
