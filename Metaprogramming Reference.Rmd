@@ -1,0 +1,197 @@
+---
+title: "Metaprogramming work through"
+author: "Alexander Nielson"
+date: "2/5/2020"
+output: html_document
+---
+
+This document is to reference and better understand metaprogramming. Michael uses it extensively in his Batch Compliance report and I am not skilled enough to debugg his code. I hope to learn how to fix and hopefully improve his code by going through the Metaprogramming section of Advanced R. 
+
+
+
+```{r}
+library(rlang)
+library(lobstr)
+```
+anything in expr is exactly what is passed in. 
+```{r}
+#expr(mean(x,na.rm=TRUE))
+expr(10+100+1000)
+```
+
+captured code is called an expression/ 
+
+you need a different tool to capture code passed to a function, because expr() is for when you have typed 
+```{r}
+capture_it <- function(x) {
+  expr(x)
+}
+capture_it(a+b+c)
+```
+You must use enexpr() to capure user input in a function argument.enexpr() takes a lazily evaluated argument and turns it into an expression. 
+```{r}
+capture_it <- function(x) {
+  enexpr(x)
+}
+
+capture_it(a+b+c)
+```
+```{r}
+lobstr::ast(f(a, "b"))
+```
+code can build code
+```{r}
+call2("+", 1, call2("f",1,3))
+```
+
+call2 is convenient to program wwith, but a bit clunky for interactive use. An alt is by combining simpler code trees with a template. expr() and enexpr() have built in support for this idea via !!(bang bang), the unquote operator. 
+
+!!x inserts the code tree stored in x into the expression.
+
+```{r}
+xx<-expr(x+x+x+x)
+yy<-expr(10+y+6)
+
+expr(!!xx/!!yy)
+
+y <- expr(7+7+7)
+x <- 5
+expr(!!y + !!x)
+
+
+
+```
+
+
+```{r}
+cv <- function(var) {
+  var <- enexpr(var)
+  expr(sd(!!var) / mean(!!var))
+}
+cv(x)
+#x<5
+#cv(!!x)
+
+```
+
+eval() stands for evaluate and it mean to run an expression. It does require an environment. the default is the global environment if non specificed. 
+
+```{r}
+eval(expr(x + y), env(x = 1, y = 10))
+```
+
+
+```{r}
+#environment ommited
+x <- 10
+y <- 100
+eval(expr(x + y))
+```
+
+```{r}
+df <- data.frame(x = 1:5, y = sample(5))
+eval_tidy(expr(x + y), df)
+```
+
+```{r}
+with2 <- function(df, expr) {
+  eval_tidy(enexpr(expr), df)
+}
+
+with2(df, x + y)
+```
+
+There is a problem with using enexpr because when in a funciton it is only using the internal variables. This problem is highlighted below:
+
+```{r}
+with2 <- function(df, expr) {
+  a <- 1000
+  eval_tidy(enexpr(expr), df)
+}
+```
+
+```{r}
+df <- data.frame(x = 1:3)
+a <- 10
+with2(df, x + a)
+```
+
+we want it to say 11, 12, 13, so we need to use a different data structure. We are going ot use a quosure because it bundles and expression with an environment. eval_tidy() is smart enouh to work with quosures. So all we need to do is switch out enexpr for enquo
+
+```{r}
+with2 <- function(df, expr) {
+  a <- 1000
+  eval_tidy(enquo(expr), df)
+}
+
+with2(df, x + a)
+
+```
+
+#18 Expressions 
+```{r}
+y <- x * 10# gives an error since x is not defined. 
+```
+
+```{r}
+z <- rlang::expr(y <- x * 10)
+z
+```
+
+
+
+A symbol represents the name of an object 
+```{r}
+expr(x)
+
+sym("x")
+```
+We can turn a symbol back into a string using as.character or using as_string()
+
+```{r}
+as_string(expr(x))
+str(expr(x))
+```
+#19 Quasiquotation
+
+"Where quotation is the act of capturing an unevaluated expression, unquotation is the ability to selectively evaluate parts of an otherwise quoted expression. Together, this is called quasiquotation. Quasiquotation makes it easy to create functions that combine code written by the function’s author with code written by the function’s user."
+
+```{r}
+library(rlang)
+library(purrr)
+```
+
+
+```{r}
+paste("Good", "morning", "Hadley")
+```
+
+
+```{r}
+cement <- function(...) {
+  args <- ensyms(...)
+  paste(purrr::map(args, as_string), collapse = " ")
+}
+
+cement(Good, morning, Hadley)
+#> [1] "Good morning Hadley"
+cement(Good, afternoon, Alice)
+#> [1] "Good afternoon Alice"
+```
+
+```{r}
+name <- "Hadley"
+time <- "morning"
+
+paste("Good", time, name)
+#> [1] "Good morning Hadley"
+cement(Good, time, name)
+#> [1] "Good time name"
+```
+
+ we need a way to explictly unqoute the inputs.
+we use the bang bang operator
+```{r}
+cement(Good, !!time, !!name)
+```
+

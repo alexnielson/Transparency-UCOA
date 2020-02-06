@@ -1,4 +1,4 @@
-# Program Description
+# 0. Program Description
 
 **Purpose**
 I am interested in learning more about how to access and pay with the UCOA codes. I decided to conduct some Exploratory Data Analysis in this document as well. This script is not really meant for a single button run-all. It rather is built to allow a data analyst to play around with the data easily. It does contain a few basic reports and interesting plots. 
@@ -15,13 +15,13 @@ dsn_salesforce <- "salesforce"
 **Output(s)**
 
 
-# Libraries and Data Sources
+# I. Libraries and Data Sources
 
 ```{r}
 library(lubridate)
 library(magrittr)
 library(odbc)
-library(readxl)
+library(readxl) 
 library(tidyverse)
 
 odbc_aws <- dbConnect(odbc::odbc(), dsn_aws)
@@ -36,20 +36,11 @@ download.file(
 ```
 
 
-# Function Definitions
+# II.Function Definitions
 
-#plot_in_range
-```{r}
+DONT FORGET TO ADD ALL OF THESE LATER...
 
-```
-
-#plot_by_ucoa_category
-```{r}
-
-```
-
-
-# Execution
+# III. Execution
 
 ## Salesforce
 
@@ -238,206 +229,326 @@ rm(ucoa_fund, ucoa_function, ucoa_account, extra_fund_numbers, ucoa_account_exp,
    ucoa_account_rev, ucoa_vague_funct, ucoa_vague_exp, ucoa_vague_rev)
 ```
 
-## Analysis
+## LEA UCOA
 ```{r}
-
-# temp_report %>% sf_data %>% 
-#   slice(100) %>% #take first 100 rows so the report does not take too long
-#   filter(!is.na(t_id)) %>% 
-#   group_by()
-
-
-
-#!!!!!!!!!Takes a while since it must go through nearly 45 million records. About 20 minuts. 
-  reported_ucoa <-
-  dbGetQuery(
-    odbc_aws,
-    paste("
-          SELECT id, 
-          batch_id,
-          amount,
-          fiscal_year,
-          account_number,
-          type
-          FROM transaction
-          WHERE account_number IS NOT NULL
-          LIMIT 10000000")) %>% # note I am limitingto 10000000 so it doesn't take an eternity.
-  as_tibble() %>%
-  # note nchar returns the number of characters.
-  filter(nchar(account_number, allowNA = TRUE) == 19) %>%
-  filter(!is.na(account_number))
-
-  #get acceptable batch_ids.
-  # acceptable_batch_ids <- 
-  #   dbGetQuery(
-  #     odbc_aws,
-  #     paste(" SELECT id
-  #             FROM batch
-  #             WHERE status IN ('PROCESSED', 'PROCESSING', 'DONTDELETE')"))
-
-  # takes like one minute. This breaks out the account numbers into fund, function, and account. 
-  brokenout_reported_ucoa <- reported_ucoa %>% 
-    mutate(
-      fund = .[["account_number"]] %>% substr(0, 3),
-      funct = .[["account_number"]] %>% substr(5, 10),
-      account = .[["account_number"]] %>%  substr(12, 19),
-    ) %>% 
-  
-    #ALEX: add a validation here which checks that there are two dashes, and they are spaced appropriately. 
-    #probably use regex to do this.
-    
-  # join, so we know what the codes mean. note:takes about 30-60 seconds.
-  # join the funds
-  left_join(ucoa[["fund"]] %>%
-              as_tibble() %>%
-              select(NUMBER, fund_description =`FULL DESCRIPTION`),
-            by = c("fund"="NUMBER")
-            ) %>% 
-  # join the functions
-  left_join(ucoa[["funct"]] %>%
-              as_tibble() %>%
-              select(NUMBER, function_description = `FULL DESCRIPTION`),
-            by = c("funct" = "NUMBER")
-            ) %>% 
-  # join the accounts
-  left_join(ucoa[["account"]] %>% 
-              as_tibble() %>% 
-              select(NUMBER, account_description = `FULL DESCRIPTION`),
-            by = c("account" = "NUMBER")
-            )
-  # Great, now we have a tidy version of the accounts. 
-
+#put code here to generate a useful lea ucoa. 
 ```
 
-##generate agg tables of interest
 
-### aggregate by descrition and code
+#IV. Load and Validate UCOA codes
+ *We will vadidate the code to remove missing values, and "". Then generate for three main reports. The first report contains both invalid LEA and NON-LEA codes. THe second report will be valid LEA codes (lea_reported_ucoa). The third report will be valid NON-LEA codes (I call it osa_reported_ucoa)
+```{r}
+
+# Query the database, get all the records that are not obviously missing data. 
+reported_ucoa <-
+dbGetQuery(
+  odbc_aws,
+  paste("
+        SELECT id, 
+        batch_id,
+        amount,
+        fiscal_year,
+        account_number,
+        type
+        FROM transaction
+        WHERE account_number IS NOT NULL
+        LIMIT 10000000")) %>% # note I am limitingto 10000000 so it doesn't take an eternity.
+as_tibble() 
+
+# double check for NA or "" ----------------------------------------------------
+
+invalid_reported_na_or_empty <- reported_ucoa %>%
+  filter(account_number=="",
+        is.na(account_number))
+
+reported_ucoa <- 
+  reported_ucoa %>% 
+  filter(account_number != "", !is.na(account_number))
+
+
+#check correct length ----------------------------------------------------------
+
+# 19 is for normal, 25 is for LEA. (dashes are included in string legth)
+invalid_ucoa_length <- reported_ucoa %>% 
+  filter(nchar(account_number) != 19 && !nchar(account_number)!= 25)
+
+reported_ucoa <- reported_ucoa %>% 
+  filter(nchar(account_number) == 19 || nchar(account_number)== 25)
+
+
+# Generate temp tibbles --------------------------------------------------------
+# this will help with the subsequent reports. You could condense this, but for
+# my mind this is easier to debugg and catch flaws. 
+
+#filter for only lea
+lea_reported_ucoa <- reported_ucoa %>% filter(nchar(account_number)== 25)
+
+#filter for non lea
+osa_reported_ucoa <- reported_ucoa %>% filter(nchar(account_number)== 19)
+
+# lea ==========================================================================
+
+# check if the codes are valid form. ie: ##-###-####-####-###-#### 
+ 
+invalid_lea_ucoa_code <-
+  lea_reported_ucoa %>%
+  filter(!str_detect(
+    lea_reported_ucoa$account_number,
+    regex(
+      "^[:digit:]{2}-[:alnum:]{3}-[:digit:]{4}-[:digit:]{4}-[:digit:]{3}-[:digit:]{4}$"
+    )
+  ))
+
+lea_reported_ucoa <-
+  lea_reported_ucoa %>%
+  filter(str_detect(
+    lea_reported_ucoa$account_number,
+    regex(
+      "^[:digit:]{2}-[:alnum:]{3}-[:digit:]{4}-[:digit:]{4}-[:digit:]{3}-[:digit:]{4}$"
+    )
+  ))
+
+# non lea ====================================================================== 
+
+# check if the codes are valid form. ie: ###-######-########  
+
+invalid_osa_ucoa_codes <- osa_reported_ucoa %>%
+  filter(!str_detect(
+    osa_reported_ucoa$account_number,
+    regex("^[:digit:]{3}-[:digit:]{6}-[:digit:]{8}$")
+  ))
+
+osa_reported_ucoa <-
+  osa_reported_ucoa %>%
+  filter(str_detect(
+    osa_reported_ucoa$account_number,
+    regex("^[:digit:]{3}-[:digit:]{6}-[:digit:]{8}$")
+  ))
+
+# consolidate ==================================================================
+osa_ucoa <- osa_reported_ucoa
+lea_ucoa <- lea_reported_ucoa
+invalid_tables <-
+  list(invalid_reported_na_or_empty,
+       invalid_ucoa_length,
+       invalid_lea_ucoa_code,
+       invalid_osa_ucoa_codes)
+names(invalid_tables) <- c("na_or_empty",
+                           "invalid_length",
+                           "invalid_lea_format",
+                           "invalid_osa_format")
+
+# remove unneeded objects ======================================================
+    # comment any object that you want to inspect in the global environment pane
+rm(
+  invalid_reported_na_or_empty,
+  invalid_lea_ucoa_code,
+  invalid_osa_ucoa_codes,
+  invalid_ucoa_length,
+  osa_reported_ucoa,
+  lea_reported_ucoa,
+  reported_ucoa
+)
+  
+```
+
+### Export the invalid tables
+```{r}
+#since the invalid tables is large list, we should export the invalid tables, and then remove that list. 
+# Do this at the end, once we are done writing the program.
+```
+
+
+### Enrich non - LEA ucoa tibble 
+```{r}
+# This breaks out the account numbers into fund, function, and account. 
+osa_ucoa <- osa_ucoa %>% 
+  mutate(
+    fund = .[["account_number"]] %>% substr(0, 3),
+    funct = .[["account_number"]] %>% substr(5, 10),
+    account = .[["account_number"]] %>%  substr(12, 19),
+  ) %>% 
+
+# Now we need to join ucoa.xlsx, so we know what the codes mean.
+
+# join the funds
+left_join(ucoa[["fund"]] %>%
+            as_tibble() %>%
+            select(NUMBER, fund_description =`FULL DESCRIPTION`),
+          by = c("fund"="NUMBER")
+          ) %>% 
+# join the functions
+left_join(ucoa[["funct"]] %>%
+            as_tibble() %>%
+            select(NUMBER, function_description = `FULL DESCRIPTION`),
+          by = c("funct" = "NUMBER")
+          ) %>% 
+# join the accounts
+left_join(ucoa[["account"]] %>% 
+            as_tibble() %>% 
+            select(NUMBER, account_description = `FULL DESCRIPTION`),
+          by = c("account" = "NUMBER")
+          )
+```
+#### Validate the codes
+
+#### Find a list of entities who used codes which do no map to the UCA. 
+*There are many reasons why this might be the case 
+**They are using an old UCOA
+**They pressed the incorrect key / typos
+
+#regardless, they must be filtered out. 
+```{r}
+#find wrong fund code
+osa_bad_fund_code <- osa_ucoa %>%
+  filter(!fund %in% (ucoa %>%
+                       pluck("fund")  %>%
+                       select(NUMBER) %>%
+                       unlist()))
+#find wrong function code
+osa_bad_funct_code<-osa_ucoa %>%
+  filter(!funct %in% (ucoa %>%
+                        pluck("funct") %>%
+                        select(NUMBER) %>%
+                        unlist()))
+#find wrong account code
+osa_bad_account_code <- osa_ucoa %>%
+  filter(!account %in% (ucoa %>%
+                          pluck("account") %>%
+                          select(NUMBER)   %>%
+                          unlist()))
+
+
+#now remove incorrectly mapped. we will save them to report, but do not want them in our analysis.
+
+osa_ucoa<- osa_ucoa %>% 
+  anti_join(osa_bad_fund_code, by = "id") %>% 
+  anti_join(osa_bad_funct_code, by = "id") %>% 
+  anti_join(osa_bad_account_code, by = "id")
+
+
+
+#consolidate
+osa_non_mapping <- list(osa_bad_fund_code,osa_bad_funct_code,osa_bad_account_code)
+names(osa_non_mapping) <- c("unmapped_fund_code","unmapped_funct_code","unmapped_account_code")
+
+
+#remove objects
+rm(osa_bad_fund_code,osa_bad_funct_code,osa_bad_account_code)
+```
+add "osa_non_mapping" to the invalid tables list
+```{r}
+invalid_tables <- c(invalid_tables, osa_non_mapping)
+```
+
+
+###enrich the LEA ucoa
+```{r}
+#put that code here.
+```
+
+
+#V. Aggregate Tables
+
+## Aggregate Tables for non-LEAs
+
+### Aggregate by descrition and number/code
 ```{r}
 
 
-agg_fund_amount <-  brokenout_reported_ucoa %>% 
+agg_fund_amount <-  osa_ucoa %>% 
   group_by(fund_description, fund) %>% 
   summarize(total_amount = sum(amount),
             num_of_trans = n() ) %>% 
   arrange(desc(total_amount))
   
-agg_function_amount <-  brokenout_reported_ucoa %>% 
+agg_function_amount <-  osa_ucoa %>% 
   group_by(function_description, funct) %>% 
   summarize(total_amount = sum(amount),
             num_of_trans = n() ) %>% 
   arrange(desc(total_amount))
 
-agg_account_amount <-  brokenout_reported_ucoa %>% 
+agg_account_amount <-  osa_ucoa %>% 
   group_by(account_description, account) %>% 
   summarize(total_amount = sum(amount),
             num_of_trans = n() ) %>% 
   arrange(desc(total_amount))
 
 
-agg_by_ucoa_type<- list(agg_fund_amount,agg_function_amount,agg_account_amount)
-names(agg_by_ucoa_type) <- c("agg_fund", "agg_function", "agg_account")
+agg_by_description_and_code<- list(agg_fund_amount,agg_function_amount,agg_account_amount)
+names(agg_by_description_and_code) <- c("agg_fund", "agg_function", "agg_account")
 
 rm(agg_fund_amount,agg_function_amount,agg_account_amount)
 
 ```
+*!NOTE: the next two aggregations are only useful if the data is not properly cleaned or entered. If every code has a mapped description, then only the above agg table is necessary.*
 
-### aggregate by descrition
+### Aggregate by description only
 ```{r}
 
 
-agg_fund_amount <-  brokenout_reported_ucoa %>% 
+agg_fund_amount <-  osa_ucoa %>% 
   group_by(fund_description) %>% 
   summarize(total_amount = sum(amount),
             num_of_trans = n() ) %>% 
   arrange(desc(total_amount))
   
-agg_function_amount <-  brokenout_reported_ucoa %>% 
+agg_function_amount <-  osa_ucoa %>% 
   group_by(function_description) %>% 
   summarize(total_amount = sum(amount),
             num_of_trans = n() ) %>% 
   arrange(desc(total_amount))
 
-agg_account_amount <-  brokenout_reported_ucoa %>% 
+agg_account_amount <-  osa_ucoa %>% 
   group_by(account_description) %>% 
   summarize(total_amount = sum(amount),
             num_of_trans = n() ) %>% 
   arrange(desc(total_amount))
 
 
-agg_by_ucoa_type_description<- list(agg_fund_amount,agg_function_amount,agg_account_amount)
-names(agg_by_ucoa_type_description) <- c("agg_fund", "agg_function", "agg_account")
+agg_by_description<- list(agg_fund_amount,agg_function_amount,agg_account_amount)
+names(agg_by_description) <- c("agg_fund", "agg_function", "agg_account")
 
 rm(agg_fund_amount,agg_function_amount,agg_account_amount)
 
 ```
 
-### aggregate by code
+### Aggregate by Code
 ```{r}
 
 
-agg_fund_amount <-  brokenout_reported_ucoa %>% 
+agg_fund_amount <-  osa_ucoa %>% 
   group_by( fund) %>% 
   summarize(total_amount = sum(amount),
             num_of_trans = n() ) %>% 
   arrange(desc(total_amount))
   
-agg_function_amount <-  brokenout_reported_ucoa %>% 
+agg_function_amount <-  osa_ucoa %>% 
   group_by(funct) %>% 
   summarize(total_amount = sum(amount),
             num_of_trans = n() ) %>% 
   arrange(desc(total_amount))
 
-agg_account_amount <-  brokenout_reported_ucoa %>% 
+agg_account_amount <-  osa_ucoa %>% 
   group_by(account) %>% 
   summarize(total_amount = sum(amount),
             num_of_trans = n() ) %>% 
   arrange(desc(total_amount))
 
 
-agg_by_ucoa_type_code<- list(agg_fund_amount,agg_function_amount,agg_account_amount)
-names(agg_by_ucoa_type_code) <- c("agg_fund", "agg_function", "agg_account")
+agg_by_code<- list(agg_fund_amount,agg_function_amount,agg_account_amount)
+names(agg_by_code) <- c("agg_fund", "agg_function", "agg_account")
 
 rm(agg_fund_amount,agg_function_amount,agg_account_amount)
 
 ```
 
-
-note that the next two aggregations are only contigently useful. If the data is properly cleaned, then they are redundant. 
-
-### aggregate by description only
 ```{r}
-agg_fund_by_description<-brokenout_reported_ucoa %>%
-  group_by(fund_description) %>% 
-  count(fund_description)%>% 
-  arrange(desc(n))
+#consolidate into one list
 
-agg_function_by_description<-brokenout_reported_ucoa %>%
-  group_by(function_description) %>% 
-  count(function_description)%>% 
-  arrange(desc(n))
-
-agg_account_by_description<-brokenout_reported_ucoa %>%
-  group_by(account_description) %>% 
-  count(account_description)%>% 
-  arrange(desc(n))
-```
-
-#aggregate by code only
-```{r}
-agg_fund_by_code<-brokenout_reported_ucoa %>%
-  group_by(fund) %>% 
-  count(fund)%>% 
-  arrange(desc(n))
-
-agg_function_by_code<-brokenout_reported_ucoa %>%
-  group_by(funct) %>% 
-  count(funct)%>% 
-  arrange(desc(n))
-
-agg_account_by_code<-brokenout_reported_ucoa %>%
-  group_by(account) %>% 
-  count(account) %>% 
-  arrange(desc(n))
+osa_agg_tables <- list(agg_by_description_and_code, agg_by_description,agg_by_code)
+names(osa_agg_tables) <- c("agg_by_description_and_code","agg_by_description", "agg_by_code")
+rm(agg_by_description_and_code,agg_by_description,agg_by_code)
 ```
 
 
@@ -445,47 +556,64 @@ agg_account_by_code<-brokenout_reported_ucoa %>%
 
 
 
-#Visualizations
+
+
+
+
+#VI. Visualizations
 
 ##visualizae aggregate tables
 
 ### Visualizing the the "Fund" category
 ```{r}
-#create a simple histogram to show the different types of ucoa codes for funds only
+#create a simple barplot to show the different types of ucoa codes for funds only
 
-agg_by_ucoa_type_description %>% 
-  pluck("agg_fund") %>% 
-  ggplot(aes(x=fund_description, y = total_amount))+ geom_bar(stat = "identity", fill = "lightcoral")+
-  coord_flip()+
-  geom_text(aes(label=paste0("$",total_amount)), hjust = -.25,vjust=0, size=2)
-  
+agg_fund_plot <-  osa_agg_tables %>%
+  pluck("agg_by_description") %>%
+  pluck("agg_fund") %>%
+  ggplot(aes(x = fund_description, y = total_amount)) + geom_bar(stat = "identity", fill = "lightcoral") +
+  coord_flip() +
+  geom_text(
+    aes(label = paste0("$", total_amount)),
+    hjust = -.25,
+    vjust = 0,
+    size = 2
+  ) +
+  labs(title = "Barplot of Cumulative Net Amount ($) by Description",
+       x = "Description of Fund",
+       y = "Cumulative Net Amount ($)")
+
+agg_fund_plot
 ```
+
 
 ###visualizing the "Function" category
 
 
-###visualizing the "Account" category
-visualizing revenue by code
+### visualize the "Account" category
+
+#### visualize revenue by code
 ```{r}
 
-temp_sequence_revenues <- seq(from = 3000, to = 3009,  by=1)
 
 plot_in_range <- function(temp_range){
   
-  p <- agg_by_ucoa_type %>% 
+  p <- osa_agg_tables %>% 
+      pluck("agg_by_code") %>% 
       pluck("agg_account") %>% 
       filter(str_detect(account, paste0("^",temp_range))) %>% #only selects taxes
       ggplot(aes(x=account, y=total_amount))+ geom_bar(stat = "identity", fill = "lightcoral")+
       coord_flip()+
       geom_text(aes(label=paste0("$",total_amount)), hjust = -.25,vjust=0, size=3)+
-      labs(title = paste0("Barplot of Account Revenues in Range: ", temp_range,"0000") )
+      labs(title = paste0("Barplot of UCOA Account in Range: ", temp_range,"0000") )
   p
   
 }
 
+temp_sequence_revenues <- seq(from = 3000, to = 3009,  by=1)
 
-plots<- temp_sequence_revenues %>% map(plot_in_range)
-names(plots) <- c("revenues",
+revenue_plots<- temp_sequence_revenues %>% map(plot_in_range)
+names(revenue_plots) <- c("revenues",
                   "taxes",
                   "licenses_and_permits",
                   "intergovernmental",
@@ -496,27 +624,73 @@ names(plots) <- c("revenues",
                   "special_and_extraordinary_gain",
                   "suspense")
 
-# names(plots) <- c("30000000_Revenues",
-#                   "30010000_Taxes",
-#                   "30020000_Licenses_and_Permits",
-#                   "30030000_Intergovernmental",
-#                   "30040000_Charges_For_Service",
-#                   "30050000_Fines_and_Forfeitures",
-#                   "30060000_Miscellaneous",
-#                   "30070000_Other_Sources_of_Funding",
-#                   "30080000_Special_and_Extraordinary Gain",
-#                   "30090000_Suspense")
-#view  plot elements by like plots[[1]]
+temp_sequence_expenditures <- seq(from = 4000, to = 4017,  by=1)
+
+expenditure_plots<- temp_sequence_expenditures %>% map(plot_in_range)
+names(expenditure_plots) <- c("expenditures",
+                  "personnel_services",
+                  "general_and_contracted_services",
+                  "utilities_and_utility_services",
+                  "taxes_and_fees",
+                  "supplies_and_materials",
+                  "grants_and_contracts",
+                  "direct_payments",
+                  "capital_outlays",
+                  "interdepartmental_charges",
+                  "judgements_and_losses",
+                  "other_financing_uses",
+                  "depreciation",
+                  "amortiaton",
+                  "bad_debt_expense",
+                  "contingencies",
+                  "special_and_extraordinary_loss",
+                  "debt_service")
+
+#consolidate objects
+account_plots <- list(revenue_plots, expenditure_plots)
+names(account_plots) <- c("revenue_plots", "expenditure_plots")
+
+#remove redundant objects
+rm(temp_sequence_revenues, temp_sequence_expenditures, revenue_plots, expenditure_plots)
+```
+##### view the plots
+```{r}
+#to see all plot simply run:
+account_plots
 
 ```
-visualizing revenue by description
+To only view the revenue plots, we pluck it from the list.
+```{r}
+temp <- account_plots %>% pluck("revenue_plots") 
+temp
+```
+If you are only interested in one plot, use the following code
+```{r}
+temp <- account_plots %>% 
+  pluck("expenditure_plots") %>% 
+  pluck("capital_outlays")
+temp
+```
+
+
+To access elements of the plot, use this code format. The code below selects the data frame used to generate the plot from 
+```{r}
+temp_zoom <- account_plots %>% 
+  pluck("revenue_plots") %>%
+  pluck("intergovernmental") %>%
+  pluck("data")
+```
+
+
+#### visualize revenue by description
+ if the data is properly cleaned then this chunk is redundant. 
 ```{r}
 
-temp_sequence_revenues <- seq(from = 3000, to = 3009,  by=1)
 
 plot_in_range <- function(temp_range){
   
-  p <- agg_by_ucoa_type %>% 
+  p <- osa_agg_tables %>% 
+      pluck("agg_by_description_and_code") %>% 
       pluck("agg_account") %>% 
       filter(str_detect(account, paste0("^",temp_range))) %>% #only selects taxes
       ggplot(aes(x=account_description, y=total_amount))+ geom_bar(stat = "identity", fill = "lightcoral")+
@@ -527,9 +701,10 @@ plot_in_range <- function(temp_range){
   
 }
 
+temp_sequence_revenues <- seq(from = 3000, to = 3009,  by=1)
 
-plots<- temp_sequence_revenues %>% map(plot_in_range)
-names(plots) <- c("revenues",
+revenue_plots<- temp_sequence_revenues %>% map(plot_in_range)
+names(revenue_plots) <- c("revenues",
                   "taxes",
                   "licenses_and_permits",
                   "intergovernmental",
@@ -540,75 +715,84 @@ names(plots) <- c("revenues",
                   "special_and_extraordinary_gain",
                   "suspense")
 
-# names(plots) <- c("30000000_Revenues",
-#                   "30010000_Taxes",
-#                   "30020000_Licenses_and_Permits",
-#                   "30030000_Intergovernmental",
-#                   "30040000_Charges_For_Service",
-#                   "30050000_Fines_and_Forfeitures",
-#                   "30060000_Miscellaneous",
-#                   "30070000_Other_Sources_of_Funding",
-#                   "30080000_Special_and_Extraordinary Gain",
-#                   "30090000_Suspense")
-#view  plot elements by like plots[[1]]
+temp_sequence_expenditures <- seq(from = 4000, to = 4017,  by=1)
 
+expenditure_plots<- temp_sequence_expenditures %>% map(plot_in_range)
+names(expenditure_plots) <- c("expenditures",
+                  "personnel_services",
+                  "general_and_contracted_services",
+                  "utilities_and_utility_services",
+                  "taxes_and_fees",
+                  "supplies_and_materials",
+                  "grants_and_contracts",
+                  "direct_payments",
+                  "capital_outlays",
+                  "interdepartmental_charges",
+                  "judgements_and_losses",
+                  "other_financing_uses",
+                  "depreciation",
+                  "amortiaton",
+                  "bad_debt_expense",
+                  "contingencies",
+                  "special_and_extraordinary_loss",
+                  "debt_service")
+
+#consolidate objects
+account_plots <- list(revenue_plots, expenditure_plots)
+names(account_plots) <- c("revenue_plots", "expenditure_plots")
+
+#remove redundant objects
+rm(temp_sequence_revenues, temp_sequence_expenditures, revenue_plots, expenditure_plots)
 ```
 
 ```{r}
-temp_range<-3001    
-p <- agg_by_ucoa_type %>% 
-      pluck("agg_account") %>% 
-    #filter(n < 1000000) %>% 
-    filter(str_detect(account, paste0("^",temp_range))) %>% #only selects taxes
-    ggplot(aes(x=account, y=total_amount))+ geom_bar(stat = "identity", fill = "lightcoral")+
-    coord_flip()+
-    # facet_grid(n)+
-    geom_text(aes(label=paste0("$",total_amount)), hjust = -.25,vjust=0, size=3)+
-    labs(title = paste0("Barplot of Account Revenues in Range: ", temp_range,"0000") )
-p
+account_plots %>% pluck("revenue_plots")
 ```
 
-#Drill Down / Zoom in
-Lets say I that after looking at the plots above, I found the Revenues account "Intergovernmental" or 30030000 to be interest. I could quickly zoom into that area by the following code:
+
+You can access plot elements to quickly zoom in on the data. for example:
 ```{r}
-temp_zoom<- agg_by_ucoa_type %>% pluck("agg_account") %>% filter(str_detect(account, paste0("^3003")))
+#temp_zoom <- plots %>% pluck("intergovernmental") %>% pluck("data")
 ```
 
+#VII. Generate Invalid Report
 
-#Validation / Generate A Problem List
-
-# Find a list of entities who used the wrong fund code
+## na_or_empty : Examine transactions with na or empty value for their account number
 ```{r}
-#more readable
-bad_fund_code<-brokenout_reported_ucoa %>%
- # slice(1:1000000) %>% #take the first million records
-filter(!fund %in% (ucoa %>% pluck("fund") %>% select(NUMBER) %>% unlist() ) )
-
-# bad_fund_code<-brokenout_reported_ucoa %>%
-#  # slice(1:1000000) %>% #take the first million records
-# filter(!fund %in% ucoa[["fund"]]$NUMBER)
+invalid_tables %>% pluck("na_or_empty")
 ```
 
-#find a list of entities who used the wrong function code
+## invalid_length : Examine transactions with an account number too long or too small to fit either LEA or non-LEA UCOA.
 ```{r}
-bad_funct_code<-brokenout_reported_ucoa %>%
- # slice(1:1000000) %>% #take the first million records
-filter(!funct %in% (ucoa %>% pluck("funct") %>% select(NUMBER) %>% unlist() ) )
-
-#same thing but less readable.
-# bad_funct_code<-brokenout_reported_ucoa %>%
-#   #slice(1:1000000) %>% #take the first million records
-# filter(!funct %in% ucoa[["funct"]]$NUMBER)
+invalid_tables %>% pluck("invalid_length")
 ```
 
-# find a list of entities who used the wrong account code
+## invalid_lea_format : Examine transactions for LEAs with an account number with correct length, but incorrect format
 ```{r}
-bad_account_code<-brokenout_reported_ucoa %>%
- # slice(1:1000000) %>% #take the first million records
-filter(!account %in% (ucoa %>% pluck("account") %>% select(NUMBER) %>% unlist() ))
-# #same thing but less readable.
-# bad_account_code<-brokenout_reported_ucoa %>%
-#   #slice(1:1000000) %>% #take the first million records
-# filter(!account %in% ucoa[["account"]]$NUMBER)
+invalid_tables %>% pluck("invalid_lea_format")
 ```
+
+
+## invalid_osa_format : Examine transactions for non LEAs with an account number with correct length, but incorrect format
+```{r}
+invalid_tables %>% pluck("invalid_osa_format")
+```
+
+## unmapped_fund_code : Examine transactions for non LEAs with an account number with correct length, and correct format, but the fund code provided does not map to the ucoa code spreadsheet
+```{r}
+invalid_tables %>% pluck("unmapped_fund_code")
+```
+
+
+## unmapped_fund_code : Examine transactions for non LEAs with an account number with correct length, and correct format, but the function code provided does not map to the ucoa code spreadsheet
+```{r}
+invalid_tables %>% pluck("unmapped_funct_code")
+```
+## unmapped_account_code : Examine transactions for non LEAs with an account number with correct length, and correct format, but the account code provided does not map to the ucoa code spreadsheet
+```{r}
+invalid_tables %>% pluck("unmapped_account_code")
+```
+
+
+
 
