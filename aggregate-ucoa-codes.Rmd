@@ -40,60 +40,59 @@ download.file(
 
 DONT FORGET TO ADD ALL OF THESE LATER...
 
-# III. Execution
+# III. LOAD, QUERY, and WRANGLE
 
-## Salesforce
+## Salesforce - Query
 
-Query Salesforce. 
 ```{r}
 # Note that I do not query LEAs. They are managed by USBE, which uses a
 # different chart of accounts. I also do not query higher education.
 
-sf_data <-
-  dbGetQuery(
-    odbc_sf,
-    paste("
-          SELECT
-            Account.Name                  AS name,
-            Account.Id                    AS id,
-            Account.Transparency_ID__c    AS t_id,
-            Account.Fiscal_Year_Begins__c AS begin_fy,
-            RecordType.DeveloperName      AS govt_type
-          FROM Account
-          JOIN RecordType
-          ON Account.RecordTypeId = RecordType.Id
-          WHERE Account.RecordTypeId IN (
-            SELECT Id
-            FROM RecordType
-            WHERE DeveloperName IN (
-            'AOG',
-            'City',
-            'Conservation_District',
-            'County',
-            'District_Health',
-            'Housing',
-            'Independent_Quasi_State_Entity',
-            'Interlocal',
-            'Local_and_Special_Service_District',
-            'Mental_Health',
-            'Redevelopment_Agency_Project_Area',
-            'Town'))
-          AND Account.Entity_Status__c IN (
-            'Current',
-            'On hold',
-            'Delinquent',
-            'Suspended')
-          AND Account.Name NOT IN (
-            'Intermountain Power Agency',
-            'Utah Associated Municipal Power Systems',
-            'Utah Municipal Power Agency')
-          AND (
-            Account.Expense_Revenue_Start_Date__c <= DATE() OR
-            Account.Expense_Revenue_Start_Date__c IS NULL)")) %>%
-  as_tibble()
+# sf_data <-
+#   dbGetQuery(
+#     odbc_sf,
+#     paste("
+#           SELECT
+#             Account.Name                  AS name,
+#             Account.Id                    AS id,
+#             Account.Transparency_ID__c    AS t_id,
+#             Account.Fiscal_Year_Begins__c AS begin_fy,
+#             RecordType.DeveloperName      AS govt_type
+#           FROM Account
+#           JOIN RecordType
+#           ON Account.RecordTypeId = RecordType.Id
+#           WHERE Account.RecordTypeId IN (
+#             SELECT Id
+#             FROM RecordType
+#             WHERE DeveloperName IN (
+#             'AOG',
+#             'City',
+#             'Conservation_District',
+#             'County',
+#             'District_Health',
+#             'Housing',
+#             'Independent_Quasi_State_Entity',
+#             'Interlocal',
+#             'Local_and_Special_Service_District',
+#             'Mental_Health',
+#             'Redevelopment_Agency_Project_Area',
+#             'Town'))
+#           AND Account.Entity_Status__c IN (
+#             'Current',
+#             'On hold',
+#             'Delinquent',
+#             'Suspended')
+#           AND Account.Name NOT IN (
+#             'Intermountain Power Agency',
+#             'Utah Associated Municipal Power Systems',
+#             'Utah Municipal Power Agency')
+#           AND (
+#             Account.Expense_Revenue_Start_Date__c <= DATE() OR
+#             Account.Expense_Revenue_Start_Date__c IS NULL)")) %>%
+#   as_tibble()
 ```
 
-## UCOA
+## UCOA - load and wrangle
 
 ```{r}
 #note that excel_sheets() returns a list, hence the list access syntax.
@@ -214,7 +213,7 @@ ucoa_vague_rev <-
     NUMBER == "30060000" | # Miscellaneous
     NUMBER == "30070000" ) # Other Sources of Funding
 
-ucoa <-
+ucoa_lookup <-
   list(
     fund        = ucoa_fund,
     funct       = ucoa_function,
@@ -229,10 +228,236 @@ rm(ucoa_fund, ucoa_function, ucoa_account, extra_fund_numbers, ucoa_account_exp,
    ucoa_account_rev, ucoa_vague_funct, ucoa_vague_exp, ucoa_vague_rev)
 ```
 
-## LEA UCOA
+## LEA UCOA - load and wrangle
 ```{r}
 #put code here to generate a useful lea ucoa. 
+library(stringi) 
+
+#Alex, you could fix this by doing the case whens with %in% instead of >, <, =
+
+# Wrangle and fix the fund =====================================================
+lea_ucoa_fund <-
+  read_xlsx("lea_ucoa_2020.xlsx", sheet = excel_sheets("lea_ucoa_2020.xlsx")[[1]])
+
+lea_ucoa_fund<- lea_ucoa_fund %>%
+  replace(is.na(.), "") %>% 
+  unite(NUMBER_DESCRIPTION, c(1:2), sep= " ") %>% 
+  mutate(NUMBER_DESCRIPTION = trimws(NUMBER_DESCRIPTION) ) %>% 
+  filter(NUMBER_DESCRIPTION != "") %>% 
+  slice(6:n()) %>% 
+  filter(str_detect(NUMBER_DESCRIPTION, regex("^[[:digit:]]{2}"))) %>%
+   # get rid of rows which have a range ie: 27-29 and 61-69
+  filter(!str_detect(NUMBER_DESCRIPTION, regex("[[:digit:]]{2}-"))) %>% 
+  filter(!str_detect(NUMBER_DESCRIPTION, regex("[[:digit:]]{2} -"))) %>% 
+  mutate(
+    NUMBER = stri_extract_first(NUMBER_DESCRIPTION, regex = "\\w+"),
+    DESCRIPTION = stri_extract_first(NUMBER_DESCRIPTION, regex = "\\s(.*)")
+  )
+
+##add back the ranges
+extra_fund_numbers <- c(27:29, 61:69) %>%
+  as.character() %>%
+  enframe(name = NULL) %>%
+  rename("NUMBER" = "value") %>%
+  mutate(
+    "DESCRIPTION" =
+      case_when(
+        NUMBER < 30 ~ "Special Revenue Funds - (Assigned by District)",
+        NUMBER > 60 &  NUMBER < 70 ~ "Interal Service Fund - (Assigned by District)"
+      ),
+    "NUMBER_DESCRIPTION" = paste(NUMBER, DESCRIPTION)
+  )
+
+lea_ucoa_fund <-
+  lea_ucoa_fund %>%
+  bind_rows(extra_fund_numbers)
+
+
+
+# Wrangle "Location" ===========================================================
+# lea_ucoa_Location <-
+#   read_xlsx("lea_ucoa_2019.xlsx", sheet = excel_sheets("lea_ucoa_2019.xlsx")[[2]])
+# 
+# lea_ucoa_Location<- lea_ucoa_Location %>% select(NUMBER_DESCRIPTION = 1) %>% 
+#   replace(is.na(.),"") %>% 
+#   filter(NUMBER_DESCRIPTION != "") %>% 
+#   slice(3:n())
+#   
+lea_ucoa_location<- c(0:499,600:999) %>%
+  # str_pad(3, pad = "0") %>% 
+  as.character() %>%
+  enframe(name = NULL) %>%
+  rename("NUMBER" = "value") %>%
+    mutate( "DESCRIPTION" =
+      case_when(
+        as.numeric(NUMBER) <= 10    ~ "Pre School",
+        as.numeric(NUMBER) >= 11 & as.numeric(NUMBER) <= 99   ~ "District Level",
+        as.numeric(NUMBER) >= 100 & as.numeric(NUMBER) <= 299 ~ "Elementary Schools",
+        as.numeric(NUMBER) >= 300 & as.numeric(NUMBER) <= 399 ~ "Middle Schools",
+        as.numeric(NUMBER) >= 400 & as.numeric(NUMBER) <= 499 ~ "Junior High Schools/Middle Schools",
+        as.numeric(NUMBER) >= 600 & as.numeric(NUMBER) <= 699 ~ "Special Schools, Secondary",
+        as.numeric(NUMBER) >= 700 & as.numeric(NUMBER) <= 799 ~ "High Schools",
+        as.numeric(NUMBER) >= 800 & as.numeric(NUMBER) <= 899 ~ "Special Schools, Elementary",
+        as.numeric(NUMBER) >= 900 & as.numeric(NUMBER) <= 975 ~ "Private Schools",
+        as.numeric(NUMBER) >= 976 & as.numeric(NUMBER) <= 999 ~ "Adult Education Schools",
+      )) %>% 
+  mutate(NUMBER = NUMBER %>% str_pad(3, pad = "0")) %>% 
+  mutate("NUMBER_DESCRIPTION" = paste(NUMBER, DESCRIPTION))
+  
+
+# Wrangle "program" ============================================================
+
+lea_ucoa_program <-
+  read_xlsx("lea_ucoa_2020.xlsx", sheet = excel_sheets("lea_ucoa_2020.xlsx")[[3]])
+
+lea_ucoa_program<- lea_ucoa_program %>% 
+  replace(is.na(.), "") %>% 
+  unite(NUMBER_DESCRIPTION, c(1:9), sep= " ") %>% 
+  mutate(NUMBER_DESCRIPTION = trimws(NUMBER_DESCRIPTION) ) %>% 
+  filter(NUMBER_DESCRIPTION != "") %>% 
+  slice(6:n()) %>% 
+  filter(str_detect(NUMBER_DESCRIPTION, regex("^[[:digit:]]{4}"))) %>%
+   # get rid of rows which have a # but are a range ie: 27-29 and 61-69
+  filter(!str_detect(NUMBER_DESCRIPTION, regex("[[:digit:]]{4}-"))) %>% 
+  filter(!str_detect(NUMBER_DESCRIPTION, regex("[[:digit:]]{4} -"))) %>% 
+  mutate(
+    NUMBER = stri_extract_first(NUMBER_DESCRIPTION, regex = "\\w+"),
+    DESCRIPTION = stri_extract_first(NUMBER_DESCRIPTION, regex = "\\s(.*)")
+  )
+
+extra_program_numbers<- c(2000:3699, # 2000 SCHOOL LEVEL PROGRAMS
+                          5251:5290,  
+                          7804:7809,
+                          7811:7819,
+                          7821:7829,
+                          7831:7839,
+                          7841:7849,
+                          7851:7859,
+                          7871:7879,
+                          7891:7899,
+                          7916:7919,
+                          7911:7914,
+                          7921:7929,
+                          7931:7939,
+                          7941:7949,
+                          7951:7959) %>%
+  as.character() %>%
+  enframe(name = NULL) %>%
+  rename("NUMBER" = "value") %>% 
+    mutate( "DESCRIPTION" =
+      case_when(
+        NUMBER >= 2000 & NUMBER <= 2099~ "General School",
+        NUMBER >= 2100 & NUMBER <= 2199~ "General Studentbody",
+        NUMBER >= 2200 & NUMBER <= 3299~ "Instructional Classes",
+        NUMBER >= 3300 & NUMBER <= 3599~ "Other Instructional Classes",
+        NUMBER >= 3600 & NUMBER <= 3699~ "Student Activity Funds",
+        
+        NUMBER >= 5251 & NUMBER <= 5259~ "OTHER MINIMUM SCHOOL PROGRAMS - Reserved for Numbers Assigned by Districts",
+        NUMBER >= 5260 & NUMBER <= 5269~ "OTHER MINIMUM SCHOOL PROGRAMS - Reserved for Numbers Assigned by Districts",
+        NUMBER >= 5270 & NUMBER <= 5290~ "OTHER MINIMUM SCHOOL PROGRAMS - Reserved for Numbers Assigned by Districts",
+
+        NUMBER >= 7804 & NUMBER <= 7809~ "(NCLB) Numbers reserved for districts",
+        NUMBER >= 7811 & NUMBER <= 7819~ "(NCLB) Numbers reserved for districts",
+        NUMBER >= 7821 & NUMBER <= 7829~ "(NCLB) Numbers reserved for districts",
+        NUMBER >= 7831 & NUMBER <= 7839~ "(NCLB) Numbers reserved for districts",
+        NUMBER >= 7841 & NUMBER <= 7849~ "(NCLB) Numbers reserved for districts",
+        NUMBER >= 7851 & NUMBER <= 7859~ "(NCLB) Numbers reserved for districts",
+        NUMBER >= 7871 & NUMBER <= 7879~ "(NCLB) Numbers reserved for districts",
+        NUMBER >= 7891 & NUMBER <= 7899~ "(NCLB) Numbers reserved for districts",
+        NUMBER >= 7916 & NUMBER <= 7919~ "(NCLB) Numbers reserved for districts",
+        NUMBER >= 7911 & NUMBER <= 7914~ "(NCLB) Numbers reserved for districts",
+        NUMBER >= 7921 & NUMBER <= 7929~ "(NCLB) Numbers reserved for districts",
+        NUMBER >= 7931 & NUMBER <= 7939~ "(NCLB) Numbers reserved for districts",
+        NUMBER >= 7941 & NUMBER <= 7949~ "(NCLB) Numbers reserved for districts",
+        NUMBER >= 7951 & NUMBER <= 7959~ "(NCLB) Numbers reserved for districts"
+      ),
+      "NUMBER_DESCRIPTION" = paste(NUMBER, DESCRIPTION))
+
+lea_ucoa_program <-
+  lea_ucoa_program %>%
+  bind_rows(extra_program_numbers)  
+
+# Wrangle "Function" ===========================================================
+lea_ucoa_function <-
+  read_xlsx("lea_ucoa_2020.xlsx", sheet = excel_sheets("lea_ucoa_2020.xlsx")[[4]])
+
+lea_ucoa_function<- lea_ucoa_function %>% 
+  replace(is.na(.), "") %>% 
+  unite(NUMBER_DESCRIPTION, c(1:9), sep= " ") %>% 
+  mutate(NUMBER_DESCRIPTION = trimws(NUMBER_DESCRIPTION) ) %>% 
+  filter(NUMBER_DESCRIPTION != "") %>% 
+  slice(6:n()) %>% 
+  filter(str_detect(NUMBER_DESCRIPTION, regex("^[[:digit:]]{4}"))) %>%
+  # filter(!str_detect(NUMBER_DESCRIPTION, regex("[[:digit:]]{4}-"))) %>% 
+  # filter(!str_detect(NUMBER_DESCRIPTION, regex("[[:digit:]]{4} -"))) %>% 
+  mutate(
+    NUMBER = stri_extract_first(NUMBER_DESCRIPTION, regex = "\\w+"),
+    DESCRIPTION = stri_extract_first(NUMBER_DESCRIPTION, regex = "\\s(.*)")
+  )
+
+# Wrangle "Object" =============================================================
+
+lea_ucoa_object <-
+  read_xlsx("lea_ucoa_2020.xlsx", sheet = excel_sheets("lea_ucoa_2020.xlsx")[[5]])
+
+lea_ucoa_object<- lea_ucoa_object %>% 
+  replace(is.na(.), "") %>% 
+  unite(NUMBER_DESCRIPTION, c(1:8), sep= " ") %>% 
+  mutate(NUMBER_DESCRIPTION = trimws(NUMBER_DESCRIPTION) ) %>% 
+  filter(NUMBER_DESCRIPTION != "") %>% 
+  slice(6:n()) %>% 
+  filter(str_detect(NUMBER_DESCRIPTION, regex("^[[:digit:]]{3}"))) %>%
+  # filter(!str_detect(NUMBER_DESCRIPTION, regex("[[:digit:]]{4}-"))) %>% 
+  # # filter(!str_detect(NUMBER_DESCRIPTION, regex("[[:digit:]]{4} -"))) %>% 
+  mutate(
+    NUMBER = stri_extract_first(NUMBER_DESCRIPTION, regex = "\\w+"),
+    DESCRIPTION = stri_extract_first(NUMBER_DESCRIPTION, regex = "\\s(.*)")
+  )
+
+# Wrangle "Revenue Classification" =============================================
+lea_ucoa_revenue_classification <-
+  read_xlsx("lea_ucoa_2020.xlsx", sheet = excel_sheets("lea_ucoa_2020.xlsx")[[6]])
+
+lea_ucoa_revenue_classification<- lea_ucoa_revenue_classification %>% replace(is.na(.), "") %>% 
+  unite(NUMBER_DESCRIPTION, c(1:9), sep= " ") %>% 
+  mutate(NUMBER_DESCRIPTION = trimws(NUMBER_DESCRIPTION) ) %>% 
+  filter(NUMBER_DESCRIPTION != "") %>% 
+  slice(6:n()) %>% 
+  filter(str_detect(NUMBER_DESCRIPTION, regex("^[[:digit:]]{3}"))) %>%
+  # filter(!str_detect(NUMBER_DESCRIPTION, regex("[[:digit:]]{4}-"))) %>% 
+  # # filter(!str_detect(NUMBER_DESCRIPTION, regex("[[:digit:]]{4} -"))) %>% 
+  mutate(
+    NUMBER = stri_extract_first(NUMBER_DESCRIPTION, regex = "\\w+"),
+    DESCRIPTION = stri_extract_first(NUMBER_DESCRIPTION, regex = "\\s(.*)")
+  )
+
+#consolidate
+lea_ucoa_lookup <- list(
+  fund                   = lea_ucoa_fund,
+  location               = lea_ucoa_location,
+  program                = lea_ucoa_program,
+  funct                  = lea_ucoa_function,
+  object                 = lea_ucoa_object,
+  revenue_classification = lea_ucoa_revenue_classification
+)
+
+
+rm(
+  lea_ucoa_fund,
+  lea_ucoa_location,
+  lea_ucoa_function,
+  lea_ucoa_program,
+  lea_ucoa_revenue_classification,
+  lea_ucoa_object,
+  extra_program_numbers,
+  extra_fund_numbers
+)
 ```
+```{r}
+lea_ucoa_lookup %>% pluck("location")
+
+```
+
 
 
 #IV. Load and Validate UCOA codes
@@ -270,7 +495,11 @@ reported_ucoa <-
 
 # 19 is for normal, 25 is for LEA. (dashes are included in string legth)
 invalid_ucoa_length <- reported_ucoa %>% 
-  filter(nchar(account_number) != 19 && !nchar(account_number)!= 25)
+  filter(nchar(account_number) != 19 && !nchar(account_number)!= 25) %>% 
+  mutate(account_number_length = nchar(account_number),
+         reason = case_when(account_number_length < 19 ~ "uca code too short for non LEA",
+                            account_number_length > 19 ~ "uca code incorrect length",
+                            account_number_length > 25 ~ "uca code too long for LEA"))
 
 reported_ucoa <- reported_ucoa %>% 
   filter(nchar(account_number) == 19 || nchar(account_number)== 25)
@@ -339,7 +568,7 @@ names(invalid_tables) <- c("na_or_empty",
                            "invalid_osa_format")
 
 # remove unneeded objects ======================================================
-    # comment any object that you want to inspect in the global environment pane
+# comment any object that you want to inspect in the global environment pane
 rm(
   invalid_reported_na_or_empty,
   invalid_lea_ucoa_code,
@@ -350,12 +579,6 @@ rm(
   reported_ucoa
 )
   
-```
-
-### Export the invalid tables
-```{r}
-#since the invalid tables is large list, we should export the invalid tables, and then remove that list. 
-# Do this at the end, once we are done writing the program.
 ```
 
 
@@ -372,48 +595,48 @@ osa_ucoa <- osa_ucoa %>%
 # Now we need to join ucoa.xlsx, so we know what the codes mean.
 
 # join the funds
-left_join(ucoa[["fund"]] %>%
+left_join(ucoa_lookup[["fund"]] %>%
             as_tibble() %>%
             select(NUMBER, fund_description =`FULL DESCRIPTION`),
           by = c("fund"="NUMBER")
           ) %>% 
 # join the functions
-left_join(ucoa[["funct"]] %>%
+left_join(ucoa_lookup[["funct"]] %>%
             as_tibble() %>%
             select(NUMBER, function_description = `FULL DESCRIPTION`),
           by = c("funct" = "NUMBER")
           ) %>% 
 # join the accounts
-left_join(ucoa[["account"]] %>% 
+left_join(ucoa_lookup[["account"]] %>% 
             as_tibble() %>% 
             select(NUMBER, account_description = `FULL DESCRIPTION`),
           by = c("account" = "NUMBER")
           )
 ```
-#### Validate the codes
+#### Validate the non LEA UCOA codes
 
 #### Find a list of entities who used codes which do no map to the UCA. 
 *There are many reasons why this might be the case 
 **They are using an old UCOA
 **They pressed the incorrect key / typos
+...regardless, they must be filtered out. 
 
-#regardless, they must be filtered out. 
 ```{r}
 #find wrong fund code
 osa_bad_fund_code <- osa_ucoa %>%
-  filter(!fund %in% (ucoa %>%
+  filter(!fund %in% (ucoa_lookup %>%
                        pluck("fund")  %>%
                        select(NUMBER) %>%
                        unlist()))
 #find wrong function code
 osa_bad_funct_code<-osa_ucoa %>%
-  filter(!funct %in% (ucoa %>%
+  filter(!funct %in% (ucoa_lookup %>%
                         pluck("funct") %>%
                         select(NUMBER) %>%
                         unlist()))
 #find wrong account code
 osa_bad_account_code <- osa_ucoa %>%
-  filter(!account %in% (ucoa %>%
+  filter(!account %in% (ucoa_lookup %>%
                           pluck("account") %>%
                           select(NUMBER)   %>%
                           unlist()))
@@ -441,12 +664,162 @@ add "osa_non_mapping" to the invalid tables list
 invalid_tables <- c(invalid_tables, osa_non_mapping)
 ```
 
-
-###enrich the LEA ucoa
+##### Export the invalid tables
 ```{r}
-#put that code here.
+#since the invalid tables is large list, we should export the invalid tables, and then remove that list. 
+# Do this at the end, once we are done writing the program.
 ```
 
+## Enrich the LEA ucoa
+```{r}
+# This breaks out the account numbers into fund, function, and account. 
+lea_ucoa <- lea_ucoa %>% 
+  mutate(
+    fund                   = .[["account_number"]] %>% substr(0, 2),
+    location               = .[["account_number"]] %>% substr(4, 6),
+    program                = .[["account_number"]] %>%  substr(8, 11),
+    funct                  = .[["account_number"]] %>%  substr(13, 16),
+    object                 = .[["account_number"]] %>%  substr(18, 20),
+    revenue_classification = .[["account_number"]] %>%  substr(22, 25),
+  ) %>% 
+
+# temp_lea_ucoa<- lea_ucoa %>% 
+#   mutate(
+#     fund                   = .[["account_number"]] %>% substr(0, 2),
+#     location               = .[["account_number"]] %>% substr(4, 6),
+#     program                = .[["account_number"]] %>%  substr(8, 11),
+#     funct                  = .[["account_number"]] %>%  substr(13, 16),
+#     object                 = .[["account_number"]] %>%  substr(18, 20),
+#     revenue_classification = .[["account_number"]] %>%  substr(22, 25),
+#   ) %>% 
+# Now we need to join ucoa.xlsx, so we know what the codes mean.
+
+# join the funds
+left_join(lea_ucoa_lookup %>%
+            pluck("fund") %>%
+            select(NUMBER, fund_description =`DESCRIPTION`),
+          by = c("fund"="NUMBER")
+          ) %>%
+# join the functions
+left_join(lea_ucoa_lookup %>%
+            pluck("location") %>%
+            select(NUMBER, location_description = `DESCRIPTION`),
+          by = c("location" = "NUMBER")
+          ) %>% 
+# join the accounts
+left_join(lea_ucoa_lookup %>% 
+            pluck("program") %>% 
+            select(NUMBER, program_description = `DESCRIPTION`),
+          by = c("program" = "NUMBER")
+          ) %>% 
+left_join(lea_ucoa_lookup %>% 
+            pluck("funct") %>%
+          select(NUMBER, function_description = `DESCRIPTION`),
+        by = c("funct" = "NUMBER")
+        ) %>% 
+left_join(lea_ucoa_lookup %>% 
+            pluck("object") %>%
+            select(NUMBER, object_description = `DESCRIPTION`),
+          by = c("object" = "NUMBER")
+          ) %>% 
+left_join(lea_ucoa_lookup %>% 
+            pluck("revenue_classification") %>%
+            select(NUMBER, rev_class_description = `DESCRIPTION`),
+          by = c("revenue_classification" = "NUMBER")
+          )
+```
+
+#### Find a list of entities who used codes which do no map to the LEA UCA. 
+*There are many reasons why this might be the case 
+**They are using an old UCOA
+**They pressed the incorrect key / typos
+...regardless, they must be filtered out. 
+
+```{r}
+#find wrong fund code
+lea_bad_fund_code <- lea_ucoa %>%
+  filter(!fund %in% (lea_ucoa_lookup %>%
+                       pluck("fund")  %>%
+                       select(NUMBER) %>%
+                       unlist()))
+
+#find wrong location code
+lea_bad_location_code<-lea_ucoa %>%
+  filter(!location %in% (lea_ucoa_lookup %>%
+                        pluck("location") %>%
+                        select(NUMBER) %>%
+                        unlist()))
+#find wrong program code
+lea_bad_program_code <- lea_ucoa %>%
+  filter(!program %in% (lea_ucoa_lookup %>%
+                          pluck("program") %>%
+                          select(NUMBER)   %>%
+                          unlist()))
+
+lea_bad_funct_code <- lea_ucoa %>%
+  filter(!funct %in% (lea_ucoa_lookup %>%
+                          pluck("funct") %>%
+                          select(NUMBER)   %>%
+                          unlist()))
+
+lea_bad_object_code <- lea_ucoa %>%
+  filter(!object %in% (lea_ucoa_lookup %>%
+                          pluck("object") %>%
+                          select(NUMBER)   %>%
+                          unlist()))
+
+lea_bad_revenue_classification_code <- lea_ucoa %>%
+  filter(!revenue_classification %in% (lea_ucoa_lookup %>%
+                          pluck("revenue_classification") %>%
+                          select(NUMBER)   %>%
+                          unlist()))
+
+#now remove incorrectly mapped. we will save them to report, but do not want them in our analysis.
+
+lea_ucoa<- lea_ucoa %>% 
+  anti_join(lea_bad_fund_code, by = "id") %>% 
+  anti_join(lea_bad_location_code, by = "id") %>% 
+  anti_join(lea_bad_program_code, by = "id") %>% 
+  anti_join(lea_bad_funct_code, by = "id") %>% 
+  anti_join(lea_bad_object_code, by = "id") %>% 
+  anti_join(lea_bad_revenue_classification_code, by = "id")
+
+
+
+#consolidate
+lea_non_mapping <-
+  list(
+    lea_bad_fund_code,
+    lea_bad_location_code,
+    lea_bad_program_code,
+    lea_bad_funct_code,
+    lea_bad_object_code,
+    lea_bad_revenue_classification_code
+  )
+names(lea_non_mapping) <-
+  c(
+    "lea_unmapped_fund_code",
+    "lea_unmapped_location_code",
+    "lea_unmapped_program_code",
+    "lea_unmapped_funct_code",
+    "lea_unmapped_object_code",
+    "lea_unmapped_revenue_classification_code"
+  )
+
+
+#remove objects
+rm(lea_bad_fund_code,
+    lea_bad_location_code,
+    lea_bad_program_code,
+    lea_bad_funct_code,
+    lea_bad_object_code,
+    lea_bad_revenue_classification_code)
+```
+
+```{r}
+invalid_tables <- c(invalid_tables, lea_non_mapping)
+rm(lea_non_mapping)
+```
 
 #V. Aggregate Tables
 
@@ -570,7 +943,7 @@ rm(agg_by_description_and_code,agg_by_description,agg_by_code)
 
 agg_fund_plot <-  osa_agg_tables %>%
   pluck("agg_by_description") %>%
-  pluck("agg_fund") %>%
+  pluck("agg_fund") %>% 
   ggplot(aes(x = fund_description, y = total_amount)) + geom_bar(stat = "identity", fill = "lightcoral") +
   coord_flip() +
   geom_text(
@@ -588,6 +961,9 @@ agg_fund_plot
 
 
 ###visualizing the "Function" category
+```{r}
+
+```
 
 
 ### visualize the "Account" category
@@ -793,6 +1169,40 @@ invalid_tables %>% pluck("unmapped_funct_code")
 invalid_tables %>% pluck("unmapped_account_code")
 ```
 
+## lea_unmapped_fund_code : Examine transactions for non LEAs with an account number with correct length, and correct format, but the account code provided does not map to the ucoa code spreadsheet
 
+```{r}
+invalid_tables %>% pluck("lea_unmapped_fund_code")
+```
+
+## lea_unmapped_location_code : Examine transactions for non LEAs with an account number with correct length, and correct format, but the account code provided does not map to the ucoa code spreadsheet
+
+```{r}
+invalid_tables %>% pluck("lea_unmapped_location_code")
+```
+
+## lea_unmapped_program_code : Examine transactions for non LEAs with an account number with correct length, and correct format, but the account code provided does not map to the ucoa code spreadsheet
+
+```{r}
+invalid_tables %>% pluck("lea_unmapped_program_code")
+```
+
+## lea_unmapped_funct_code : Examine transactions for non LEAs with an account number with correct length, and correct format, but the account code provided does not map to the ucoa code spreadsheet
+
+```{r}
+invalid_tables %>% pluck("lea_unmapped_funct_code")
+```
+
+## lea_unmapped_object_code : Examine transactions for non LEAs with an account number with correct length, and correct format, but the account code provided does not map to the ucoa code spreadsheet
+
+```{r}
+invalid_tables %>% pluck("lea_unmapped_object_code")
+```
+
+## lea_unmapped_revenue_classification_code : Examine transactions for non LEAs with an account number with correct length, and correct format, but the account code provided does not map to the ucoa code spreadsheet
+
+```{r}
+invalid_tables %>% pluck("lea_unmapped_revenue_classification_code")
+```
 
 
