@@ -1,3 +1,8 @@
+# ---
+# title = "ucoa master doc"
+# output = html-document
+# ---
+
 # 0. Program Description
 
 **Purpose**
@@ -41,56 +46,6 @@ download.file(
 DONT FORGET TO ADD ALL OF THESE LATER...
 
 # III. LOAD, QUERY, and WRANGLE
-
-## Salesforce - Query
-
-```{r}
-# Note that I do not query LEAs. They are managed by USBE, which uses a
-# different chart of accounts. I also do not query higher education.
-
-# sf_data <-
-#   dbGetQuery(
-#     odbc_sf,
-#     paste("
-#           SELECT
-#             Account.Name                  AS name,
-#             Account.Id                    AS id,
-#             Account.Transparency_ID__c    AS t_id,
-#             Account.Fiscal_Year_Begins__c AS begin_fy,
-#             RecordType.DeveloperName      AS govt_type
-#           FROM Account
-#           JOIN RecordType
-#           ON Account.RecordTypeId = RecordType.Id
-#           WHERE Account.RecordTypeId IN (
-#             SELECT Id
-#             FROM RecordType
-#             WHERE DeveloperName IN (
-#             'AOG',
-#             'City',
-#             'Conservation_District',
-#             'County',
-#             'District_Health',
-#             'Housing',
-#             'Independent_Quasi_State_Entity',
-#             'Interlocal',
-#             'Local_and_Special_Service_District',
-#             'Mental_Health',
-#             'Redevelopment_Agency_Project_Area',
-#             'Town'))
-#           AND Account.Entity_Status__c IN (
-#             'Current',
-#             'On hold',
-#             'Delinquent',
-#             'Suspended')
-#           AND Account.Name NOT IN (
-#             'Intermountain Power Agency',
-#             'Utah Associated Municipal Power Systems',
-#             'Utah Municipal Power Agency')
-#           AND (
-#             Account.Expense_Revenue_Start_Date__c <= DATE() OR
-#             Account.Expense_Revenue_Start_Date__c IS NULL)")) %>%
-#   as_tibble()
-```
 
 ## UCOA - load and wrangle
 
@@ -262,8 +217,8 @@ extra_fund_numbers <- c(27:29, 61:69) %>%
   mutate(
     "DESCRIPTION" =
       case_when(
-        NUMBER < 30 ~ "Special Revenue Funds - (Assigned by District)",
-        NUMBER > 60 &  NUMBER < 70 ~ "Interal Service Fund - (Assigned by District)"
+        NUMBER %in% (27:29) ~ "Special Revenue Funds - (Assigned by District)",
+        NUMBER %in% (61:69) ~ "Interal Service Fund - (Assigned by District)"
       ),
     "NUMBER_DESCRIPTION" = paste(NUMBER, DESCRIPTION)
   )
@@ -292,14 +247,14 @@ lea_ucoa_location<- c(0:499,600:999) %>%
       case_when(
         as.numeric(NUMBER) <= 10    ~ "Pre School",
         as.numeric(NUMBER) >= 11 & as.numeric(NUMBER) <= 99   ~ "District Level",
-        as.numeric(NUMBER) >= 100 & as.numeric(NUMBER) <= 299 ~ "Elementary Schools",
-        as.numeric(NUMBER) >= 300 & as.numeric(NUMBER) <= 399 ~ "Middle Schools",
-        as.numeric(NUMBER) >= 400 & as.numeric(NUMBER) <= 499 ~ "Junior High Schools/Middle Schools",
-        as.numeric(NUMBER) >= 600 & as.numeric(NUMBER) <= 699 ~ "Special Schools, Secondary",
-        as.numeric(NUMBER) >= 700 & as.numeric(NUMBER) <= 799 ~ "High Schools",
-        as.numeric(NUMBER) >= 800 & as.numeric(NUMBER) <= 899 ~ "Special Schools, Elementary",
-        as.numeric(NUMBER) >= 900 & as.numeric(NUMBER) <= 975 ~ "Private Schools",
-        as.numeric(NUMBER) >= 976 & as.numeric(NUMBER) <= 999 ~ "Adult Education Schools",
+        NUMBER %in% (100:299) ~ "Elementary Schools",
+        NUMBER %in% (300:399) ~ "Middle Schools",
+        NUMBER %in% (400:499) ~ "Junior High Schools/Middle Schools",
+        NUMBER %in% (600:699) ~ "Special Schools, Secondary",
+        NUMBER %in% (700:799) ~ "High Schools",
+        NUMBER %in% (800:899) ~ "Special Schools, Elementary",
+        NUMBER %in% (900:975) ~ "Private Schools",
+        NUMBER %in% (976:999) ~ "Adult Education Schools"
       )) %>% 
   mutate(NUMBER = NUMBER %>% str_pad(3, pad = "0")) %>% 
   mutate("NUMBER_DESCRIPTION" = paste(NUMBER, DESCRIPTION))
@@ -346,30 +301,56 @@ extra_program_numbers<- c(2000:3699, # 2000 SCHOOL LEVEL PROGRAMS
   rename("NUMBER" = "value") %>% 
     mutate( "DESCRIPTION" =
       case_when(
-        NUMBER >= 2000 & NUMBER <= 2099~ "General School",
-        NUMBER >= 2100 & NUMBER <= 2199~ "General Studentbody",
-        NUMBER >= 2200 & NUMBER <= 3299~ "Instructional Classes",
-        NUMBER >= 3300 & NUMBER <= 3599~ "Other Instructional Classes",
-        NUMBER >= 3600 & NUMBER <= 3699~ "Student Activity Funds",
+        NUMBER %in%(2000:2099) ~ "General School",
+        NUMBER %in%(2100:2199) ~ "General Studentbody",
+        NUMBER %in%(2200:3299) ~ "Instructional Classes",
+        NUMBER %in%(3300:3599) ~ "Other Instructional Classes",
+        NUMBER %in%(3600:3699) ~ "Student Activity Funds",
         
-        NUMBER >= 5251 & NUMBER <= 5259~ "OTHER MINIMUM SCHOOL PROGRAMS - Reserved for Numbers Assigned by Districts",
-        NUMBER >= 5260 & NUMBER <= 5269~ "OTHER MINIMUM SCHOOL PROGRAMS - Reserved for Numbers Assigned by Districts",
-        NUMBER >= 5270 & NUMBER <= 5290~ "OTHER MINIMUM SCHOOL PROGRAMS - Reserved for Numbers Assigned by Districts",
+        NUMBER %in%(5251:5259) ~ "OTHER MINIMUM SCHOOL PROGRAMS - Reserved for Numbers Assigned by Districts",
+        NUMBER %in%(5260:5269) ~ "OTHER MINIMUM SCHOOL PROGRAMS - Reserved for Numbers Assigned by Districts",
+        NUMBER %in%(5270:5290) ~ "OTHER MINIMUM SCHOOL PROGRAMS - Reserved for Numbers Assigned by Districts",
 
-        NUMBER >= 7804 & NUMBER <= 7809~ "(NCLB) Numbers reserved for districts",
-        NUMBER >= 7811 & NUMBER <= 7819~ "(NCLB) Numbers reserved for districts",
-        NUMBER >= 7821 & NUMBER <= 7829~ "(NCLB) Numbers reserved for districts",
-        NUMBER >= 7831 & NUMBER <= 7839~ "(NCLB) Numbers reserved for districts",
-        NUMBER >= 7841 & NUMBER <= 7849~ "(NCLB) Numbers reserved for districts",
-        NUMBER >= 7851 & NUMBER <= 7859~ "(NCLB) Numbers reserved for districts",
-        NUMBER >= 7871 & NUMBER <= 7879~ "(NCLB) Numbers reserved for districts",
-        NUMBER >= 7891 & NUMBER <= 7899~ "(NCLB) Numbers reserved for districts",
-        NUMBER >= 7916 & NUMBER <= 7919~ "(NCLB) Numbers reserved for districts",
-        NUMBER >= 7911 & NUMBER <= 7914~ "(NCLB) Numbers reserved for districts",
-        NUMBER >= 7921 & NUMBER <= 7929~ "(NCLB) Numbers reserved for districts",
-        NUMBER >= 7931 & NUMBER <= 7939~ "(NCLB) Numbers reserved for districts",
-        NUMBER >= 7941 & NUMBER <= 7949~ "(NCLB) Numbers reserved for districts",
-        NUMBER >= 7951 & NUMBER <= 7959~ "(NCLB) Numbers reserved for districts"
+        NUMBER %in%(7804:7809) ~ "(NCLB) Numbers reserved for districts",
+        NUMBER %in%(7811:7819) ~ "(NCLB) Numbers reserved for districts",
+        NUMBER %in%(7821:7829) ~ "(NCLB) Numbers reserved for districts",
+        NUMBER %in%(7831:7839) ~ "(NCLB) Numbers reserved for districts",
+        NUMBER %in%(7841:7849) ~ "(NCLB) Numbers reserved for districts",
+        NUMBER %in%(7851:7859) ~ "(NCLB) Numbers reserved for districts",
+        NUMBER %in%(7871:7879) ~ "(NCLB) Numbers reserved for districts",
+        NUMBER %in%(7891:7899) ~ "(NCLB) Numbers reserved for districts",
+        NUMBER %in%(7916:7919) ~ "(NCLB) Numbers reserved for districts",
+        NUMBER %in%(7911:7914) ~ "(NCLB) Numbers reserved for districts",
+        NUMBER %in%(7921:7929) ~ "(NCLB) Numbers reserved for districts",
+        NUMBER %in%(7931:7939) ~ "(NCLB) Numbers reserved for districts",
+        NUMBER %in%(7941:7949) ~ "(NCLB) Numbers reserved for districts",
+        NUMBER %in%(7951:7959) ~ "(NCLB) Numbers reserved for districts"
+        
+        #Old way was less readable. Preserved  just in case I switch back. 
+        #         NUMBER >= 2000 & NUMBER <= 2099~ "General School",
+        # NUMBER >= 2100 & NUMBER <= 2199~ "General Studentbody",
+        # NUMBER >= 2200 & NUMBER <= 3299~ "Instructional Classes",
+        # NUMBER >= 3300 & NUMBER <= 3599~ "Other Instructional Classes",
+        # NUMBER >= 3600 & NUMBER <= 3699~ "Student Activity Funds",
+        # 
+        # NUMBER >= 5251 & NUMBER <= 5259~ "OTHER MINIMUM SCHOOL PROGRAMS - Reserved for Numbers Assigned by Districts",
+        # NUMBER >= 5260 & NUMBER <= 5269~ "OTHER MINIMUM SCHOOL PROGRAMS - Reserved for Numbers Assigned by Districts",
+        # NUMBER >= 5270 & NUMBER <= 5290~ "OTHER MINIMUM SCHOOL PROGRAMS - Reserved for Numbers Assigned by Districts",
+        # 
+        # NUMBER >= 7804 & NUMBER <= 7809~ "(NCLB) Numbers reserved for districts",
+        # NUMBER >= 7811 & NUMBER <= 7819~ "(NCLB) Numbers reserved for districts",
+        # NUMBER >= 7821 & NUMBER <= 7829~ "(NCLB) Numbers reserved for districts",
+        # NUMBER >= 7831 & NUMBER <= 7839~ "(NCLB) Numbers reserved for districts",
+        # NUMBER >= 7841 & NUMBER <= 7849~ "(NCLB) Numbers reserved for districts",
+        # NUMBER >= 7851 & NUMBER <= 7859~ "(NCLB) Numbers reserved for districts",
+        # NUMBER >= 7871 & NUMBER <= 7879~ "(NCLB) Numbers reserved for districts",
+        # NUMBER >= 7891 & NUMBER <= 7899~ "(NCLB) Numbers reserved for districts",
+        # NUMBER >= 7916 & NUMBER <= 7919~ "(NCLB) Numbers reserved for districts",
+        # NUMBER >= 7911 & NUMBER <= 7914~ "(NCLB) Numbers reserved for districts",
+        # NUMBER >= 7921 & NUMBER <= 7929~ "(NCLB) Numbers reserved for districts",
+        # NUMBER >= 7931 & NUMBER <= 7939~ "(NCLB) Numbers reserved for districts",
+        # NUMBER >= 7941 & NUMBER <= 7949~ "(NCLB) Numbers reserved for districts",
+        # NUMBER >= 7951 & NUMBER <= 7959~ "(NCLB) Numbers reserved for districts"
       ),
       "NUMBER_DESCRIPTION" = paste(NUMBER, DESCRIPTION))
 
@@ -430,6 +411,23 @@ lea_ucoa_revenue_classification<- lea_ucoa_revenue_classification %>% replace(is
     NUMBER = stri_extract_first(NUMBER_DESCRIPTION, regex = "\\w+"),
     DESCRIPTION = stri_extract_first(NUMBER_DESCRIPTION, regex = "\\s(.*)")
   )
+
+  extra_revenue_numbers <- c("0000") %>%
+    as.character() %>%
+    enframe(name = NULL) %>%
+    rename("NUMBER" = "value") %>%
+    mutate(
+      "DESCRIPTION" =
+        case_when(
+          NUMBER == "0000" ~ "TEMPORARY HOLDER - ALEX NIELSON",
+        ),
+      "NUMBER_DESCRIPTION" = paste(NUMBER, DESCRIPTION)
+    )
+  
+  lea_ucoa_revenue_classification <-
+    lea_ucoa_revenue_classification %>%
+    bind_rows(extra_revenue_numbers)
+
 
 #consolidate
 lea_ucoa_lookup <- list(
@@ -495,10 +493,10 @@ reported_ucoa <-
 
 # 19 is for normal, 25 is for LEA. (dashes are included in string legth)
 invalid_ucoa_length <- reported_ucoa %>% 
-  filter(nchar(account_number) != 19 && !nchar(account_number)!= 25) %>% 
+  filter(nchar(account_number) != 19 && nchar(account_number)!= 25) %>% 
   mutate(account_number_length = nchar(account_number),
          reason = case_when(account_number_length < 19 ~ "uca code too short for non LEA",
-                            account_number_length > 19 ~ "uca code incorrect length",
+                            account_number_length > 19 & account_number_length<25 ~ "uca code incorrect length",
                             account_number_length > 25 ~ "uca code too long for LEA"))
 
 reported_ucoa <- reported_ucoa %>% 
@@ -775,16 +773,23 @@ lea_bad_revenue_classification_code <- lea_ucoa %>%
                           unlist()))
 
 #now remove incorrectly mapped. we will save them to report, but do not want them in our analysis.
+# 
+# lea_ucoa<- lea_ucoa %>%
+#   anti_join(lea_bad_fund_code, by = "id") %>%
+#   anti_join(lea_bad_location_code, by = "id") %>%
+#   anti_join(lea_bad_program_code, by = "id") %>%
+#   anti_join(lea_bad_funct_code, by = "id") %>%
+#   anti_join(lea_bad_object_code, by = "id") %>%
+#   anti_join(lea_bad_revenue_classification_code, by = "id")
+#temp_lea_ucoa <- lea_ucoa
 
-lea_ucoa<- lea_ucoa %>% 
-  anti_join(lea_bad_fund_code, by = "id") %>% 
-  anti_join(lea_bad_location_code, by = "id") %>% 
-  anti_join(lea_bad_program_code, by = "id") %>% 
-  anti_join(lea_bad_funct_code, by = "id") %>% 
-  anti_join(lea_bad_object_code, by = "id") %>% 
+lea_ucoa<- lea_ucoa %>%
+  anti_join(lea_bad_fund_code, by = "id") %>%
+  anti_join(lea_bad_location_code, by = "id") %>%
+  anti_join(lea_bad_program_code, by = "id") %>%
+  anti_join(lea_bad_funct_code, by = "id") %>%
+  anti_join(lea_bad_object_code, by = "id") %>%
   anti_join(lea_bad_revenue_classification_code, by = "id")
-
-
 
 #consolidate
 lea_non_mapping <-
@@ -820,6 +825,116 @@ rm(lea_bad_fund_code,
 invalid_tables <- c(invalid_tables, lea_non_mapping)
 rm(lea_non_mapping)
 ```
+
+### LEA -Invalid Header Use 
+```{r}
+#https://www.schools.utah.gov/file/348f9876-ffcb-4c20-9802-dbc362bbb795
+invalid_fund_code <- tibble(
+  NUMBER = c(70),
+  DESCRIPTION = c("Trust and Agency Funds (Header only, do not use) ")
+)%>% mutate(NUMBER = as.character(NUMBER))
+
+invalid_funct_code <- tibble(
+  NUMBER = c(2000),
+  DESCRIPTION = c("Support Services (Header Only – Do Not Use.)")
+)%>% mutate(NUMBER = as.character(NUMBER))
+
+
+#https://www.schools.utah.gov/file/21241526-8aee-4c36-9005-9e2122c7d98e
+invalid_object_code <- tibble(
+  NUMBER = c(100,
+             110,
+             120,
+             130,
+             140,
+             150,
+             160,
+             170,
+             180,
+             190,
+             200,
+             300,
+             400,
+             500,
+             600,
+             700,
+             800),
+  DESCRIPTION = c("Salaries (Header Only - Do Not Use.)",
+                  "General District Administrative Salaries. (Header Only - Do Not Use.)",
+                  "School Administrative Salaries. (Header Only - Do Not Use.) ",
+                  "Instructional Salaries. (Header Only - Do Not Use.) ",
+                  "Licensed Non-Instructional Salaries. (Header Only - Do Not Use.)",
+                  "Office Salaries. (Header Only - Do Not Use.)",
+                  "Non-Licensed Instructional Salaries. (Header Only - Do Not Use.)",
+                  "Student Transportation Salaries. (Header Only - Do Not Use.)",
+                  "Operation and Maintenance Salaries. (Header Only - Do Not Use.)",
+                  "Other Salaries. (Header Only - Do Not Use.) ",
+                  "Employee Benefits. (Header Only – Do Not Use.)",
+                  "Purchased Professional and Technical Services (Header Only – Do Not Use.)",
+                  "Purchased Property Services (Header Only – Do Not Use.)",
+                  "Other Purchased Services (Header Only – Do Not Use.)",
+                  "Supplies and Materials (Header Only – Do Not Use.)",
+                  "Property (Header Only – Do Not Use.)",
+                  "Debt Service and Miscellaneous (Header Only – Do Not Use.) ")
+)%>% mutate(NUMBER = as.character(NUMBER))
+
+#https://www.schools.utah.gov/file/af07fab8-d759-4400-88e8-64566008f1ed
+invalid_revenue_code <- tibble(
+  NUMBER = c(1000,
+             1100,
+             1154,
+             1300,
+             1400,
+             1500,
+             1600,
+             1700,
+             1900,
+             3000,
+             4000,
+             4530,
+             5000),
+  DESCRIPTION = c("Revenue from Local Sources (Header Only – Do Not Use.)",
+                  "Property Taxes (Header Only – Do Not Use.)",
+                  "Fee-in-Lieu of Taxes (FILT) (Header Only – Do Not Use.)",
+                  "Tuitions (Header Only – Do Not Use.)",
+                  "Transportation Fees (Header Only – Do Not Use.)",
+                  "Earnings on Investments (Header Only – Do Not Use.)",
+                  "Food Services (Header Only – Do Not Use.)",
+                  "Student Activities (Co-Curricular & Extra-Curricular) (Header Only – Do Not Use.)",
+                  "Other Revenue from Local Sources (Header Only – Do Not Use.) ",
+                  "Revenue from State Sources (Header Only – Do Not Use.)",
+                  "Revenue from Federal Sources (Header Only – Do Not Use.)",
+                  "Federal Applied Technology Education Sources. (Header Only. Do - Not Use.)",
+                  "Other Sources & Changes (Header Only – Do Not Use.)")
+) %>% mutate(NUMBER = as.character(NUMBER))
+
+
+lea_header_fund_code <- lea_ucoa %>%
+  filter(fund %in% (invalid_fund_code %>%
+                          select(NUMBER)   %>%
+                          unlist())) %>% 
+  left_join(invalid_fund_code, by = c("fund" = "NUMBER"))
+
+lea_header_funct_code <- lea_ucoa %>%
+  filter(fund %in% (invalid_funct_code %>%
+                          select(NUMBER)   %>%
+                          unlist())) %>% 
+  left_join(invalid_fund_code, by = c("funct" = "NUMBER"))
+
+lea_header_revenue_code <- lea_ucoa %>%
+  filter(revenue_classification %in% (invalid_revenue_code %>%
+                          select(NUMBER)   %>%
+                          unlist()))%>% 
+  left_join(invalid_fund_code, by = c("revenue_classification" = "NUMBER"))
+  
+lea_header_object_code <- lea_ucoa %>%
+  filter(object %in% (invalid_object_code %>%
+                          select(NUMBER)   %>%
+                          unlist())) %>% 
+  left_join(invalid_object_code, by = c("object" = "NUMBER"))
+
+```
+
 
 #V. Aggregate Tables
 
@@ -1154,55 +1269,69 @@ invalid_tables %>% pluck("invalid_lea_format")
 invalid_tables %>% pluck("invalid_osa_format")
 ```
 
-## unmapped_fund_code : Examine transactions for non LEAs with an account number with correct length, and correct format, but the fund code provided does not map to the ucoa code spreadsheet
+## Unmapped codes
+  * Note that for all, you can view more information. The data in each table is as follows:
+    **id
+    **batch_id
+    **amount 
+    **fiscal_year
+    **account_number
+    **type
+    **fund
+    **funct
+    **...
+    **fund_description
+    **function_description
+    **...
+### unmapped_fund_code : Examine transactions for non LEAs with an account number with correct length, and correct format, but the fund code provided does not map to the ucoa code spreadsheet
 ```{r}
-invalid_tables %>% pluck("unmapped_fund_code")
+invalid_tables %>% pluck("unmapped_fund_code") %>% select(id, batch_id, amount, fund, fund_description)
 ```
 
 
-## unmapped_fund_code : Examine transactions for non LEAs with an account number with correct length, and correct format, but the function code provided does not map to the ucoa code spreadsheet
+### unmapped_fund_code : Examine transactions for non LEAs with an account number with correct length, and correct format, but the function code provided does not map to the ucoa code spreadsheet
 ```{r}
-invalid_tables %>% pluck("unmapped_funct_code")
+invalid_tables %>% pluck("unmapped_funct_code") %>% select(id, batch_id, amount, funct, function_description)
 ```
-## unmapped_account_code : Examine transactions for non LEAs with an account number with correct length, and correct format, but the account code provided does not map to the ucoa code spreadsheet
+### unmapped_account_code : Examine transactions for non LEAs with an account number with correct length, and correct format, but the account code provided does not map to the ucoa code spreadsheet
 ```{r}
-invalid_tables %>% pluck("unmapped_account_code")
-```
-
-## lea_unmapped_fund_code : Examine transactions for non LEAs with an account number with correct length, and correct format, but the account code provided does not map to the ucoa code spreadsheet
-
-```{r}
-invalid_tables %>% pluck("lea_unmapped_fund_code")
+invalid_tables %>% pluck("unmapped_account_code") %>% select(id, batch_id, amount, account, account_description)
 ```
 
-## lea_unmapped_location_code : Examine transactions for non LEAs with an account number with correct length, and correct format, but the account code provided does not map to the ucoa code spreadsheet
+### lea_unmapped_fund_code : Examine transactions for non LEAs with an account number with correct length, and correct format, but the account code provided does not map to the ucoa code spreadsheet
 
 ```{r}
-invalid_tables %>% pluck("lea_unmapped_location_code")
+invalid_tables %>% pluck("lea_unmapped_fund_code") %>% select(id, batch_id, amount, fund, fund_description)
 ```
 
-## lea_unmapped_program_code : Examine transactions for non LEAs with an account number with correct length, and correct format, but the account code provided does not map to the ucoa code spreadsheet
+### lea_unmapped_location_code : Examine transactions for non LEAs with an account number with correct length, and correct format, but the account code provided does not map to the ucoa code spreadsheet
 
 ```{r}
-invalid_tables %>% pluck("lea_unmapped_program_code")
+invalid_tables %>% pluck("lea_unmapped_location_code") %>% select(id, batch_id, amount, location, location_description)
 ```
 
-## lea_unmapped_funct_code : Examine transactions for non LEAs with an account number with correct length, and correct format, but the account code provided does not map to the ucoa code spreadsheet
+### lea_unmapped_program_code : Examine transactions for non LEAs with an account number with correct length, and correct format, but the account code provided does not map to the ucoa code spreadsheet
 
 ```{r}
-invalid_tables %>% pluck("lea_unmapped_funct_code")
+invalid_tables %>% pluck("lea_unmapped_program_code") %>% select(id, batch_id, amount, program, program_description)
 ```
 
-## lea_unmapped_object_code : Examine transactions for non LEAs with an account number with correct length, and correct format, but the account code provided does not map to the ucoa code spreadsheet
+### lea_unmapped_funct_code : Examine transactions for non LEAs with an account number with correct length, and correct format, but the account code provided does not map to the ucoa code spreadsheet
 
 ```{r}
-invalid_tables %>% pluck("lea_unmapped_object_code")
+invalid_tables %>% pluck("lea_unmapped_funct_code") %>% select(id, batch_id, amount, funct, function_description)
 ```
 
-## lea_unmapped_revenue_classification_code : Examine transactions for non LEAs with an account number with correct length, and correct format, but the account code provided does not map to the ucoa code spreadsheet
+### lea_unmapped_object_code : Examine transactions for non LEAs with an account number with correct length, and correct format, but the account code provided does not map to the ucoa code spreadsheet
 
 ```{r}
-invalid_tables %>% pluck("lea_unmapped_revenue_classification_code")
+invalid_tables %>% pluck("lea_unmapped_object_code") %>% select(id, batch_id, amount, object, object_description)
+```
+
+### lea_unmapped_revenue_classification_code : Examine transactions for non LEAs with an account number with correct length, and correct format, but the account code provided does not map to the ucoa code spreadsheet
+
+```{r}
+invalid_tables %>% pluck("lea_unmapped_revenue_classification_code") %>% select(id, batch_id, amount, revenue_classification, rev_class_description)
 ```
 
 
