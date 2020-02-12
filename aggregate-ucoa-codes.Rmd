@@ -28,6 +28,7 @@ library(magrittr)
 library(odbc)
 library(readxl) 
 library(tidyverse)
+library(stringi) 
 
 odbc_aws <- dbConnect(odbc::odbc(), dsn_aws)
 odbc_sf  <- dbConnect(odbc::odbc(), dsn_salesforce)
@@ -43,31 +44,49 @@ download.file(
 
 # II.Function Definitions
 
-DONT FORGET TO ADD ALL OF THESE LATER...
-
+```{r}
+agg_dollars_and_records<- function(df, ...){
+  # Purpose: groups the data by supplied grouping variables, and aggregates the
+  # date to have a total dollar amount and a count for the number of transactions
+  # with such variables. Basically this will group uca codings into dollar and
+  # frequency amounts. Two metrics of interest to Alex.
+  #
+  # Inputs: *df (tibble or dataframe): a dataframe which has the grouping variables. it should have an amount column
+  #         *... : the grouping variables. should be a uca field.
+  # Outputs: tibble :an aggregated tibble
+  
+  grouping_vars <- enquos(...)
+  
+  agg_table <- df %>% 
+    group_by(!!! grouping_vars) %>% 
+    summarize(total_amount = sum(amount),
+              num_of_trans = n()) %>% 
+    arrange(desc(total_amount))
+  
+}
+```
 # III. LOAD, QUERY, and WRANGLE
 
-## UCOA - load and wrangle
+## OSA UCOA 
 
 ```{r}
-#note that excel_sheets() returns a list, hence the list access syntax.
-#access in this way since it is a xlsx file.
-ucoa_fund <- 
-  read_xlsx("ucoa.xlsx", sheet = excel_sheets("ucoa.xlsx")[[1]] )
+# note that excel_sheets() returns a list, hence the list access syntax. 
+ucoa_fund <-
+  read_xlsx("ucoa.xlsx", sheet = excel_sheets("ucoa.xlsx")[[1]])
 
-ucoa_function <- 
-  read_xlsx("ucoa.xlsx", sheet = excel_sheets("ucoa.xlsx")[[2]] )
+ucoa_function <-
+  read_xlsx("ucoa.xlsx", sheet = excel_sheets("ucoa.xlsx")[[2]])
 
-ucoa_account <- 
-  read_xlsx("ucoa.xlsx", sheet = excel_sheets("ucoa.xlsx")[[3]] )
+ucoa_account <-
+  read_xlsx("ucoa.xlsx", sheet = excel_sheets("ucoa.xlsx")[[3]])
 
 #Since the xlsx file was built to be readable, and not necessarily easily
-#parsed, the first two rows must be cleaned. 
+#parsed, the first two rows must be cleaned.
 
 #fix the column names
-colnames(ucoa_fund)     <- ucoa_fund[2, ]
+colnames(ucoa_fund)     <- ucoa_fund[2,]
 colnames(ucoa_function) <- c("NUMBER", ucoa_function[1, 2:4])
-colnames(ucoa_account)  <- ucoa_account[2, ]
+colnames(ucoa_account)  <- ucoa_account[2,]
 
 #remove the useless rows.
 ucoa_fund     <- ucoa_fund     %>% slice(-1, -2)
@@ -75,24 +94,25 @@ ucoa_function <- ucoa_function %>% slice(-1)
 ucoa_account  <- ucoa_account  %>% slice(-1, -2)
 
 
+#Add additional fund numbers.
 extra_fund_numbers <-
-  c(201:299, 301:399, 401:449, 451:499, 501:599, 601:699, 701:799) %>%
+  c(202:298, 302:398, 402:448, 452:498, 502:598, 602:698, 702:798) %>%
   as.character() %>%
   enframe(name = NULL) %>%
   rename("NUMBER" = "value") %>%
-  mutate("SHORT DESCRIPTION" = NA,
-         `FULL DESCRIPTION` = case_when(
-            NUMBER %in% (201:299) ~ "Special Revenue Funds (as assigned by local government)",
-            NUMBER %in% (301:399) ~ "Debt Service Funds (as assigned by local government)",
-            NUMBER %in% (401:449) ~ "Capital Projects Funds (as assigned by local government)",
-            NUMBER %in% (451:499) ~ "Permanent Funds (as assigned by local government)",
-            NUMBER %in% (501:599) ~ "Enterprise Funds (as assigned by local government)",
-            NUMBER %in% (601:699) ~ "Internal Service Funds (as assigned by local government)",
-            NUMBER %in% (701:799) ~ "Trust and Agency Funds (as assigned by local government)"
-                                        ),
-         "DETAIL" = NA
-    
-         )
+  mutate(
+    "SHORT DESCRIPTION" = NA,
+    `FULL DESCRIPTION` = case_when(
+      NUMBER %in% (202:298) ~ "Special Revenue Funds (as assigned by local government)",
+      NUMBER %in% (302:398) ~ "Debt Service Funds (as assigned by local government)",
+      NUMBER %in% (402:448) ~ "Capital Projects Funds (as assigned by local government)",
+      NUMBER %in% (452:498) ~ "Permanent Funds (as assigned by local government)",
+      NUMBER %in% (502:598) ~ "Enterprise Funds (as assigned by local government)",
+      NUMBER %in% (602:698) ~ "Internal Service Funds (as assigned by local government)",
+      NUMBER %in% (702:798) ~ "Trust and Agency Funds (as assigned by local government)"
+    ),
+    "DETAIL" = NA
+  )
 
 ucoa_fund <-
   ucoa_fund %>%
@@ -125,49 +145,7 @@ ucoa_account_rev <-
 #   filter(str_detect(NUMBER, "^4001"))
 
 
-ucoa_vague_funct <- 
-  ucoa_function %>% 
-  filter(                #DESCRIPTION OF FUNCTION
-    NUMBER == "000000" | # Not Applicable
-    NUMBER == "100000" | # General Government
-    NUMBER == "200000" | # Public Safety
-    NUMBER == "300000" | # Public Works
-    NUMBER == "400000" | # Health
-    NUMBER == "500000")  # Community
-
-ucoa_vague_exp <- 
-  ucoa_account_exp %>% 
-  filter(                  # DESCRIPTION of Expeditures accounts
-    NUMBER == "40000000" | # Expenditures
-    NUMBER == "40010000" | # Personnel Services
-    NUMBER == "40020000" | # General and Contracted Services
-    NUMBER == "40030000" | # Utilities and Utility Services
-    NUMBER == "40040000" | # Taxes and Fees
-    NUMBER == "40050000" | # Supplies and Materials
-    NUMBER == "40060000" | # Grants and Contracts
-    NUMBER == "40070000" | # Direct Payments
-    NUMBER == "40080000" | # Capital Outlays
-      # Notice that I think that 40090000 Interdepartmental Charges, and
-      # 40100000 Judgements and Losses are considered non-vague. Since they
-      # cannot be broken down further. If this ever change then we would need to
-      # include them here.
-    NUMBER == "40110000" | # Other financing Uses
-      # As noted above, 40120000:40160000 cannot be broken down into more
-      # specific accounts
-    NUMBER == "40170000" ) # Debt Service
-
-ucoa_vague_rev <- 
-  ucoa_account_rev %>% 
-  filter(                  # DESCRIPTION OF Revenue accounts
-    NUMBER == "30000000" | # Revenues
-    NUMBER == "30010000" | # Taxes
-    NUMBER == "30020000" | # Licenses and Permits
-    NUMBER == "30030000" | # Intergovernmental
-    NUMBER == "30040000" | # Charges For Service
-    NUMBER == "30050000" | # Fines and Forfeitures
-    NUMBER == "30060000" | # Miscellaneous
-    NUMBER == "30070000" ) # Other Sources of Funding
-
+#Consolidate ===================================================================
 ucoa_lookup <-
   list(
     fund        = ucoa_fund,
@@ -179,17 +157,16 @@ ucoa_lookup <-
     vague_exp   = ucoa_vague_exp,
     vague_rev   = ucoa_vague_rev)
 
+```
+Remove unneeded objects
+```{r}
 rm(ucoa_fund, ucoa_function, ucoa_account, extra_fund_numbers, ucoa_account_exp,
    ucoa_account_rev, ucoa_vague_funct, ucoa_vague_exp, ucoa_vague_rev)
 ```
 
-## LEA UCOA - load and wrangle
+
+## LEA UCOA
 ```{r}
-#put code here to generate a useful lea ucoa. 
-library(stringi) 
-
-#Alex, you could fix this by doing the case whens with %in% instead of >, <, =
-
 # Wrangle and fix the fund =====================================================
 lea_ucoa_fund <-
   read_xlsx("lea_ucoa_2020.xlsx", sheet = excel_sheets("lea_ucoa_2020.xlsx")[[1]])
@@ -227,17 +204,7 @@ lea_ucoa_fund <-
   lea_ucoa_fund %>%
   bind_rows(extra_fund_numbers)
 
-
-
-# Wrangle "Location" ===========================================================
-# lea_ucoa_Location <-
-#   read_xlsx("lea_ucoa_2019.xlsx", sheet = excel_sheets("lea_ucoa_2019.xlsx")[[2]])
-# 
-# lea_ucoa_Location<- lea_ucoa_Location %>% select(NUMBER_DESCRIPTION = 1) %>% 
-#   replace(is.na(.),"") %>% 
-#   filter(NUMBER_DESCRIPTION != "") %>% 
-#   slice(3:n())
-#   
+# Wrangle "Location" ===========================================================   
 lea_ucoa_location<- c(0:499,600:999) %>%
   # str_pad(3, pad = "0") %>% 
   as.character() %>%
@@ -261,98 +228,76 @@ lea_ucoa_location<- c(0:499,600:999) %>%
   
 
 # Wrangle "program" ============================================================
-
 lea_ucoa_program <-
   read_xlsx("lea_ucoa_2020.xlsx", sheet = excel_sheets("lea_ucoa_2020.xlsx")[[3]])
 
-lea_ucoa_program<- lea_ucoa_program %>% 
-  replace(is.na(.), "") %>% 
-  unite(NUMBER_DESCRIPTION, c(1:9), sep= " ") %>% 
-  mutate(NUMBER_DESCRIPTION = trimws(NUMBER_DESCRIPTION) ) %>% 
-  filter(NUMBER_DESCRIPTION != "") %>% 
-  slice(6:n()) %>% 
+lea_ucoa_program <- lea_ucoa_program %>%
+  replace(is.na(.), "") %>%
+  unite(NUMBER_DESCRIPTION, c(1:9), sep = " ") %>%
+  mutate(NUMBER_DESCRIPTION = trimws(NUMBER_DESCRIPTION)) %>%
+  filter(NUMBER_DESCRIPTION != "") %>%
+  slice(6:n()) %>%
   filter(str_detect(NUMBER_DESCRIPTION, regex("^[[:digit:]]{4}"))) %>%
-   # get rid of rows which have a # but are a range ie: 27-29 and 61-69
-  filter(!str_detect(NUMBER_DESCRIPTION, regex("[[:digit:]]{4}-"))) %>% 
-  filter(!str_detect(NUMBER_DESCRIPTION, regex("[[:digit:]]{4} -"))) %>% 
+  # get rid of rows which have a # but are a range ie: 27-29 and 61-69
+  filter(!str_detect(NUMBER_DESCRIPTION, regex("[[:digit:]]{4}-"))) %>%
+  filter(!str_detect(NUMBER_DESCRIPTION, regex("[[:digit:]]{4} -"))) %>%
   mutate(
     NUMBER = stri_extract_first(NUMBER_DESCRIPTION, regex = "\\w+"),
     DESCRIPTION = stri_extract_first(NUMBER_DESCRIPTION, regex = "\\s(.*)")
   )
 
-extra_program_numbers<- c(2000:3699, # 2000 SCHOOL LEVEL PROGRAMS
-                          5251:5290,  
-                          7804:7809,
-                          7811:7819,
-                          7821:7829,
-                          7831:7839,
-                          7841:7849,
-                          7851:7859,
-                          7871:7879,
-                          7891:7899,
-                          7916:7919,
-                          7911:7914,
-                          7921:7929,
-                          7931:7939,
-                          7941:7949,
-                          7951:7959) %>%
+extra_program_numbers <- c(
+  2000:3699,
+  # 2000 SCHOOL LEVEL PROGRAMS
+  5251:5290,
+  7804:7809,
+  7811:7819,
+  7821:7829,
+  7831:7839,
+  7841:7849,
+  7851:7859,
+  7871:7879,
+  7891:7899,
+  7916:7919,
+  7911:7914,
+  7921:7929,
+  7931:7939,
+  7941:7949,
+  7951:7959
+) %>%
   as.character() %>%
   enframe(name = NULL) %>%
-  rename("NUMBER" = "value") %>% 
-    mutate( "DESCRIPTION" =
+  rename("NUMBER" = "value") %>%
+  mutate(
+    "DESCRIPTION" =
       case_when(
-        NUMBER %in%(2000:2099) ~ "General School",
-        NUMBER %in%(2100:2199) ~ "General Studentbody",
-        NUMBER %in%(2200:3299) ~ "Instructional Classes",
-        NUMBER %in%(3300:3599) ~ "Other Instructional Classes",
-        NUMBER %in%(3600:3699) ~ "Student Activity Funds",
+        NUMBER %in% (2000:2099) ~ "General School",
+        NUMBER %in% (2100:2199) ~ "General Studentbody",
+        NUMBER %in% (2200:3299) ~ "Instructional Classes",
+        NUMBER %in% (3300:3599) ~ "Other Instructional Classes",
+        NUMBER %in% (3600:3699) ~ "Student Activity Funds",
         
-        NUMBER %in%(5251:5259) ~ "OTHER MINIMUM SCHOOL PROGRAMS - Reserved for Numbers Assigned by Districts",
-        NUMBER %in%(5260:5269) ~ "OTHER MINIMUM SCHOOL PROGRAMS - Reserved for Numbers Assigned by Districts",
-        NUMBER %in%(5270:5290) ~ "OTHER MINIMUM SCHOOL PROGRAMS - Reserved for Numbers Assigned by Districts",
-
-        NUMBER %in%(7804:7809) ~ "(NCLB) Numbers reserved for districts",
-        NUMBER %in%(7811:7819) ~ "(NCLB) Numbers reserved for districts",
-        NUMBER %in%(7821:7829) ~ "(NCLB) Numbers reserved for districts",
-        NUMBER %in%(7831:7839) ~ "(NCLB) Numbers reserved for districts",
-        NUMBER %in%(7841:7849) ~ "(NCLB) Numbers reserved for districts",
-        NUMBER %in%(7851:7859) ~ "(NCLB) Numbers reserved for districts",
-        NUMBER %in%(7871:7879) ~ "(NCLB) Numbers reserved for districts",
-        NUMBER %in%(7891:7899) ~ "(NCLB) Numbers reserved for districts",
-        NUMBER %in%(7916:7919) ~ "(NCLB) Numbers reserved for districts",
-        NUMBER %in%(7911:7914) ~ "(NCLB) Numbers reserved for districts",
-        NUMBER %in%(7921:7929) ~ "(NCLB) Numbers reserved for districts",
-        NUMBER %in%(7931:7939) ~ "(NCLB) Numbers reserved for districts",
-        NUMBER %in%(7941:7949) ~ "(NCLB) Numbers reserved for districts",
-        NUMBER %in%(7951:7959) ~ "(NCLB) Numbers reserved for districts"
+        NUMBER %in% (5251:5259) ~ "OTHER MINIMUM SCHOOL PROGRAMS - Reserved for Numbers Assigned by Districts",
+        NUMBER %in% (5260:5269) ~ "OTHER MINIMUM SCHOOL PROGRAMS - Reserved for Numbers Assigned by Districts",
+        NUMBER %in% (5270:5290) ~ "OTHER MINIMUM SCHOOL PROGRAMS - Reserved for Numbers Assigned by Districts",
         
-        #Old way was less readable. Preserved  just in case I switch back. 
-        #         NUMBER >= 2000 & NUMBER <= 2099~ "General School",
-        # NUMBER >= 2100 & NUMBER <= 2199~ "General Studentbody",
-        # NUMBER >= 2200 & NUMBER <= 3299~ "Instructional Classes",
-        # NUMBER >= 3300 & NUMBER <= 3599~ "Other Instructional Classes",
-        # NUMBER >= 3600 & NUMBER <= 3699~ "Student Activity Funds",
-        # 
-        # NUMBER >= 5251 & NUMBER <= 5259~ "OTHER MINIMUM SCHOOL PROGRAMS - Reserved for Numbers Assigned by Districts",
-        # NUMBER >= 5260 & NUMBER <= 5269~ "OTHER MINIMUM SCHOOL PROGRAMS - Reserved for Numbers Assigned by Districts",
-        # NUMBER >= 5270 & NUMBER <= 5290~ "OTHER MINIMUM SCHOOL PROGRAMS - Reserved for Numbers Assigned by Districts",
-        # 
-        # NUMBER >= 7804 & NUMBER <= 7809~ "(NCLB) Numbers reserved for districts",
-        # NUMBER >= 7811 & NUMBER <= 7819~ "(NCLB) Numbers reserved for districts",
-        # NUMBER >= 7821 & NUMBER <= 7829~ "(NCLB) Numbers reserved for districts",
-        # NUMBER >= 7831 & NUMBER <= 7839~ "(NCLB) Numbers reserved for districts",
-        # NUMBER >= 7841 & NUMBER <= 7849~ "(NCLB) Numbers reserved for districts",
-        # NUMBER >= 7851 & NUMBER <= 7859~ "(NCLB) Numbers reserved for districts",
-        # NUMBER >= 7871 & NUMBER <= 7879~ "(NCLB) Numbers reserved for districts",
-        # NUMBER >= 7891 & NUMBER <= 7899~ "(NCLB) Numbers reserved for districts",
-        # NUMBER >= 7916 & NUMBER <= 7919~ "(NCLB) Numbers reserved for districts",
-        # NUMBER >= 7911 & NUMBER <= 7914~ "(NCLB) Numbers reserved for districts",
-        # NUMBER >= 7921 & NUMBER <= 7929~ "(NCLB) Numbers reserved for districts",
-        # NUMBER >= 7931 & NUMBER <= 7939~ "(NCLB) Numbers reserved for districts",
-        # NUMBER >= 7941 & NUMBER <= 7949~ "(NCLB) Numbers reserved for districts",
-        # NUMBER >= 7951 & NUMBER <= 7959~ "(NCLB) Numbers reserved for districts"
+        NUMBER %in% (7804:7809) ~ "(NCLB) Numbers reserved for districts",
+        NUMBER %in% (7811:7819) ~ "(NCLB) Numbers reserved for districts",
+        NUMBER %in% (7821:7829) ~ "(NCLB) Numbers reserved for districts",
+        NUMBER %in% (7831:7839) ~ "(NCLB) Numbers reserved for districts",
+        NUMBER %in% (7841:7849) ~ "(NCLB) Numbers reserved for districts",
+        NUMBER %in% (7851:7859) ~ "(NCLB) Numbers reserved for districts",
+        NUMBER %in% (7871:7879) ~ "(NCLB) Numbers reserved for districts",
+        NUMBER %in% (7891:7899) ~ "(NCLB) Numbers reserved for districts",
+        NUMBER %in% (7916:7919) ~ "(NCLB) Numbers reserved for districts",
+        NUMBER %in% (7911:7914) ~ "(NCLB) Numbers reserved for districts",
+        NUMBER %in% (7921:7929) ~ "(NCLB) Numbers reserved for districts",
+        NUMBER %in% (7931:7939) ~ "(NCLB) Numbers reserved for districts",
+        NUMBER %in% (7941:7949) ~ "(NCLB) Numbers reserved for districts",
+        NUMBER %in% (7951:7959) ~ "(NCLB) Numbers reserved for districts"
       ),
-      "NUMBER_DESCRIPTION" = paste(NUMBER, DESCRIPTION))
+    "NUMBER_DESCRIPTION" = paste(NUMBER, DESCRIPTION)
+  )
 
 lea_ucoa_program <-
   lea_ucoa_program %>%
@@ -381,15 +326,15 @@ lea_ucoa_function<- lea_ucoa_function %>%
 lea_ucoa_object <-
   read_xlsx("lea_ucoa_2020.xlsx", sheet = excel_sheets("lea_ucoa_2020.xlsx")[[5]])
 
-lea_ucoa_object<- lea_ucoa_object %>% 
-  replace(is.na(.), "") %>% 
-  unite(NUMBER_DESCRIPTION, c(1:8), sep= " ") %>% 
-  mutate(NUMBER_DESCRIPTION = trimws(NUMBER_DESCRIPTION) ) %>% 
-  filter(NUMBER_DESCRIPTION != "") %>% 
-  slice(6:n()) %>% 
+lea_ucoa_object <- lea_ucoa_object %>%
+  replace(is.na(.), "") %>%
+  unite(NUMBER_DESCRIPTION, c(1:8), sep = " ") %>%
+  mutate(NUMBER_DESCRIPTION = trimws(NUMBER_DESCRIPTION)) %>%
+  filter(NUMBER_DESCRIPTION != "") %>%
+  slice(6:n()) %>%
   filter(str_detect(NUMBER_DESCRIPTION, regex("^[[:digit:]]{3}"))) %>%
-  # filter(!str_detect(NUMBER_DESCRIPTION, regex("[[:digit:]]{4}-"))) %>% 
-  # # filter(!str_detect(NUMBER_DESCRIPTION, regex("[[:digit:]]{4} -"))) %>% 
+  # filter(!str_detect(NUMBER_DESCRIPTION, regex("[[:digit:]]{4}-"))) %>%
+  # # filter(!str_detect(NUMBER_DESCRIPTION, regex("[[:digit:]]{4} -"))) %>%
   mutate(
     NUMBER = stri_extract_first(NUMBER_DESCRIPTION, regex = "\\w+"),
     DESCRIPTION = stri_extract_first(NUMBER_DESCRIPTION, regex = "\\s(.*)")
@@ -399,37 +344,36 @@ lea_ucoa_object<- lea_ucoa_object %>%
 lea_ucoa_revenue_classification <-
   read_xlsx("lea_ucoa_2020.xlsx", sheet = excel_sheets("lea_ucoa_2020.xlsx")[[6]])
 
-lea_ucoa_revenue_classification<- lea_ucoa_revenue_classification %>% replace(is.na(.), "") %>% 
-  unite(NUMBER_DESCRIPTION, c(1:9), sep= " ") %>% 
-  mutate(NUMBER_DESCRIPTION = trimws(NUMBER_DESCRIPTION) ) %>% 
-  filter(NUMBER_DESCRIPTION != "") %>% 
-  slice(6:n()) %>% 
+lea_ucoa_revenue_classification <-
+  lea_ucoa_revenue_classification %>% replace(is.na(.), "") %>%
+  unite(NUMBER_DESCRIPTION, c(1:9), sep = " ") %>%
+  mutate(NUMBER_DESCRIPTION = trimws(NUMBER_DESCRIPTION)) %>%
+  filter(NUMBER_DESCRIPTION != "") %>%
+  slice(6:n()) %>%
   filter(str_detect(NUMBER_DESCRIPTION, regex("^[[:digit:]]{3}"))) %>%
-  # filter(!str_detect(NUMBER_DESCRIPTION, regex("[[:digit:]]{4}-"))) %>% 
-  # # filter(!str_detect(NUMBER_DESCRIPTION, regex("[[:digit:]]{4} -"))) %>% 
+  # filter(!str_detect(NUMBER_DESCRIPTION, regex("[[:digit:]]{4}-"))) %>%
+  # # filter(!str_detect(NUMBER_DESCRIPTION, regex("[[:digit:]]{4} -"))) %>%
   mutate(
     NUMBER = stri_extract_first(NUMBER_DESCRIPTION, regex = "\\w+"),
     DESCRIPTION = stri_extract_first(NUMBER_DESCRIPTION, regex = "\\s(.*)")
   )
 
-  extra_revenue_numbers <- c("0000") %>%
-    as.character() %>%
-    enframe(name = NULL) %>%
-    rename("NUMBER" = "value") %>%
-    mutate(
-      "DESCRIPTION" =
-        case_when(
-          NUMBER == "0000" ~ "TEMPORARY HOLDER - ALEX NIELSON",
-        ),
-      "NUMBER_DESCRIPTION" = paste(NUMBER, DESCRIPTION)
-    )
-  
-  lea_ucoa_revenue_classification <-
-    lea_ucoa_revenue_classification %>%
-    bind_rows(extra_revenue_numbers)
+extra_revenue_numbers <- c("0000") %>%
+  as.character() %>%
+  enframe(name = NULL) %>%
+  rename("NUMBER" = "value") %>%
+  mutate(
+    "DESCRIPTION" =
+      case_when(NUMBER == "0000" ~ "TEMPORARY HOLDER - ALEX NIELSON",),
+    "NUMBER_DESCRIPTION" = paste(NUMBER, DESCRIPTION)
+  )
+
+lea_ucoa_revenue_classification <-
+  lea_ucoa_revenue_classification %>%
+  bind_rows(extra_revenue_numbers)
 
 
-#consolidate
+#consolidate ===================================================================
 lea_ucoa_lookup <- list(
   fund                   = lea_ucoa_fund,
   location               = lea_ucoa_location,
@@ -438,8 +382,9 @@ lea_ucoa_lookup <- list(
   object                 = lea_ucoa_object,
   revenue_classification = lea_ucoa_revenue_classification
 )
-
-
+```
+Remove unneeded objects
+```{r}
 rm(
   lea_ucoa_fund,
   lea_ucoa_location,
@@ -451,15 +396,13 @@ rm(
   extra_fund_numbers
 )
 ```
-```{r}
-lea_ucoa_lookup %>% pluck("location")
-
-```
 
 
 
 #IV. Load and Validate UCOA codes
  *We will vadidate the code to remove missing values, and "". Then generate for three main reports. The first report contains both invalid LEA and NON-LEA codes. THe second report will be valid LEA codes (lea_reported_ucoa). The third report will be valid NON-LEA codes (I call it osa_reported_ucoa)
+
+##Query AWS transaction table
 ```{r}
 
 # Query the database, get all the records that are not obviously missing data. 
@@ -475,7 +418,7 @@ dbGetQuery(
         type
         FROM transaction
         WHERE account_number IS NOT NULL
-        LIMIT 10000000")) %>% # note I am limitingto 10000000 so it doesn't take an eternity.
+        LIMIT 5000000")) %>% # note I am limitingto 10000000 so it doesn't take an eternity.
 as_tibble() 
 
 # double check for NA or "" ----------------------------------------------------
@@ -487,7 +430,6 @@ invalid_reported_na_or_empty <- reported_ucoa %>%
 reported_ucoa <- 
   reported_ucoa %>% 
   filter(account_number != "", !is.na(account_number))
-
 
 #check correct length ----------------------------------------------------------
 
@@ -579,8 +521,9 @@ rm(
   
 ```
 
+##OSA ucoa
 
-### Enrich non - LEA ucoa tibble 
+### Enrich OSA ucoa tibble 
 ```{r}
 # This breaks out the account numbers into fund, function, and account. 
 osa_ucoa <- osa_ucoa %>% 
@@ -611,9 +554,7 @@ left_join(ucoa_lookup[["account"]] %>%
           by = c("account" = "NUMBER")
           )
 ```
-#### Validate the non LEA UCOA codes
-
-#### Find a list of entities who used codes which do no map to the UCA. 
+### Find unmapped OSA UCA 
 *There are many reasons why this might be the case 
 **They are using an old UCOA
 **They pressed the incorrect key / typos
@@ -640,18 +581,21 @@ osa_bad_account_code <- osa_ucoa %>%
                           unlist()))
 
 
-#now remove incorrectly mapped. we will save them to report, but do not want them in our analysis.
-
+#now remove incorrectly mapped. we will save them to report, but do not want
+#them in our analysis.
 osa_ucoa<- osa_ucoa %>% 
   anti_join(osa_bad_fund_code, by = "id") %>% 
   anti_join(osa_bad_funct_code, by = "id") %>% 
   anti_join(osa_bad_account_code, by = "id")
 
-
-
 #consolidate
-osa_non_mapping <- list(osa_bad_fund_code,osa_bad_funct_code,osa_bad_account_code)
-names(osa_non_mapping) <- c("unmapped_fund_code","unmapped_funct_code","unmapped_account_code")
+osa_non_mapping <-
+  list(osa_bad_fund_code, osa_bad_funct_code, osa_bad_account_code)
+
+names(osa_non_mapping) <-
+  c("unmapped_fund_code",
+    "unmapped_funct_code",
+    "unmapped_account_code")
 
 
 #remove objects
@@ -662,13 +606,9 @@ add "osa_non_mapping" to the invalid tables list
 invalid_tables <- c(invalid_tables, osa_non_mapping)
 ```
 
-##### Export the invalid tables
-```{r}
-#since the invalid tables is large list, we should export the invalid tables, and then remove that list. 
-# Do this at the end, once we are done writing the program.
-```
+##LEA ucoa
 
-## Enrich the LEA ucoa
+### Enrich LEA ucoa tibble
 ```{r}
 # This breaks out the account numbers into fund, function, and account. 
 lea_ucoa <- lea_ucoa %>% 
@@ -727,7 +667,7 @@ left_join(lea_ucoa_lookup %>%
           )
 ```
 
-#### Find a list of entities who used codes which do no map to the LEA UCA. 
+### Find unmapped LEA UCA
 *There are many reasons why this might be the case 
 **They are using an old UCOA
 **They pressed the incorrect key / typos
@@ -772,17 +712,7 @@ lea_bad_revenue_classification_code <- lea_ucoa %>%
                           select(NUMBER)   %>%
                           unlist()))
 
-#now remove incorrectly mapped. we will save them to report, but do not want them in our analysis.
-# 
-# lea_ucoa<- lea_ucoa %>%
-#   anti_join(lea_bad_fund_code, by = "id") %>%
-#   anti_join(lea_bad_location_code, by = "id") %>%
-#   anti_join(lea_bad_program_code, by = "id") %>%
-#   anti_join(lea_bad_funct_code, by = "id") %>%
-#   anti_join(lea_bad_object_code, by = "id") %>%
-#   anti_join(lea_bad_revenue_classification_code, by = "id")
-#temp_lea_ucoa <- lea_ucoa
-
+#Remove invalid codes.
 lea_ucoa<- lea_ucoa %>%
   anti_join(lea_bad_fund_code, by = "id") %>%
   anti_join(lea_bad_location_code, by = "id") %>%
@@ -810,9 +740,10 @@ names(lea_non_mapping) <-
     "lea_unmapped_object_code",
     "lea_unmapped_revenue_classification_code"
   )
+```
 
-
-#remove objects
+Remove uneeded objects
+```{r}
 rm(lea_bad_fund_code,
     lea_bad_location_code,
     lea_bad_program_code,
@@ -826,111 +757,122 @@ invalid_tables <- c(invalid_tables, lea_non_mapping)
 rm(lea_non_mapping)
 ```
 
-### LEA -Invalid Header Use 
+### check for invalid header use 
 ```{r}
 #https://www.schools.utah.gov/file/348f9876-ffcb-4c20-9802-dbc362bbb795
-invalid_fund_code <- tibble(
-  NUMBER = c(70),
-  DESCRIPTION = c("Trust and Agency Funds (Header only, do not use) ")
-)%>% mutate(NUMBER = as.character(NUMBER))
+invalid_fund_code <-
+  tibble(
+    NUMBER = c(70),
+    DESCRIPTION = c("Trust and Agency Funds (Header only, do not use) ")
+  ) %>%
+  mutate(NUMBER = as.character(NUMBER))
 
-invalid_funct_code <- tibble(
-  NUMBER = c(2000),
-  DESCRIPTION = c("Support Services (Header Only – Do Not Use.)")
-)%>% mutate(NUMBER = as.character(NUMBER))
-
+invalid_funct_code <-
+  tibble(
+    NUMBER = c(2000),
+    DESCRIPTION = c("Support Services (Header Only – Do Not Use.)")
+  ) %>%
+  mutate(NUMBER = as.character(NUMBER))
 
 #https://www.schools.utah.gov/file/21241526-8aee-4c36-9005-9e2122c7d98e
 invalid_object_code <- tibble(
-  NUMBER = c(100,
-             110,
-             120,
-             130,
-             140,
-             150,
-             160,
-             170,
-             180,
-             190,
-             200,
-             300,
-             400,
-             500,
-             600,
-             700,
-             800),
-  DESCRIPTION = c("Salaries (Header Only - Do Not Use.)",
-                  "General District Administrative Salaries. (Header Only - Do Not Use.)",
-                  "School Administrative Salaries. (Header Only - Do Not Use.) ",
-                  "Instructional Salaries. (Header Only - Do Not Use.) ",
-                  "Licensed Non-Instructional Salaries. (Header Only - Do Not Use.)",
-                  "Office Salaries. (Header Only - Do Not Use.)",
-                  "Non-Licensed Instructional Salaries. (Header Only - Do Not Use.)",
-                  "Student Transportation Salaries. (Header Only - Do Not Use.)",
-                  "Operation and Maintenance Salaries. (Header Only - Do Not Use.)",
-                  "Other Salaries. (Header Only - Do Not Use.) ",
-                  "Employee Benefits. (Header Only – Do Not Use.)",
-                  "Purchased Professional and Technical Services (Header Only – Do Not Use.)",
-                  "Purchased Property Services (Header Only – Do Not Use.)",
-                  "Other Purchased Services (Header Only – Do Not Use.)",
-                  "Supplies and Materials (Header Only – Do Not Use.)",
-                  "Property (Header Only – Do Not Use.)",
-                  "Debt Service and Miscellaneous (Header Only – Do Not Use.) ")
-)%>% mutate(NUMBER = as.character(NUMBER))
+  NUMBER = c(
+    100,
+    110,
+    120,
+    130,
+    140,
+    150,
+    160,
+    170,
+    180,
+    190,
+    200,
+    300,
+    400,
+    500,
+    600,
+    700,
+    800
+  ),
+  DESCRIPTION = c(
+    "Salaries (Header Only - Do Not Use.)",
+    "General District Administrative Salaries. (Header Only - Do Not Use.)",
+    "School Administrative Salaries. (Header Only - Do Not Use.) ",
+    "Instructional Salaries. (Header Only - Do Not Use.) ",
+    "Licensed Non-Instructional Salaries. (Header Only - Do Not Use.)",
+    "Office Salaries. (Header Only - Do Not Use.)",
+    "Non-Licensed Instructional Salaries. (Header Only - Do Not Use.)",
+    "Student Transportation Salaries. (Header Only - Do Not Use.)",
+    "Operation and Maintenance Salaries. (Header Only - Do Not Use.)",
+    "Other Salaries. (Header Only - Do Not Use.) ",
+    "Employee Benefits. (Header Only – Do Not Use.)",
+    "Purchased Professional and Technical Services (Header Only – Do Not Use.)",
+    "Purchased Property Services (Header Only – Do Not Use.)",
+    "Other Purchased Services (Header Only – Do Not Use.)",
+    "Supplies and Materials (Header Only – Do Not Use.)",
+    "Property (Header Only – Do Not Use.)",
+    "Debt Service and Miscellaneous (Header Only – Do Not Use.) "
+  )
+) %>% mutate(NUMBER = as.character(NUMBER))
 
 #https://www.schools.utah.gov/file/af07fab8-d759-4400-88e8-64566008f1ed
 invalid_revenue_code <- tibble(
-  NUMBER = c(1000,
-             1100,
-             1154,
-             1300,
-             1400,
-             1500,
-             1600,
-             1700,
-             1900,
-             3000,
-             4000,
-             4530,
-             5000),
-  DESCRIPTION = c("Revenue from Local Sources (Header Only – Do Not Use.)",
-                  "Property Taxes (Header Only – Do Not Use.)",
-                  "Fee-in-Lieu of Taxes (FILT) (Header Only – Do Not Use.)",
-                  "Tuitions (Header Only – Do Not Use.)",
-                  "Transportation Fees (Header Only – Do Not Use.)",
-                  "Earnings on Investments (Header Only – Do Not Use.)",
-                  "Food Services (Header Only – Do Not Use.)",
-                  "Student Activities (Co-Curricular & Extra-Curricular) (Header Only – Do Not Use.)",
-                  "Other Revenue from Local Sources (Header Only – Do Not Use.) ",
-                  "Revenue from State Sources (Header Only – Do Not Use.)",
-                  "Revenue from Federal Sources (Header Only – Do Not Use.)",
-                  "Federal Applied Technology Education Sources. (Header Only. Do - Not Use.)",
-                  "Other Sources & Changes (Header Only – Do Not Use.)")
+  NUMBER = c(
+    1000,
+    1100,
+    1154,
+    1300,
+    1400,
+    1500,
+    1600,
+    1700,
+    1900,
+    3000,
+    4000,
+    4530,
+    5000
+  ),
+  DESCRIPTION = c(
+    "Revenue from Local Sources (Header Only – Do Not Use.)",
+    "Property Taxes (Header Only – Do Not Use.)",
+    "Fee-in-Lieu of Taxes (FILT) (Header Only – Do Not Use.)",
+    "Tuitions (Header Only – Do Not Use.)",
+    "Transportation Fees (Header Only – Do Not Use.)",
+    "Earnings on Investments (Header Only – Do Not Use.)",
+    "Food Services (Header Only – Do Not Use.)",
+    "Student Activities (Co-Curricular & Extra-Curricular) (Header Only – Do Not Use.)",
+    "Other Revenue from Local Sources (Header Only – Do Not Use.) ",
+    "Revenue from State Sources (Header Only – Do Not Use.)",
+    "Revenue from Federal Sources (Header Only – Do Not Use.)",
+    "Federal Applied Technology Education Sources. (Header Only. Do - Not Use.)",
+    "Other Sources & Changes (Header Only – Do Not Use.)"
+  )
 ) %>% mutate(NUMBER = as.character(NUMBER))
 
 
 lea_header_fund_code <- lea_ucoa %>%
   filter(fund %in% (invalid_fund_code %>%
-                          select(NUMBER)   %>%
-                          unlist())) %>% 
+                      select(NUMBER)   %>%
+                      unlist())) %>%
   left_join(invalid_fund_code, by = c("fund" = "NUMBER"))
 
 lea_header_funct_code <- lea_ucoa %>%
   filter(fund %in% (invalid_funct_code %>%
-                          select(NUMBER)   %>%
-                          unlist())) %>% 
+                      select(NUMBER)   %>%
+                      unlist())) %>%
   left_join(invalid_fund_code, by = c("funct" = "NUMBER"))
 
 lea_header_revenue_code <- lea_ucoa %>%
   filter(revenue_classification %in% (invalid_revenue_code %>%
-                          select(NUMBER)   %>%
-                          unlist()))%>% 
+                                        select(NUMBER)   %>%
+                                        unlist())) %>%
   left_join(invalid_fund_code, by = c("revenue_classification" = "NUMBER"))
-  
+
 lea_header_object_code <- lea_ucoa %>%
   filter(object %in% (invalid_object_code %>%
-                          select(NUMBER)   %>%
-                          unlist())) %>% 
+                        select(NUMBER)   %>%
+                        unlist())) %>%
   left_join(invalid_object_code, by = c("object" = "NUMBER"))
 
 ```
@@ -940,117 +882,219 @@ lea_header_object_code <- lea_ucoa %>%
 
 ## Aggregate Tables for non-LEAs
 
-### Aggregate by descrition and number/code
+### By Description and Code
 ```{r}
+agg_fund_amount <- osa_ucoa %>%
+  agg_dollars_and_records(fund_description, fund)
 
+agg_function_amount <- osa_ucoa %>%
+  agg_dollars_and_records(function_description,funct)
 
-agg_fund_amount <-  osa_ucoa %>% 
-  group_by(fund_description, fund) %>% 
-  summarize(total_amount = sum(amount),
-            num_of_trans = n() ) %>% 
-  arrange(desc(total_amount))
-  
-agg_function_amount <-  osa_ucoa %>% 
-  group_by(function_description, funct) %>% 
-  summarize(total_amount = sum(amount),
-            num_of_trans = n() ) %>% 
-  arrange(desc(total_amount))
-
-agg_account_amount <-  osa_ucoa %>% 
-  group_by(account_description, account) %>% 
-  summarize(total_amount = sum(amount),
-            num_of_trans = n() ) %>% 
-  arrange(desc(total_amount))
-
+agg_account_amount <- osa_ucoa %>%
+  agg_dollars_and_records(account_description,account)
 
 agg_by_description_and_code<- list(agg_fund_amount,agg_function_amount,agg_account_amount)
+
 names(agg_by_description_and_code) <- c("agg_fund", "agg_function", "agg_account")
 
 rm(agg_fund_amount,agg_function_amount,agg_account_amount)
-
 ```
-*!NOTE: the next two aggregations are only useful if the data is not properly cleaned or entered. If every code has a mapped description, then only the above agg table is necessary.*
 
-### Aggregate by description only
+### By Description 
 ```{r}
-
-
-agg_fund_amount <-  osa_ucoa %>% 
-  group_by(fund_description) %>% 
-  summarize(total_amount = sum(amount),
-            num_of_trans = n() ) %>% 
-  arrange(desc(total_amount))
-  
-agg_function_amount <-  osa_ucoa %>% 
-  group_by(function_description) %>% 
-  summarize(total_amount = sum(amount),
-            num_of_trans = n() ) %>% 
-  arrange(desc(total_amount))
-
-agg_account_amount <-  osa_ucoa %>% 
-  group_by(account_description) %>% 
-  summarize(total_amount = sum(amount),
-            num_of_trans = n() ) %>% 
-  arrange(desc(total_amount))
-
+agg_fund_amount <- osa_ucoa %>% agg_dollars_and_records(fund_description)
+agg_function_amount <- osa_ucoa %>% agg_dollars_and_records(function_description)
+agg_account_amount <- osa_ucoa %>% agg_dollars_and_records(account_description)
 
 agg_by_description<- list(agg_fund_amount,agg_function_amount,agg_account_amount)
+
 names(agg_by_description) <- c("agg_fund", "agg_function", "agg_account")
 
 rm(agg_fund_amount,agg_function_amount,agg_account_amount)
-
 ```
 
-### Aggregate by Code
+### By Code
 ```{r}
-
-
-agg_fund_amount <-  osa_ucoa %>% 
-  group_by( fund) %>% 
-  summarize(total_amount = sum(amount),
-            num_of_trans = n() ) %>% 
-  arrange(desc(total_amount))
-  
-agg_function_amount <-  osa_ucoa %>% 
-  group_by(funct) %>% 
-  summarize(total_amount = sum(amount),
-            num_of_trans = n() ) %>% 
-  arrange(desc(total_amount))
-
-agg_account_amount <-  osa_ucoa %>% 
-  group_by(account) %>% 
-  summarize(total_amount = sum(amount),
-            num_of_trans = n() ) %>% 
-  arrange(desc(total_amount))
-
+agg_fund_amount <- osa_ucoa %>% agg_dollars_and_records( fund)
+agg_function_amount <- osa_ucoa %>% agg_dollars_and_records(funct)
+agg_account_amount <- osa_ucoa %>% agg_dollars_and_records(account)
 
 agg_by_code<- list(agg_fund_amount,agg_function_amount,agg_account_amount)
+
 names(agg_by_code) <- c("agg_fund", "agg_function", "agg_account")
 
 rm(agg_fund_amount,agg_function_amount,agg_account_amount)
-
 ```
 
+### Consolidate and Remove
 ```{r}
 #consolidate into one list
 
 osa_agg_tables <- list(agg_by_description_and_code, agg_by_description,agg_by_code)
-names(osa_agg_tables) <- c("agg_by_description_and_code","agg_by_description", "agg_by_code")
+
+names(osa_agg_tables) <- c("agg_by_description_and_code",
+                           "agg_by_description",
+                           "agg_by_code")
+#delete objects
 rm(agg_by_description_and_code,agg_by_description,agg_by_code)
 ```
 
 
 
+## Aggregate Tables for LEAs
 
+### By Description and Code
+```{r}
+agg_fund_amount <- lea_ucoa %>%
+  agg_dollars_and_records(fund_description, fund)
+agg_location_amount <- lea_ucoa %>%
+  agg_dollars_and_records(location_description, location)
+agg_program_amount <- lea_ucoa %>%
+  agg_dollars_and_records(program_description, program)
+agg_funct_amount <- lea_ucoa %>%
+  agg_dollars_and_records(funct_description, funct)
+agg_object_amount <- lea_ucoa %>%
+  agg_dollars_and_records(object_description, object)
+agg_rev_class_amount <- lea_ucoa %>%
+  agg_dollars_and_records(rev_class_description, revenue_classification)
 
+agg_by_description_and_code <-
+  list(
+    agg_fund_amount,
+    agg_location_amount,
+    agg_program_amount,
+    agg_function_amount,
+    agg_object_amount,
+    agg_rev_class_amount
+  )
 
+names(agg_by_description_and_code) <-
+  c(
+    "agg_fund",
+    "agg_location",
+    "agg_program",
+    "agg_function",
+    "agg_object",
+    "agg_revenue_classification"
+  )
 
+rm(
+  agg_fund_amount,
+  agg_location_amount,
+  agg_program_amount,
+  agg_function_amount,
+  agg_object_amount,
+  agg_rev_class_amount
+)
+```
+
+### By Description only
+```{r}
+agg_fund_amount <- lea_ucoa %>%
+  agg_dollars_and_records(fund_description)
+agg_location_amount <- lea_ucoa %>%
+  agg_dollars_and_records(location_description)
+agg_program_amount <- lea_ucoa %>%
+  agg_dollars_and_records(program_description)
+agg_funct_amount <- lea_ucoa %>%
+  agg_dollars_and_records(funct_description)
+agg_object_amount <- lea_ucoa %>%
+  agg_dollars_and_records(object_description)
+agg_rev_class_amount <- lea_ucoa %>%
+  agg_dollars_and_records(rev_class_description)
+
+agg_by_description <-
+  list(
+    agg_fund_amount,
+    agg_location_amount,
+    agg_program_amount,
+    agg_function_amount,
+    agg_object_amount,
+    agg_rev_class_amount
+  )
+
+names(agg_by_description) <-
+  c(
+    "agg_fund",
+    "agg_location",
+    "agg_program",
+    "agg_function",
+    "agg_object",
+    "agg_revenue_classification"
+  )
+
+rm(
+  agg_fund_amount,
+  agg_location_amount,
+  agg_program_amount,
+  agg_function_amount,
+  agg_object_amount,
+  agg_rev_class_amount
+)
+```
+
+### By Code only
+```{r}
+agg_fund_amount <- lea_ucoa %>%
+  agg_dollars_and_records(fund)
+agg_location_amount <- lea_ucoa %>%
+  agg_dollars_and_records(location)
+agg_program_amount <- lea_ucoa %>%
+  agg_dollars_and_records(program)
+agg_funct_amount <- lea_ucoa %>%
+  agg_dollars_and_records(funct)
+agg_object_amount <- lea_ucoa %>%
+  agg_dollars_and_records(object)
+agg_rev_class_amount <- lea_ucoa %>%
+  agg_dollars_and_records(revenue_classification)
+
+agg_by_code <-
+  list(
+    agg_fund_amount,
+    agg_location_amount,
+    agg_program_amount,
+    agg_function_amount,
+    agg_object_amount,
+    agg_rev_class_amount
+  )
+
+names(agg_by_code) <-
+  c(
+    "agg_fund",
+    "agg_location",
+    "agg_program",
+    "agg_function",
+    "agg_object",
+    "agg_revenue_classification"
+  )
+
+rm(
+  agg_fund_amount,
+  agg_location_amount,
+  agg_program_amount,
+  agg_function_amount,
+  agg_object_amount,
+  agg_rev_class_amount
+)
+```
+
+```{r}
+lea_agg_tables <-
+  list(agg_by_description_and_code, agg_by_description, agg_by_code)
+
+names(lea_agg_tables) <-
+  c("agg_by_description_and_code",
+    "agg_by_description",
+    "agg_by_code")
+
+rm(agg_by_description_and_code, agg_by_description, agg_by_code)
+```
 
 
 
 #VI. Visualizations
 
-##visualizae aggregate tables
+## visualizae non LEA aggregate tables
 
 ### Visualizing the the "Fund" category
 ```{r}
@@ -1083,27 +1127,72 @@ agg_fund_plot
 
 ### visualize the "Account" category
 
+
+```{r}
+barplot_amount <- function(templist,agg_by_type, agg_type, uca_block, temprange){
+  # Description
+  # 
+  # Inputs: templist (list):
+  #         agg_by_type(string/char):  used to decide whether to pluck by_description_and_code, by_description, or by_code
+  #         agg_type(string/char): used to pluck a specific type of aggregat table such as agg_fund or agg_function
+  #         uca_block(object?): the uca block of interest, ex: fund, location, object...
+  #         temprange(int): a range of interest. for example : 4000 ==> 40000000
+  # 
+  # Outputs:
+  #         p (ggplot object)
+  
+  uca_block <-enquo(uca_block)
+  
+  p <- templist %>%
+    pluck(agg_by_type) %>%
+    pluck(agg_type) %>%
+    filter(str_detect(!!uca_block, paste0("^", temprange))) %>%
+    ggplot(aes(x = !!uca_block, y = total_amount)) +
+    geom_bar(stat = "identity", fill = "lightcoral") +
+    coord_flip() +
+    geom_text(
+      aes(label = paste0("$", total_amount)),
+      hjust = "inward",#-.25,
+      vjust = "inwward",#0,
+      size = 3
+    ) +
+    labs(title = paste0(
+      "barplot of ",
+      rlang::as_name(uca_block),
+      " in range: ",
+      temprange,
+      "0000"
+    ))
+  p
+
+}
+
+```
+
+```{r}
+test<- barplot_amount(templist = osa_agg_tables,
+               agg_by_type= "agg_by_code",
+               agg_type = "agg_account",
+               uca_block = account,
+               temprange = 3001)
+```
+
+
 #### visualize revenue by code
 ```{r}
 
+#make plots by revenues ========================================================
+temp_sequence_revenues <- seq(from = 3000, to = 3009,  by = 1)
 
-plot_in_range <- function(temp_range){
-  
-  p <- osa_agg_tables %>% 
-      pluck("agg_by_code") %>% 
-      pluck("agg_account") %>% 
-      filter(str_detect(account, paste0("^",temp_range))) %>% #only selects taxes
-      ggplot(aes(x=account, y=total_amount))+ geom_bar(stat = "identity", fill = "lightcoral")+
-      coord_flip()+
-      geom_text(aes(label=paste0("$",total_amount)), hjust = -.25,vjust=0, size=3)+
-      labs(title = paste0("Barplot of UCOA Account in Range: ", temp_range,"0000") )
-  p
-  
-}
+revenue_plots<- temp_sequence_revenues %>%
+  map(
+    barplot_amount,
+    templist = osa_agg_tables,
+    agg_by_type= "agg_by_code",
+    agg_type = "agg_account",
+    uca_block = account
+  )
 
-temp_sequence_revenues <- seq(from = 3000, to = 3009,  by=1)
-
-revenue_plots<- temp_sequence_revenues %>% map(plot_in_range)
 names(revenue_plots) <- c("revenues",
                   "taxes",
                   "licenses_and_permits",
@@ -1115,9 +1204,17 @@ names(revenue_plots) <- c("revenues",
                   "special_and_extraordinary_gain",
                   "suspense")
 
+#Make plots for expenditures ===================================================
 temp_sequence_expenditures <- seq(from = 4000, to = 4017,  by=1)
 
-expenditure_plots<- temp_sequence_expenditures %>% map(plot_in_range)
+expenditure_plots<- temp_sequence_expenditures %>%
+  map(
+    barplot_amount,
+    templist = osa_agg_tables,
+    agg_by_type= "agg_by_code",
+    agg_type = "agg_account",
+    uca_block = account
+  )
 names(expenditure_plots) <- c("expenditures",
                   "personnel_services",
                   "general_and_contracted_services",
@@ -1149,6 +1246,8 @@ rm(temp_sequence_revenues, temp_sequence_expenditures, revenue_plots, expenditur
 #to see all plot simply run:
 account_plots
 
+
+
 ```
 To only view the revenue plots, we pluck it from the list.
 ```{r}
@@ -1170,6 +1269,11 @@ temp_zoom <- account_plots %>%
   pluck("revenue_plots") %>%
   pluck("intergovernmental") %>%
   pluck("data")
+```
+
+```{r}
+#get rid of temp_zoom
+rm(temp_zoom)
 ```
 
 
@@ -1245,6 +1349,36 @@ You can access plot elements to quickly zoom in on the data. for example:
 ```{r}
 #temp_zoom <- plots %>% pluck("intergovernmental") %>% pluck("data")
 ```
+
+
+
+##Visualize LEA aggregate tables
+
+### Fund
+```{r}
+agg_fund_plot <-  lea_agg_tables %>%
+  pluck("agg_by_description_and_code") %>%
+  pluck("agg_fund") %>% 
+  ggplot(aes(x = fund_description, y = total_amount)) + geom_bar(stat = "identity", fill = "lightcoral") +
+  coord_flip() +
+  geom_text(
+    aes(label = paste0("$", total_amount)),
+    hjust = -.25,
+    vjust = 0,
+    size = 2
+  ) +
+  labs(title = "Barplot of Cumulative Net Amount ($) by Description",
+       x = "Description of Fund",
+       y = "Cumulative Net Amount ($)")
+
+agg_fund_plot
+```
+
+
+
+
+
+
 
 #VII. Generate Invalid Report
 
