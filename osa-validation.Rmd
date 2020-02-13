@@ -1,0 +1,396 @@
+---
+title: "ucoa_test_validatation"
+author: "Alexander Nielson"
+date: "2/11/2020"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Libraries 
+```{r}
+library(tidyverse)
+library(readxl)
+```
+
+# Load .txt file which needs UCA validation
+```{r}
+batch_file_path <- "E:\\rprojects\\Transparency-UCOA\\Cache County Drainage District 6_EX-RV_Upload_(Feb-06-2019--Dec-31-2019).txt"
+
+batch_file <- read.csv(batch_file_path, header = FALSE, sep = "|")
+
+# https://finance.utah.gov/wp-content/uploads/filelayout.pdf
+names(batch_file) <- c("record_num",
+                       "fiscal_yr",
+                       "entity_name",
+                       "f1", # fund level 1
+                       "f2",
+                       "f3",
+                       "f4",
+                       "o1", # organization_level_1_name
+                       "o2",
+                       "o3",
+                       "o4",
+                       "o5",
+                       "o6",
+                       "o7",
+                       "o8",
+                       "o9",
+                       "o10",
+                       "transaction_type",
+                       "c1", # category level 1
+                       "c2",
+                       "c3",
+                       "c4",
+                       "c5",
+                       "c6",
+                       "c7",
+                       "pcv_name", # payee/customer/vendor name
+                       "payee_dba",
+                       "vendor_id",
+                       "posting_date",
+                       "transaction_description",
+                       "transaction_id",
+                       "transaction_reference_id",
+                       "contract_name",
+                       "contract_number",
+                       "position_title",
+                       "hourly_rate",
+                       "gender",
+                       "amount",
+                       "protection_indicator",
+                       "uca_coding_block"#,
+                       # "p1"#, # program level 1 name
+                       # "p2",
+                       # "p3",
+                       # "p4",
+                       # "p5",
+                       # "p6",
+                       # "p7",
+                       # "funct1",
+                       # "funct2",
+                       # "funct3",
+                       # "funct4",
+                       # "funct5",
+                       # "funct6",
+                       # "funct7"
+                       ) 
+
+batch_file <- batch_file %>%
+  select(record_num,
+         fiscal_yr,
+         transaction_id,
+         amount,
+         uca_coding_block) %>% 
+  mutate(uca_coding_block = as.character(uca_coding_block))
+
+
+
+
+```
+
+
+
+
+# Generate UCOA lookup
+```{r}
+#note that excel_sheets() returns a list, hence the list access syntax.
+#access in this way since it is a xlsx file.
+ucoa_fund <- 
+  read_xlsx("ucoa.xlsx", sheet = excel_sheets("ucoa.xlsx")[[1]] )
+
+ucoa_function <- 
+  read_xlsx("ucoa.xlsx", sheet = excel_sheets("ucoa.xlsx")[[2]] )
+
+ucoa_account <- 
+  read_xlsx("ucoa.xlsx", sheet = excel_sheets("ucoa.xlsx")[[3]] )
+
+#Since the xlsx file was built to be readable, and not necessarily easily
+#parsed, the first two rows must be cleaned. 
+
+#fix the column names
+colnames(ucoa_fund)     <- ucoa_fund[2, ]
+colnames(ucoa_function) <- c("NUMBER", ucoa_function[1, 2:4])
+colnames(ucoa_account)  <- ucoa_account[2, ]
+
+#remove the useless rows.
+ucoa_fund     <- ucoa_fund     %>% slice(-1, -2)
+ucoa_function <- ucoa_function %>% slice(-1)
+ucoa_account  <- ucoa_account  %>% slice(-1, -2)
+
+
+extra_fund_numbers <-
+  c(202:298, 302:398, 402:448, 452:498, 502:598, 602:698, 702:798) %>%
+  as.character() %>%
+  enframe(name = NULL) %>%
+  rename("NUMBER" = "value") %>%
+  mutate("SHORT DESCRIPTION" = NA,
+         `FULL DESCRIPTION` = case_when(
+            NUMBER %in% (202:298) ~ "Special Revenue Funds (as assigned by local government)",
+            NUMBER %in% (302:398) ~ "Debt Service Funds (as assigned by local government)",
+            NUMBER %in% (402:448) ~ "Capital Projects Funds (as assigned by local government)",
+            NUMBER %in% (452:498) ~ "Permanent Funds (as assigned by local government)",
+            NUMBER %in% (502:598) ~ "Enterprise Funds (as assigned by local government)",
+            NUMBER %in% (602:698) ~ "Internal Service Funds (as assigned by local government)",
+            NUMBER %in% (702:798) ~ "Trust and Agency Funds (as assigned by local government)"
+                                        ),
+         "DETAIL" = NA
+    
+         )
+
+ucoa_fund <-
+  ucoa_fund %>%
+  bind_rows(extra_fund_numbers)
+
+#fix some other random formattings. ie: 10 ==> 010
+
+ucoa_fund$NUMBER[[1]]     <- "010"
+ucoa_fund$NUMBER[[2]]     <- "020"
+ucoa_fund$NUMBER[[3]]     <- "030"
+ucoa_function$NUMBER[[1]] <- "000000"
+
+#we want a table of just account expenditures
+ucoa_account_exp <-
+  ucoa_account %>% 
+  filter(str_detect(NUMBER, "^4"))# filter for any row which starts with 4,
+                                  # this is because UCoA attributes anything in 
+                                  # the 3000-3999 to revenues
+
+#we also want a table of just account revenues. 
+ucoa_account_rev <- 
+  ucoa_account %>% 
+  filter(str_detect(NUMBER, "^3"))# filter for any row which starts with 3
+                                  # this is because UCoA attribtes anything in
+                                  # the 3000-3999 to revenues
+
+#if we want a table of just w2 information, then we should run this code too.  
+# ucoa_account_w2 <- 
+#   ucoa_account %>% 
+#   filter(str_detect(NUMBER, "^4001"))
+
+
+ucoa_vague_funct <- 
+  ucoa_function %>% 
+  filter(                #DESCRIPTION OF FUNCTION
+    NUMBER == "000000" | # Not Applicable
+    NUMBER == "100000" | # General Government
+    NUMBER == "200000" | # Public Safety
+    NUMBER == "300000" | # Public Works
+    NUMBER == "400000" | # Health
+    NUMBER == "500000")  # Community
+
+ucoa_vague_exp <- 
+  ucoa_account_exp %>% 
+  filter(                  # DESCRIPTION of Expeditures accounts
+    NUMBER == "40000000" | # Expenditures
+    NUMBER == "40010000" | # Personnel Services
+    NUMBER == "40020000" | # General and Contracted Services
+    NUMBER == "40030000" | # Utilities and Utility Services
+    NUMBER == "40040000" | # Taxes and Fees
+    NUMBER == "40050000" | # Supplies and Materials
+    NUMBER == "40060000" | # Grants and Contracts
+    NUMBER == "40070000" | # Direct Payments
+    NUMBER == "40080000" | # Capital Outlays
+      # Notice that I think that 40090000 Interdepartmental Charges, and
+      # 40100000 Judgements and Losses are considered non-vague. Since they
+      # cannot be broken down further. If this ever change then we would need to
+      # include them here.
+    NUMBER == "40110000" | # Other financing Uses
+      # As noted above, 40120000:40160000 cannot be broken down into more
+      # specific accounts
+    NUMBER == "40170000" ) # Debt Service
+
+ucoa_vague_rev <- 
+  ucoa_account_rev %>% 
+  filter(                  # DESCRIPTION OF Revenue accounts
+    NUMBER == "30000000" | # Revenues
+    NUMBER == "30010000" | # Taxes
+    NUMBER == "30020000" | # Licenses and Permits
+    NUMBER == "30030000" | # Intergovernmental
+    NUMBER == "30040000" | # Charges For Service
+    NUMBER == "30050000" | # Fines and Forfeitures
+    NUMBER == "30060000" | # Miscellaneous
+    NUMBER == "30070000" ) # Other Sources of Funding
+
+ucoa_lookup <-
+  list(
+    fund        = ucoa_fund,
+    funct       = ucoa_function,
+    account     = ucoa_account,
+    account_exp = ucoa_account_exp,
+    account_rev = ucoa_account_rev,
+    vague_funct = ucoa_vague_funct,
+    vague_exp   = ucoa_vague_exp,
+    vague_rev   = ucoa_vague_rev)
+
+rm(ucoa_fund, ucoa_function, ucoa_account, extra_fund_numbers, ucoa_account_exp,
+   ucoa_account_rev, ucoa_vague_funct, ucoa_vague_exp, ucoa_vague_rev)
+```
+
+
+#Execute
+
+check for correct length
+```{r}
+invalid_length<-batch_file %>% 
+  filter(nchar(uca_coding_block) != 19)
+
+correct_ucoa <- batch_file %>% 
+  anti_join(invalid_length, by = c("transaction_id"))
+
+
+```
+
+
+check if the osa code has correct format ie: ###-######-########
+```{r}
+invalid_format <- correct_ucoa %>%
+  filter(!str_detect(
+    correct_ucoa$uca_coding_block,
+    regex("^[:digit:]{3}-[:digit:]{6}-[:digit:]{8}$")
+  ))
+
+correct_ucoa <-
+  correct_ucoa %>%
+  filter(str_detect(
+    correct_ucoa$uca_coding_block,
+    regex("^[:digit:]{3}-[:digit:]{6}-[:digit:]{8}$")
+  ))
+```
+
+##check that each uca fund, function, and account maps to the official uca
+
+###Atomize the UCA field
+```{r}
+# This breaks out the account numbers into fund, function, and account. 
+
+
+correct_ucoa <- correct_ucoa %>% 
+  mutate(
+    fund = .[["uca_coding_block"]] %>% substr(0, 3),
+    funct = .[["uca_coding_block"]] %>% substr(5, 10),
+    account = .[["uca_coding_block"]] %>%  substr(12, 19),
+  ) %>% 
+
+# Now we need to join ucoa.xlsx, so we know what the codes mean.
+
+# join the funds
+left_join(ucoa_lookup[["fund"]] %>%
+            as_tibble() %>%
+            select(NUMBER, fund_description =`FULL DESCRIPTION`),
+          by = c("fund"="NUMBER")
+          ) %>% 
+# join the functions
+left_join(ucoa_lookup[["funct"]] %>%
+            as_tibble() %>%
+            select(NUMBER, function_description = `FULL DESCRIPTION`),
+          by = c("funct" = "NUMBER")
+          ) %>% 
+# join the accounts
+left_join(ucoa_lookup[["account"]] %>% 
+            as_tibble() %>% 
+            select(NUMBER, account_description = `FULL DESCRIPTION`),
+          by = c("account" = "NUMBER")
+          )
+```
+
+###check the mappings
+```{r}
+#find wrong fund code
+bad_fund_code <- correct_ucoa %>%
+  filter(!fund %in% (ucoa_lookup %>%
+                       pluck("fund")  %>%
+                       select(NUMBER) %>%
+                       unlist()))
+#find wrong function code
+bad_funct_code<-correct_ucoa %>%
+  filter(!funct %in% (ucoa_lookup %>%
+                        pluck("funct") %>%
+                        select(NUMBER) %>%
+                        unlist()))
+#find wrong account code
+bad_account_code <- correct_ucoa %>%
+  filter(!account %in% (ucoa_lookup %>%
+                          pluck("account") %>%
+                          select(NUMBER)   %>%
+                          unlist()))
+
+
+#now remove incorrectly mapped. we will save them to report, but do not want them in our analysis.
+
+correct_ucoa<- correct_ucoa %>% 
+  anti_join(bad_fund_code, by = "transaction_id") %>% 
+  anti_join(bad_funct_code, by = "transaction_id") %>% 
+  anti_join(bad_account_code, by = "transaction_id")
+
+
+
+#consolidate
+# osa_non_mapping <- list(osa_bad_fund_code,osa_bad_funct_code,osa_bad_account_code)
+# names(osa_non_mapping) <- c("unmapped_fund_code","unmapped_funct_code","unmapped_account_code")
+
+
+#remove objects
+# rm(osa_bad_fund_code,osa_bad_funct_code,osa_bad_account_code)
+```
+
+#Consolidate objects
+
+```{r}
+
+incorrect_ucoa <-
+  list(invalid_length,
+       invalid_format,
+       bad_fund_code,
+       bad_funct_code,
+       bad_account_code)
+names(incorrect_ucoa) <-
+  c(
+    "invalid_length",
+    "invalid_format",
+    "unmapped_fund_code",
+    "unmapped_funct_code",
+    "unmapped_account_code"
+  )
+```
+
+#remove unneeded objects
+```{r}
+rm(invalid_length,
+       invalid_format,
+       bad_fund_code,
+       bad_funct_code,
+       bad_account_code)
+```
+
+#Markdown Reports
+```{r}
+incorrect_ucoa %>% pluck("invalid_length")
+```
+```{r}
+incorrect_ucoa %>% pluck("invalid_format")
+```
+
+```{r}
+incorrect_ucoa %>% pluck("unmapped_fund_code") %>% select(record_num, fiscal_yr, transaction_id, amount, fund, fund_description)
+```
+
+```{r}
+incorrect_ucoa %>% pluck("unmapped_funct_code") %>% select(record_num, fiscal_yr, transaction_id, amount, funct, function_description)
+```
+
+```{r}
+incorrect_ucoa %>% pluck("unmapped_account_code") %>% select(record_num, fiscal_yr, transaction_id, amount, account, account_description)
+```
+
+
+#Generate Report
+
+*check with Tae or Jeremy to determine how they want a report formatted. *
+```{r}
+
+```
+

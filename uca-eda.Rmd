@@ -1,0 +1,1447 @@
+# ---
+# title = "ucoa master doc"
+# output = html-document
+# ---
+
+# 0. Program Description
+
+**Purpose**
+I am interested in learning more about how to access and pay with the UCOA codes. I decided to conduct some Exploratory Data Analysis in this document as well. This script is not really meant for a single button run-all. It rather is built to allow a data analyst to play around with the data easily. It does contain a few basic reports and interesting plots. 
+
+Some noteworthy naming conventions:
+OSA = Office of the State Auditor. It is meant to distinguish usages of the OSA's UCA code in comparison to USOE/LEA, STATE, and higher-education UCAs.
+
+LEA = Utah State Board of Education UCA. It applies for LEA. 
+
+DURATION: the script will take about 20-30 minutes to run.
+
+**Input(s)**
+
+```{r}
+dsn_aws        <- "transpAWS"
+dsn_salesforce <- "salesforce"
+```
+
+**Output(s)**
+
+
+# I. Libraries and Data Sources
+
+```{r}
+options(scipen=999)
+
+library(lubridate)
+library(magrittr)
+library(odbc)
+library(readxl) 
+library(tidyverse)
+library(stringi) 
+
+odbc_aws <- dbConnect(odbc::odbc(), dsn_aws)
+odbc_sf  <- dbConnect(odbc::odbc(), dsn_salesforce)
+
+rm(dsn_aws, dsn_salesforce)
+
+```
+
+
+# II. Function Definitions
+
+## 1. agg_dollars_and_records
+```{r}
+agg_dollars_and_records<- function(df, ...){
+  # Purpose: groups the data by supplied grouping variables, and aggregates the
+  # date to have a total dollar amount and a count for the number of transactions
+  # with such variables. Basically this will group uca codings into dollar and
+  # frequency amounts. Two metrics of interest to Alex.
+  #
+  # Inputs: *df (tibble or dataframe): a dataframe which has the grouping variables. it should have an amount column
+  #         *... : the grouping variables. should be a uca field.
+  # Outputs: tibble :an aggregated tibble
+  
+  grouping_vars <- enquos(...)
+  
+  agg_table <- df %>% 
+    group_by(!!! grouping_vars) %>% 
+    summarize(total_amount = sum(amount),
+              num_of_trans = n()) %>% 
+    arrange(desc(total_amount))
+  
+}
+```
+
+
+```{r}
+barplot_amount <- function(templist,agg_by_type, agg_type, uca_block, temprange){
+  # Description
+  # 
+  # Inputs: templist (list):
+  #         agg_by_type(string/char):  used to decide whether to pluck by_description_and_code, by_description, or by_code
+  #         agg_type(string/char): used to pluck a specific type of aggregat table such as agg_fund or agg_function
+  #         uca_block(object?): the uca block of interest, ex: fund, location, object...
+  #         temprange(int): a range of interest. for example : 4000 ==> 40000000
+  # 
+  # Outputs:
+  #         p (ggplot object)
+  
+  uca_block <-enquo(uca_block)
+  
+  p <- templist %>%
+    pluck(agg_by_type) %>%
+    pluck(agg_type) %>%
+    filter(str_detect(!!uca_block, paste0("^", temprange))) %>%
+    ggplot(aes(x = !!uca_block, y = total_amount)) +
+    geom_bar(stat = "identity", fill = "lightcoral") +
+    coord_flip() +
+    geom_text(
+      aes(label = paste0("$", total_amount)),
+      hjust = "inward",#-.25,
+      vjust = "inwward",#0,
+      size = 3
+    ) +
+    labs(title = paste0(
+      "barplot of ",
+      rlang::as_name(uca_block),
+      " starting with: ",
+      temprange
+    ))
+  p
+
+}
+
+```
+
+
+```{r}
+barplot_description_amount <- function(templist,agg_by_type, agg_type,uca_block, uca_block_description, temprange){
+  # Description
+  # 
+  # Inputs: templist (list):
+  #         agg_by_type(string/char):  used to decide whether to pluck by_description_and_code, by_description, or by_code
+  #         agg_type(string/char): used to pluck a specific type of aggregat table such as agg_fund or agg_function
+  #         uca_block(object?): the uca block of interest, ex: fund, location, object...
+  #         temprange(int): a range of interest. for example : 4000 ==> 40000000
+  # 
+  # Outputs:
+  #         p (ggplot object)
+  uca_block <-enquo(uca_block)
+  uca_block_description <-enquo(uca_block_description)
+  
+  p <- templist %>%
+    pluck(agg_by_type) %>%
+    pluck(agg_type) %>%
+    filter(str_detect(!!uca_block, paste0("^", temprange))) %>%
+    ggplot(aes(x = !!uca_block_description, y = total_amount)) +
+    geom_bar(stat = "identity", fill = "steelblue2") +
+    coord_flip() +
+    geom_text(
+      aes(label = paste0("$", total_amount)),
+      hjust = "inward",#-.25,
+      vjust = "inwward",#0,
+      size = 3
+    ) +
+    labs(title = paste0(
+      "barplot of ",
+      rlang::as_name(uca_block_description),
+      " starting with: ",
+      temprange
+    ))
+  p
+
+}
+
+
+```
+
+# III. LOAD, QUERY, and WRANGLE
+
+## 1. OSA
+
+```{r}
+osa_file_name <- "ucoa.xlsx"
+
+# fund =========================================================================
+osa_fund <-
+  read_xlsx(osa_file_name, sheet = excel_sheets(osa_file_name)[[1]]) %>%
+  mutate(number = number %>% str_pad(3, pad = "0"))
+
+
+# add additional fund numbers.
+extra_fund_numbers <-
+  c(202:298, 302:398, 402:448, 452:498, 502:598, 602:698, 702:798) %>%
+  as.character() %>%
+  enframe(name = NULL) %>%
+  rename("number" = "value") %>%
+  mutate(
+    short_description = NA,
+    full_description = case_when(
+      number %in% (202:298) ~ "Special Revenue Funds (as assigned by local government)",
+      number %in% (302:398) ~ "Debt Service Funds (as assigned by local government)",
+      number %in% (402:448) ~ "Capital Projects Funds (as assigned by local government)",
+      number %in% (452:498) ~ "Permanent Funds (as assigned by local government)",
+      number %in% (502:598) ~ "Enterprise Funds (as assigned by local government)",
+      number %in% (602:698) ~ "Internal Service Funds (as assigned by local government)",
+      number %in% (702:798) ~ "Trust and Agency Funds (as assigned by local government)"
+    ),
+    "detail" = NA
+  )
+
+osa_fund <-
+  osa_fund %>%
+  bind_rows(extra_fund_numbers) %>%
+  select(number, description = full_description)
+
+# funct ========================================================================
+osa_funct <-
+  read_xlsx(osa_file_name, sheet = excel_sheets(osa_file_name)[[2]]) %>%
+  mutate(number = as.character(number)) %>%
+  select(number, description = full_description)
+
+osa_funct$number[[1]] <- "000000"
+
+# account ======================================================================
+osa_account <-
+  read_xlsx(osa_file_name, sheet = excel_sheets(osa_file_name)[[3]]) %>%
+  mutate(number = as.character(number)) %>%
+  select(number, description = full_description)
+
+# consolidate ==================================================================
+osa_lookup <-
+  list(fund        = osa_fund,
+       funct       = osa_funct,
+       account     = osa_account)
+
+```
+Remove unneeded objects
+```{r}
+rm(osa_fund, osa_funct, osa_account, extra_fund_numbers , osa_file_name)
+```
+
+
+## 2. USBE
+```{r}
+# fund =========================================================================
+usbe_file_name <- "FY20 COA-USBE.xlsx"
+
+usbe_fund <-
+  read_xlsx(usbe_file_name, sheet = excel_sheets(usbe_file_name)[[1]]) %>% 
+  rename(number = FundCode,
+         description = FundDescription,
+         can_submit = CanSubmit) %>% 
+  mutate(number = as.character(number))
+
+##add back the ranges
+extra_fund_numbers <- c(27:29, 61:69) %>%
+  as.character() %>%
+  enframe(name = NULL) %>%
+  rename("number" = "value") %>%
+  mutate(
+    description =
+      case_when(
+        number %in% (27:29) ~ "Special Revenue Funds - (Assigned by District)",
+        number %in% (61:69) ~ "Interal Service Fund - (Assigned by District)"
+      ),
+    can_submit = TRUE
+  )
+
+usbe_fund <-
+  usbe_fund %>%
+  bind_rows(extra_fund_numbers)
+
+# Location =====================================================================   
+usbe_location<- c(0:499,600:999) %>%
+  # str_pad(3, pad = "0") %>% 
+  as.character() %>%
+  enframe(name = NULL) %>%
+  rename("number" = "value") %>%
+    mutate( description =
+      case_when(
+        as.numeric(number) <= 10    ~ "Pre School",
+        as.numeric(number) >= 11 & as.numeric(number) <= 99   ~ "District Level",
+        number %in% (100:299) ~ "Elementary Schools",
+        number %in% (300:399) ~ "Middle Schools",
+        number %in% (400:499) ~ "Junior High Schools/Middle Schools",
+        number %in% (600:699) ~ "Special Schools, Secondary",
+        number %in% (700:799) ~ "High Schools",
+        number %in% (800:899) ~ "Special Schools, Elementary",
+        number %in% (900:975) ~ "Private Schools",
+        number %in% (976:999) ~ "Adult Education Schools"
+      ),
+      can_submit = TRUE
+      ) %>% 
+  mutate(number = number %>% str_pad(3, pad = "0")) 
+  
+
+# program  =====================================================================
+usbe_program <-
+  read_xlsx(usbe_file_name, sheet = excel_sheets(usbe_file_name)[[2]]) %>%
+  rename(number = ProgramCode,
+         description = ProgramDescription,
+         can_submit = CanSubmit) %>% 
+  mutate(number = number %>% str_pad(4, pad = "0"))
+
+extra_program_numbers <- c(
+  2000:3699,
+  # 2000 SCHOOL LEVEL PROGRAMS
+  5251:5290,
+  7804:7809,
+  7811:7819,
+  7821:7829,
+  7831:7839,
+  7841:7849,
+  7851:7859,
+  7871:7879,
+  7891:7899,
+  7916:7919,
+  7911:7914,
+  7921:7929,
+  7931:7939,
+  7941:7949,
+  7951:7959
+) %>%
+  as.character() %>%
+  enframe(name = NULL) %>%
+  rename("number" = "value") %>%
+  mutate(
+    description =
+      case_when(
+        number %in% (2000:2099) ~ "General School",
+        number %in% (2100:2199) ~ "General Studentbody",
+        number %in% (2200:3299) ~ "Instructional Classes",
+        number %in% (3300:3599) ~ "Other Instructional Classes",
+        number %in% (3600:3699) ~ "Student Activity Funds",
+        
+        number %in% (5251:5259) ~ "OTHER MINIMUM SCHOOL PROGRAMS - Reserved for Numbers Assigned by Districts",
+        number %in% (5260:5269) ~ "OTHER MINIMUM SCHOOL PROGRAMS - Reserved for Numbers Assigned by Districts",
+        number %in% (5270:5290) ~ "OTHER MINIMUM SCHOOL PROGRAMS - Reserved for Numbers Assigned by Districts",
+        
+        number %in% (7804:7809) ~ "(NCLB) Numbers reserved for districts",
+        number %in% (7811:7819) ~ "(NCLB) Numbers reserved for districts",
+        number %in% (7821:7829) ~ "(NCLB) Numbers reserved for districts",
+        number %in% (7831:7839) ~ "(NCLB) Numbers reserved for districts",
+        number %in% (7841:7849) ~ "(NCLB) Numbers reserved for districts",
+        number %in% (7851:7859) ~ "(NCLB) Numbers reserved for districts",
+        number %in% (7871:7879) ~ "(NCLB) Numbers reserved for districts",
+        number %in% (7891:7899) ~ "(NCLB) Numbers reserved for districts",
+        number %in% (7916:7919) ~ "(NCLB) Numbers reserved for districts",
+        number %in% (7911:7914) ~ "(NCLB) Numbers reserved for districts",
+        number %in% (7921:7929) ~ "(NCLB) Numbers reserved for districts",
+        number %in% (7931:7939) ~ "(NCLB) Numbers reserved for districts",
+        number %in% (7941:7949) ~ "(NCLB) Numbers reserved for districts",
+        number %in% (7951:7959) ~ "(NCLB) Numbers reserved for districts"
+      ),
+    can_submit = TRUE
+  )
+
+usbe_program <-
+  usbe_program %>%
+  bind_rows(extra_program_numbers)  
+
+# Function =====================================================================
+usbe_funct <-
+  read_xlsx(usbe_file_name, sheet = excel_sheets(usbe_file_name)[[4]]) %>%
+  rename(number = FunctionCode,
+         description = FunctionDescription,
+         can_submit = CanSubmit) %>% 
+  mutate(number = as.character(number))
+
+# Object =======================================================================
+
+usbe_object <-
+  read_xlsx(usbe_file_name, sheet = excel_sheets(usbe_file_name)[[5]]) %>%
+  rename(number = ObjectCode,
+         description = ObjectDescription,
+         can_submit = CanSubmit) %>% 
+  mutate(number = as.character(number))
+
+# Revenue Classification" ======================================================
+usbe_revenue <-
+  read_xlsx(usbe_file_name, sheet = excel_sheets(usbe_file_name)[[3]]) %>%
+  rename(number = RevenueCode,
+         description = RevenueDescription,
+         can_submit = CanSubmit) %>% 
+  mutate(number = as.character(number))
+
+# Many LEA put 0000 for their revenue code. To keep them from all being removed,
+# I created a temporary holder. I will likely change the name once I understand
+# why this code is always being used.
+extra_revenue_numbers <- c("0000") %>%
+  as.character() %>%
+  enframe(name = NULL) %>%
+  rename("number" = "value") %>%
+  mutate(
+    description =
+      case_when(number == "0000" ~ "TEMPORARY HOLDER - ALEX NIELSON",),
+    can_submit = TRUE
+  )
+
+usbe_revenue <-
+  usbe_revenue %>%
+  bind_rows(extra_revenue_numbers)
+
+
+#consolidate ===================================================================
+usbe_lookup <- list(
+  fund     = usbe_fund,
+  location = usbe_location,
+  program  = usbe_program,
+  funct    = usbe_funct,
+  object   = usbe_object,
+  revenue  = usbe_revenue
+)
+
+```
+Remove unneeded objects
+```{r}
+rm(
+  usbe_fund,
+  usbe_location,
+  usbe_funct,
+  usbe_program,
+  usbe_revenue,
+  usbe_object,
+  extra_program_numbers,
+  extra_fund_numbers,
+  extra_revenue_numbers,
+  usbe_file_name
+)
+```
+
+
+
+#IV. Load and Validate UCOA codes
+ *We will vadidate the code to remove missing values, and "". Then generate for three main reports. The first report contains both invalid LEA and NON-LEA codes. THe second report will be valid LEA codes (lea_reported_ucoa). The third report will be valid NON-LEA codes (I call it osa_reported_ucoa)
+
+## 1. Query AWS transaction table
+```{r}
+
+# Query the database, get all the records that are not obviously missing data. 
+reported_ucoa <-
+dbGetQuery(
+  odbc_aws,
+  paste("
+        SELECT id, 
+        batch_id,
+        amount,
+        fiscal_year,
+        account_number,
+        type
+        FROM transaction
+        WHERE account_number IS NOT NULL
+        LIMIT 1000000")) %>% # note I am limitingto 10000000 so it doesn't take an eternity.
+as_tibble() 
+
+# double check for NA or "" ----------------------------------------------------
+
+invalid_reported_na_or_empty <- reported_ucoa %>%
+  filter(account_number=="",
+        is.na(account_number))
+
+reported_ucoa <- 
+  reported_ucoa %>% 
+  filter(account_number != "", !is.na(account_number))
+
+#check correct length ----------------------------------------------------------
+
+# 19 is for normal, 25 is for LEA. (dashes are included in string legth)
+invalid_ucoa_length <- reported_ucoa %>% 
+  filter(nchar(account_number) != 19 && nchar(account_number)!= 25) %>% 
+  mutate(account_number_length = nchar(account_number),
+         reason = case_when(account_number_length < 19 ~ "uca code too short for non LEA",
+                            account_number_length > 19 & account_number_length<25 ~ "uca code incorrect length",
+                            account_number_length > 25 ~ "uca code too long for LEA"))
+
+reported_ucoa <- reported_ucoa %>% 
+  filter(nchar(account_number) == 19 || nchar(account_number)== 25)
+
+
+# Generate temp tibbles --------------------------------------------------------
+# this will help with the subsequent reports. You could condense this, but for
+# my mind this is easier to debugg and catch flaws. 
+
+#filter for only lea
+usbe_reported_ucoa <- reported_ucoa %>% filter(nchar(account_number)== 25)
+
+#filter for non USBE
+osa_reported_ucoa <- reported_ucoa %>% filter(nchar(account_number)== 19)
+
+# USBE ==========================================================================
+
+# check if the codes are valid form. ie: ##-###-####-####-###-#### 
+ 
+invalid_usbe_ucoa_code <-
+  usbe_reported_ucoa %>%
+  filter(!str_detect(
+    usbe_reported_ucoa$account_number,
+    regex(
+      "^[:digit:]{2}-[:alnum:]{3}-[:digit:]{4}-[:digit:]{4}-[:digit:]{3}-[:digit:]{4}$"
+    )
+  ))
+
+usbe_reported_ucoa <-
+  usbe_reported_ucoa %>%
+  filter(str_detect(
+    usbe_reported_ucoa$account_number,
+    regex(
+      "^[:digit:]{2}-[:alnum:]{3}-[:digit:]{4}-[:digit:]{4}-[:digit:]{3}-[:digit:]{4}$"
+    )
+  ))
+
+# non lea ====================================================================== 
+
+# check if the codes are valid form. ie: ###-######-########  
+
+invalid_osa_ucoa_codes <- osa_reported_ucoa %>%
+  filter(!str_detect(
+    osa_reported_ucoa$account_number,
+    regex("^[:digit:]{3}-[:digit:]{6}-[:digit:]{8}$")
+  ))
+
+osa_reported_ucoa <-
+  osa_reported_ucoa %>%
+  filter(str_detect(
+    osa_reported_ucoa$account_number,
+    regex("^[:digit:]{3}-[:digit:]{6}-[:digit:]{8}$")
+  ))
+
+# consolidate ==================================================================
+osa_ucoa <- osa_reported_ucoa
+usbe_ucoa <- usbe_reported_ucoa
+invalid_tables <-
+  list(invalid_reported_na_or_empty,
+       invalid_ucoa_length,
+       invalid_usbe_ucoa_code,
+       invalid_osa_ucoa_codes)
+names(invalid_tables) <- c("na_or_empty",
+                           "invalid_length",
+                           "invalid_lea_format",
+                           "invalid_osa_format")
+
+# remove unneeded objects ======================================================
+# comment any object that you want to inspect in the global environment pane
+rm(
+  invalid_reported_na_or_empty,
+  invalid_usbe_ucoa_code,
+  invalid_osa_ucoa_codes,
+  invalid_ucoa_length,
+  osa_reported_ucoa,
+  usbe_reported_ucoa,
+  reported_ucoa
+)
+  
+```
+
+##2. OSA 
+
+### a. Enrich OSA ucoa tibble 
+```{r}
+# This breaks out the account numbers into fund, function, and account. 
+osa_ucoa <- osa_ucoa%>% 
+  mutate(
+    fund = .[["account_number"]] %>% substr(0, 3),
+    funct = .[["account_number"]] %>% substr(5, 10),
+    account = .[["account_number"]] %>%  substr(12, 19),
+  ) %>% 
+
+# Now we need to join ucoa.xlsx, so we know what the codes mean.
+
+# join the funds
+  left_join(
+    osa_lookup %>% 
+      pluck("fund") %>%
+      as_tibble() %>%
+      select(number, fund_description = description),
+    by = c("fund" = "number")
+  ) %>%
+  # join the functions
+  left_join(
+    osa_lookup %>% 
+      pluck("funct") %>%
+      as_tibble() %>%
+      select(number, funct_description = description),
+    by = c("funct" = "number")
+  ) %>%
+  # join the accounts
+  left_join(
+    osa_lookup %>%
+      pluck("account") %>%
+      as_tibble() %>%
+      select(number, account_description = description),
+    by = c("account" = "number")
+          )
+```
+### b. Find unmapped OSA UCA 
+*There are many reasons why this might be the case 
+**They are using an old UCOA
+**They pressed the incorrect key / typos
+...regardless, they must be filtered out. 
+
+```{r}
+#find wrong fund code
+osa_bad_fund_code <- osa_ucoa %>%
+  filter(!fund %in% (osa_lookup %>%
+                       pluck("fund")  %>%
+                       select(number) %>%
+                       unlist()))
+#find wrong function code
+osa_bad_funct_code<-osa_ucoa %>%
+  filter(!funct %in% (osa_lookup %>%
+                        pluck("funct") %>%
+                        select(number) %>%
+                        unlist()))
+#find wrong account code
+osa_bad_account_code <- osa_ucoa %>%
+  filter(!account %in% (osa_lookup %>%
+                          pluck("account") %>%
+                          select(number)   %>%
+                          unlist()))
+
+
+#now remove incorrectly mapped. we will save them to report, but do not want
+#them in our analysis.
+osa_ucoa<- osa_ucoa %>% 
+  anti_join(osa_bad_fund_code, by = "id") %>% 
+  anti_join(osa_bad_funct_code, by = "id") %>% 
+  anti_join(osa_bad_account_code, by = "id")
+
+#consolidate
+osa_non_mapping <-
+  list(osa_bad_fund_code, osa_bad_funct_code, osa_bad_account_code)
+
+names(osa_non_mapping) <-
+  c("osa_unmapped_fund_code",
+    "osa_unmapped_funct_code",
+    "osa_unmapped_account_code")
+
+
+#remove objects
+rm(osa_bad_fund_code,osa_bad_funct_code,osa_bad_account_code)
+```
+add "osa_non_mapping" to the invalid tables list
+```{r}
+invalid_tables <- c(invalid_tables, osa_non_mapping)
+rm(osa_non_mapping)
+```
+
+## 3. LEA
+
+### a. Enrich LEA ucoa tibble
+```{r}
+# This breaks out the account numbers into fund, function, and account. 
+usbe_ucoa <- usbe_ucoa %>%
+  mutate(
+    fund                   = .[["account_number"]] %>% substr(0, 2),
+    location               = .[["account_number"]] %>% substr(4, 6),
+    program                = .[["account_number"]] %>%  substr(8, 11),
+    funct                  = .[["account_number"]] %>%  substr(13, 16),
+    object                 = .[["account_number"]] %>%  substr(18, 20),
+    revenue = .[["account_number"]] %>%  substr(22, 25),
+  ) %>%
+  
+
+# join the funds
+left_join(
+  usbe_lookup %>%
+    pluck("fund") %>%
+    select(
+      number,
+      fund_description = description,
+      fund_can_submit = can_submit
+    ),
+  by = c("fund" = "number")
+) %>%
+  # join the functions
+  left_join(
+    usbe_lookup %>%
+      pluck("location") %>%
+      select(
+        number,
+        location_description = description,
+        location_can_submit = can_submit
+      ),
+    by = c("location" = "number")
+  ) %>%
+  # join the accounts
+  left_join(
+    usbe_lookup %>%
+      pluck("program") %>%
+      select(
+        number,
+        program_description = description,
+        program_can_submit = can_submit
+      ),
+    by = c("program" = "number")
+  ) %>%
+  left_join(
+    usbe_lookup %>%
+      pluck("funct") %>%
+      select(
+        number,
+        funct_description = description,
+        funct_can_submit = can_submit
+      ),
+    by = c("funct" = "number")
+  ) %>%
+  left_join(
+    usbe_lookup %>%
+      pluck("object") %>%
+      select(
+        number,
+        object_description = description,
+        object_can_submit = can_submit
+      ),
+    by = c("object" = "number")
+  ) %>%
+  left_join(
+    usbe_lookup %>%
+      pluck("revenue") %>%
+      select(
+        number,
+        revenue_description = description,
+        revenue_can_submit = can_submit
+      ),
+    by = c("revenue" = "number")
+  )
+```
+
+### b. Find unmapped USBE UCA
+*There are many reasons why this might be the case 
+**They are using an old UCOA
+**They pressed the incorrect key / typos
+...regardless, they must be filtered out. 
+
+```{r}
+#find wrong fund code
+usbe_bad_fund_code <- usbe_ucoa %>%
+  filter(!fund %in% (usbe_lookup %>%
+                       pluck("fund")  %>%
+                       select(number) %>%
+                       unlist()))
+
+#find wrong location code
+usbe_bad_location_code<-usbe_ucoa %>%
+  filter(!location %in% (usbe_lookup %>%
+                        pluck("location") %>%
+                        select(number) %>%
+                        unlist()))
+#find wrong program code
+usbe_bad_program_code <- usbe_ucoa %>%
+  filter(!program %in% (usbe_lookup %>%
+                          pluck("program") %>%
+                          select(number)   %>%
+                          unlist()))
+
+usbe_bad_funct_code <- usbe_ucoa %>%
+  filter(!funct %in% (usbe_lookup %>%
+                          pluck("funct") %>%
+                          select(number)   %>%
+                          unlist()))
+
+usbe_bad_object_code <- usbe_ucoa %>%
+  filter(!object %in% (usbe_lookup %>%
+                          pluck("object") %>%
+                          select(number)   %>%
+                          unlist()))
+
+usbe_bad_revenue_code <- usbe_ucoa %>%
+  filter(!revenue %in% (usbe_lookup %>%
+                          pluck("revenue") %>%
+                          select(number)   %>%
+                          unlist()))
+
+#Remove invalid codes.
+usbe_ucoa<- usbe_ucoa %>%
+  anti_join(usbe_bad_fund_code, by = "id") %>%
+  anti_join(usbe_bad_location_code, by = "id") %>%
+  anti_join(usbe_bad_program_code, by = "id") %>%
+  anti_join(usbe_bad_funct_code, by = "id") %>%
+  anti_join(usbe_bad_object_code, by = "id") %>%
+  anti_join(usbe_bad_revenue_code, by = "id")
+
+#consolidate ## FIX THE NAMEING FOR THE LIST.
+usbe_non_mapping <-
+  list(
+    usbe_unmapped_fund = usbe_bad_fund_code,
+    usbe_unmapped_location= usbe_bad_location_code,
+    usbe_unmapped_program= usbe_bad_program_code,
+    usbe_unmapped_funct= usbe_bad_funct_code,
+    usbe_unmapped_object= usbe_bad_object_code,
+    usbe_unmapped_revenue= usbe_bad_revenue_code
+  )
+
+```
+
+Remove uneeded objects
+```{r}
+rm(
+    usbe_bad_fund_code,
+    usbe_bad_location_code,
+    usbe_bad_program_code,
+    usbe_bad_funct_code,
+    usbe_bad_object_code,
+    usbe_bad_revenue_code
+  )
+```
+
+```{r}
+invalid_tables <- c(invalid_tables, usbe_non_mapping)
+rm(usbe_non_mapping)
+```
+
+### c. check for invalid header use 
+```{r}
+
+fund_header <- usbe_ucoa %>% 
+  filter(fund_can_submit != TRUE)
+
+location_header <- usbe_ucoa %>% 
+  filter(location_can_submit != TRUE)
+
+program_header <- usbe_ucoa %>% 
+  filter(program_can_submit != TRUE)
+
+funct_header <- usbe_ucoa %>% 
+  filter(funct_can_submit != TRUE)
+
+object_header <- usbe_ucoa %>% 
+  filter(object_can_submit != TRUE)
+
+revenue_header <- usbe_ucoa %>% 
+  filter(revenue_can_submit != TRUE)
+
+usbe_ucoa <- usbe_ucoa %>% 
+  anti_join(fund_header, by =c("id" = "id")) %>% 
+  anti_join(location_header, by =c("id" = "id")) %>% 
+  anti_join(program_header, by =c("id" = "id")) %>% 
+  anti_join(funct_header, by =c("id" = "id")) %>% 
+  anti_join(object_header, by =c("id" = "id")) %>% 
+  anti_join(revenue_header, by =c("id" = "id"))  
+  
+usbe_invalid_header <- list(
+  usbe_fund_header = fund_header,
+  usbe_location_header = location_header,
+  usbe_program_header = program_header,
+  usbe_funct_header = funct_header,
+  usbe_object_header = object_header,
+  usbe_revenue_header = revenue_header
+)
+  
+```
+
+```{r}
+invalid_tables <- c(invalid_tables, usbe_invalid_header)
+```
+
+
+```{r}
+rm(
+  usbe_invalid_header,
+  fund_header,
+  location_header,
+  program_header,
+  funct_header,
+  object_header,
+  revenue_header
+)
+```
+
+Since all uca now is mapped and valid I am going to get rid of unncessary columns
+```{r}
+
+usbe_ucoa <- usbe_ucoa %>%
+  select(
+    id,
+    batch_id,
+    amount,
+    fiscal_year,
+    account_number,
+    type,
+    fund,
+    location,
+    program,
+    funct,
+    object,
+    revenue,
+    fund_description,
+    location_description,
+    program_description,
+    funct_description,
+    object_description,
+    revenue_description
+  )
+```
+
+
+#V. Aggregate Tables
+
+## 1. OSA
+
+### a. By Description and Code
+```{r}
+agg_fund_amount <- osa_ucoa %>%
+  agg_dollars_and_records(fund_description, fund)
+
+agg_funct_amount <- osa_ucoa %>%
+  agg_dollars_and_records(funct_description,funct)
+
+agg_account_amount <- osa_ucoa %>%
+  agg_dollars_and_records(account_description,account)
+
+agg_by_description_and_code<- list(agg_fund_amount,agg_funct_amount,agg_account_amount)
+
+names(agg_by_description_and_code) <- c("agg_fund", "agg_funct", "agg_account")
+
+rm(agg_fund_amount,agg_funct_amount,agg_account_amount)
+```
+
+### b. By Description 
+```{r}
+agg_fund_amount <- osa_ucoa %>% agg_dollars_and_records(fund_description)
+agg_funct_amount <- osa_ucoa %>% agg_dollars_and_records(funct_description)
+agg_account_amount <- osa_ucoa %>% agg_dollars_and_records(account_description)
+
+agg_by_description<- list(agg_fund_amount,agg_funct_amount,agg_account_amount)
+
+names(agg_by_description) <- c("agg_fund", "agg_funct", "agg_account")
+
+rm(agg_fund_amount,agg_funct_amount,agg_account_amount)
+```
+
+### c. By Code
+```{r}
+agg_fund_amount <- osa_ucoa %>% agg_dollars_and_records( fund)
+agg_funct_amount <- osa_ucoa %>% agg_dollars_and_records(funct)
+agg_account_amount <- osa_ucoa %>% agg_dollars_and_records(account)
+
+agg_by_code<- list(agg_fund_amount,agg_funct_amount,agg_account_amount)
+
+names(agg_by_code) <- c("agg_fund", "agg_funct", "agg_account")
+
+rm(agg_fund_amount,agg_funct_amount,agg_account_amount)
+```
+
+### d. Consolidate and Remove
+```{r}
+#consolidate into one list
+
+osa_agg_tables <- list(agg_by_description_and_code, agg_by_description,agg_by_code)
+
+names(osa_agg_tables) <- c("agg_by_description_and_code",
+                           "agg_by_description",
+                           "agg_by_code")
+#delete objects
+rm(agg_by_description_and_code,agg_by_description,agg_by_code)
+```
+
+
+
+## 2. LEA
+
+### a. By Description and Code
+```{r}
+agg_fund_amount <- usbe_ucoa %>%
+  agg_dollars_and_records(fund_description, fund)
+agg_location_amount <- usbe_ucoa %>%
+  agg_dollars_and_records(location_description, location)
+agg_program_amount <- usbe_ucoa %>%
+  agg_dollars_and_records(program_description, program)
+agg_funct_amount <- usbe_ucoa %>%
+  agg_dollars_and_records(funct_description, funct)
+agg_object_amount <- usbe_ucoa %>%
+  agg_dollars_and_records(object_description, object)
+agg_revenue_amount <- usbe_ucoa %>%
+  agg_dollars_and_records(revenue_description, revenue)
+
+agg_by_description_and_code <-
+  list(
+    agg_fund = agg_fund_amount,
+    agg_location = agg_location_amount,
+    agg_program = agg_program_amount,
+    agg_funct = agg_funct_amount,
+    agg_object = agg_object_amount,
+    agg_revenue = agg_revenue_amount
+  )
+
+rm(
+  agg_fund_amount,
+  agg_location_amount,
+  agg_program_amount,
+  agg_funct_amount,
+  agg_object_amount,
+  agg_revenue_amount
+)
+```
+
+### b. By Description 
+```{r}
+agg_fund_amount <- usbe_ucoa %>%
+  agg_dollars_and_records(fund_description)
+agg_location_amount <- usbe_ucoa %>%
+  agg_dollars_and_records(location_description)
+agg_program_amount <- usbe_ucoa %>%
+  agg_dollars_and_records(program_description)
+agg_funct_amount <- usbe_ucoa %>%
+  agg_dollars_and_records(funct_description)
+agg_object_amount <- usbe_ucoa %>%
+  agg_dollars_and_records(object_description)
+agg_revenue_amount <- usbe_ucoa %>%
+  agg_dollars_and_records(revenue_description)
+
+agg_by_description <-
+  list(
+    agg_fund = agg_fund_amount,
+    agg_location = agg_location_amount,
+    agg_program = agg_program_amount,
+    agg_funct = agg_funct_amount,
+    agg_object = agg_object_amount,
+    agg_revenue = agg_revenue_amount
+  )
+
+rm(
+  agg_fund_amount,
+  agg_location_amount,
+  agg_program_amount,
+  agg_funct_amount,
+  agg_object_amount,
+  agg_revenue_amount
+)
+```
+
+### c. By Code 
+```{r}
+agg_fund_amount <- usbe_ucoa %>%
+  agg_dollars_and_records(fund)
+agg_location_amount <- usbe_ucoa %>%
+  agg_dollars_and_records(location)
+agg_program_amount <- usbe_ucoa %>%
+  agg_dollars_and_records(program)
+agg_funct_amount <- usbe_ucoa %>%
+  agg_dollars_and_records(funct)
+agg_object_amount <- usbe_ucoa %>%
+  agg_dollars_and_records(object)
+agg_revenue_amount <- usbe_ucoa %>%
+  agg_dollars_and_records(revenue)
+
+agg_by_code <-
+  list(
+    agg_fund = agg_fund_amount,
+    agg_location = agg_location_amount,
+    agg_program = agg_program_amount,
+    agg_funct = agg_funct_amount,
+    agg_object = agg_object_amount,
+    agg_revenue = agg_revenue_amount
+  )
+
+rm(
+  agg_fund_amount,
+  agg_location_amount,
+  agg_program_amount,
+  agg_funct_amount,
+  agg_object_amount,
+  agg_revenue_amount
+)
+```
+
+### d. Consolidate and Remove 
+```{r}
+usbe_agg_tables <-
+  list(
+    agg_by_description_and_code = agg_by_description_and_code,
+    agg_by_description = agg_by_description,
+    agg_by_code = agg_by_code
+  )
+
+rm(agg_by_description_and_code, agg_by_description, agg_by_code)
+```
+
+
+
+#VI. Visualizations
+
+I have decided to use the following colors for different uca types:
+
+OSA = "steelblue2"
+LEA = "orchid2"
+
+## 1. OSA 
+
+
+### a. Fund 
+```{r}
+#create a simple barplot to show the different types of ucoa codes for funds only
+
+agg_fund_plot <-  osa_agg_tables %>%
+  pluck("agg_by_description") %>%
+  pluck("agg_fund") %>% 
+  ggplot(aes(x = fund_description, y = total_amount)) + geom_bar(stat = "identity", fill = "steelblue2") +
+  coord_flip() +
+  geom_text(
+    aes(label = paste0("$", total_amount)),
+    hjust = -.25,
+    vjust = 0,
+    size = 2
+  ) +
+  labs(title = "Barplot of Cumulative Net Amount ($) by Description",
+       x = "Description of Fund",
+       y = "Cumulative Net Amount ($)")
+
+agg_fund_plot
+```
+
+
+### b. Funct/Function
+```{r}
+
+
+temp_sequence_funct <- seq(from = 0, to = 5,  by = 1)
+
+funct_plots<- temp_sequence_funct %>%
+  map(
+    barplot_description_amount,
+    templist = osa_agg_tables,
+    agg_by_type= "agg_by_description_and_code",
+    agg_type = "agg_funct",
+    uca_block = funct,
+    uca_block_description = funct_description
+  )
+
+names(funct_plots) <- c("not_applicable",
+                          "general_government",
+                          "public_safety",
+                          "public_works",
+                          "health",
+                          "community")
+
+funct_plots # run funct_plots in console and view them easier than the markdown.
+```
+
+
+### c. Account
+
+#### i.  Revenue
+```{r}
+
+#make plots by revenues ========================================================
+temp_sequence_revenues <- seq(from = 3000, to = 3009,  by = 1)
+
+revenue_plots<- temp_sequence_revenues %>%
+  map(
+    barplot_description_amount,
+    templist = osa_agg_tables,
+    agg_by_type= "agg_by_description_and_code",
+    agg_type = "agg_account",
+    uca_block = account,
+    uca_block_description = account_description
+  )
+
+names(revenue_plots) <- c("revenues",
+                  "taxes",
+                  "licenses_and_permits",
+                  "intergovernmental",
+                  "charges_for_service",
+                  "fines_and_forfeitures",
+                  "miscellaneous",
+                  "other_sources_of_funding",
+                  "special_and_extraordinary_gain",
+                  "suspense")
+```
+
+#### ii. Expenditures
+```{r}
+#Make plots for expenditures ===================================================
+temp_sequence_expenditures <- seq(from = 4000, to = 4017,  by=1)
+
+expenditure_plots<- temp_sequence_expenditures %>%
+  map(
+    barplot_description_amount,
+    templist = osa_agg_tables,
+    agg_by_type= "agg_by_description_and_code",
+    agg_type = "agg_account",
+    uca_block = account,
+    uca_block_description = account_description
+  )
+names(expenditure_plots) <- c("expenditures",
+                  "personnel_services",
+                  "general_and_contracted_services",
+                  "utilities_and_utility_services",
+                  "taxes_and_fees",
+                  "supplies_and_materials",
+                  "grants_and_contracts",
+                  "direct_payments",
+                  "capital_outlays",
+                  "interdepartmental_charges",
+                  "judgements_and_losses",
+                  "other_financing_uses",
+                  "depreciation",
+                  "amortiaton",
+                  "bad_debt_expense",
+                  "contingencies",
+                  "special_and_extraordinary_loss",
+                  "debt_service")
+
+#consolidate objects
+account_plots <- list(revenue_plots, expenditure_plots)
+names(account_plots) <- c("revenue_plots", "expenditure_plots")
+
+#remove redundant objects
+rm(temp_sequence_revenues, temp_sequence_expenditures, revenue_plots, expenditure_plots)
+```
+####  iii. View
+```{r}
+#to see all plot simply run:
+account_plots
+```
+
+To only view the revenue plots, we pluck it from the list.
+```{r}
+account_plots %>% pluck("revenue_plots") 
+```
+
+If you are only interested in a single plot, you need to pluck twice. shown below:
+```{r}
+temp <- account_plots %>% 
+  pluck("expenditure_plots") %>% 
+  pluck("capital_outlays")
+temp
+```
+
+To access elements of the plot, use this code format. The code below selects the data frame used to generate the plot from intergovernmental revenue
+```{r}
+account_plots %>% 
+  pluck("revenue_plots") %>%
+  pluck("intergovernmental") %>%
+  pluck("data")
+```
+
+##2. LEA
+
+### a. Fund
+```{r}
+agg_fund_plot <-  usbe_agg_tables %>%
+  pluck("agg_by_description_and_code") %>%
+  pluck("agg_fund") %>% 
+  ggplot(aes(x = fund_description, y = total_amount)) + geom_bar(stat = "identity", fill = "orchid2") +
+  coord_flip() +
+  geom_text(
+    aes(label = paste0("$", total_amount)),
+    hjust = -.25,
+    vjust = 0,
+    size = 2
+  ) +
+  labs(title = "Barplot of Cumulative Net Amount ($) by Description",
+       x = "Description of Fund",
+       y = "Cumulative Net Amount ($)")
+
+agg_fund_plot
+```
+### b. Location
+
+### c. Program
+```{r}
+
+
+temp_sequence <- seq(from = 0, to = 9,  by = 1)
+#there is nothing in range 4000
+temp_sequence <- temp_sequence[-5]
+
+
+program_plots<- temp_sequence %>%
+  map(
+    barplot_description_amount,
+    templist = usbe_agg_tables,
+    agg_by_type= "agg_by_description_and_code",
+    agg_type = "agg_program",
+    uca_block = program,
+    uca_block_description = program_description
+  )
+
+# names(funct_plots) <- c("not_applicable",
+#                           "general_government",
+#                           "public_safety",
+#                           "public_works",
+#                           "health",
+#                           "community")
+
+program_plots # run funct_plots in console and view them easier than the markdown.
+```
+
+### d. Funct/Function
+```{r}
+
+
+temp_sequence_funct <- seq(from = 1, to = 5,  by = 1)
+
+funct_plots<- temp_sequence_funct %>%
+  map(
+    barplot_description_amount,
+    templist = usbe_agg_tables,
+    agg_by_type= "agg_by_description_and_code",
+    agg_type = "agg_funct",
+    uca_block = funct,
+    uca_block_description = funct_description
+  )
+
+# names(funct_plots) <- c("not_applicable",
+#                           "general_government",
+#                           "public_safety",
+#                           "public_works",
+#                           "health",
+#                           "community")
+
+funct_plots # run funct_plots in console and view them easier than the markdown.
+```
+
+### e. object
+```{r}
+temp_sequence <- seq(from = 1, to = 8,  by = 1)
+
+object_plots<- temp_sequence %>%
+  map(
+    barplot_description_amount,
+    templist = usbe_agg_tables,
+    agg_by_type= "agg_by_description_and_code",
+    agg_type = "agg_object",
+    uca_block = object,
+    uca_block_description = object_description
+  )
+
+
+object_plots 
+```
+```{r}
+object_plots %>% pluck(1) %>% pluck("data")
+```
+
+### f. revenue
+right now everyone just puts in the 0000
+```{r}
+# temp_sequence <- seq(from = 0, to = 5,  by = 1)
+# 
+# revenue_plots <- temp_sequence %>%
+#   map(
+#     barplot_description_amount,
+#     templist = usbe_agg_tables,
+#     agg_by_type= "agg_by_description_and_code",
+#     agg_type = "agg_revenue",
+#     uca_block = revenue,
+#     uca_block_description = revenue_description
+#   )
+# 
+# 
+# revenue_plots
+```
+#VII. Generate Invalid Report
+
+## na_or_empty : Examine transactions with na or empty value for their account number
+```{r}
+invalid_tables %>% pluck("na_or_empty")
+```
+
+## invalid_length : Examine transactions with an account number too long or too small to fit either LEA or non-LEA UCOA.
+```{r}
+invalid_tables %>% pluck("invalid_length")
+```
+
+## invalid_lea_format : Examine transactions for LEAs with an account number with correct length, but incorrect format
+```{r}
+invalid_tables %>% pluck("invalid_lea_format")
+```
+
+
+## invalid_osa_format : Examine transactions for non LEAs with an account number with correct length, but incorrect format
+```{r}
+invalid_tables %>% pluck("invalid_osa_format")
+```
+
+## Unmapped codes
+  * Note that for all, you can view more information. The data in each table is as follows:
+    **id
+    **batch_id
+    **amount 
+    **fiscal_year
+    **account_number
+    **type
+    **fund
+    **funct
+    **...
+    **fund_description
+    **funct_description
+    **...
+### unmapped_fund_code : Examine transactions for non LEAs with an account number with correct length, and correct format, but the fund code provided does not map to the ucoa code spreadsheet
+```{r}
+invalid_tables %>% pluck("osa_unmapped_fund_code") %>% select(id, batch_id, amount, fund, fund_description)
+```
+
+
+### unmapped_fund_code : Examine transactions for non LEAs with an account number with correct length, and correct format, but the function code provided does not map to the ucoa code spreadsheet
+```{r}
+invalid_tables %>% pluck("osa_unmapped_funct_code") %>% select(id, batch_id, amount, funct, funct_description)
+```
+### unmapped_account_code : Examine transactions for non LEAs with an account number with correct length, and correct format, but the account code provided does not map to the ucoa code spreadsheet
+```{r}
+invalid_tables %>% pluck("osa_unmapped_account_code") %>% select(id, batch_id, amount, account, account_description)
+```
+
+### lea_unmapped_fund_code : Examine transactions for non LEAs with an account number with correct length, and correct format, but the account code provided does not map to the ucoa code spreadsheet
+
+```{r}
+invalid_tables %>% pluck("usbe_unmapped_fund") %>% select(id, batch_id, amount, fund, fund_description)
+```
+
+### lea_unmapped_location_code : Examine transactions for non LEAs with an account number with correct length, and correct format, but the account code provided does not map to the ucoa code spreadsheet
+
+```{r}
+invalid_tables %>% pluck("usbe_unmapped_location") %>% select(id, batch_id, amount, location, location_description)
+```
+
+### lea_unmapped_program_code : Examine transactions for non LEAs with an account number with correct length, and correct format, but the account code provided does not map to the ucoa code spreadsheet
+
+```{r}
+invalid_tables %>% pluck("usbe_unmapped_program") %>% select(id, batch_id, amount, program, program_description)
+```
+
+### lea_unmapped_funct_code : Examine transactions for non LEAs with an account number with correct length, and correct format, but the account code provided does not map to the ucoa code spreadsheet
+
+```{r}
+invalid_tables %>% pluck("usbe_unmapped_funct") %>% select(id, batch_id, amount, funct, funct_description)
+```
+
+### lea_unmapped_object_code : Examine transactions for non LEAs with an account number with correct length, and correct format, but the account code provided does not map to the ucoa code spreadsheet
+
+```{r}
+invalid_tables %>% pluck("usbe_unmapped_object") %>% select(id, batch_id, amount, object, object_description)
+```
+
+### lea_unmapped_revenue_classification_code : Examine transactions for non LEAs with an account number with correct length, and correct format, but the account code provided does not map to the ucoa code spreadsheet
+
+```{r}
+invalid_tables %>% pluck("usbe_unmapped_revenue") %>% select(id, batch_id, amount, revenue, revenue_description)
+```
+
+
+
+```{r}
+invalid_tables %>% pluck("usbe_fund_header") %>% select(id, batch_id, amount, fund, fund_description)
+```
+```{r}
+invalid_tables %>% pluck("usbe_location_header") %>% select(id, batch_id, amount, location, location_description)
+```
+
+```{r}
+invalid_tables %>% pluck("usbe_program_header") %>% select(id, batch_id, amount, program, program_description)
+```
+
+
+```{r}
+invalid_tables %>% pluck("usbe_funct_header") %>% select(id, batch_id, amount, funct, funct_description)
+```
+
+```{r}
+invalid_tables %>% pluck("usbe_object_header") %>% select(id, batch_id, amount, object, object_description)
+```
+
+
+```{r}
+invalid_tables %>% pluck("usbe_revenue_header") %>% select(id, batch_id, amount, revenue, revenue_description)
+```
+
