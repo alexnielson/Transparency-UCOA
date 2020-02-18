@@ -1,7 +1,3 @@
-# ---
-# title = "ucoa master doc"
-# output = html-document
-# ---
 
 # 0. Program Description
 
@@ -36,12 +32,31 @@ library(odbc)
 library(readxl) 
 library(tidyverse)
 library(stringi) 
+library(tidyr)
 
 odbc_aws <- dbConnect(odbc::odbc(), dsn_aws)
 odbc_sf  <- dbConnect(odbc::odbc(), dsn_salesforce)
 
 rm(dsn_aws, dsn_salesforce)
 
+```
+## stuff for parellel processing
+```{r}
+# library(parallel)
+# numCores <- detectCores()
+# numCores
+# 
+# cl <- makeCluster(numCores)
+# 
+# x<-1
+# clusterExport(cl, "x")
+# clusterEvalQ(cl, x)
+# 
+# 
+# clusterEvalQ(cl, {
+#   library(ggplot2)
+#   library(stringr)
+# })
 ```
 
 
@@ -163,7 +178,16 @@ osa_file_name <- "ucoa.xlsx"
 # fund =========================================================================
 osa_fund <-
   read_xlsx(osa_file_name, sheet = excel_sheets(osa_file_name)[[1]]) %>%
-  mutate(number = number %>% str_pad(3, pad = "0"))
+  mutate(number = number %>% str_pad(3, pad = "0")) %>% 
+  mutate(level_primary = 
+           ifelse(
+             str_detect(full_description, "^(.*)[:space:]-[:space:]"),
+             stri_extract_first(full_description, regex = "^(.*)[:space:]-[:space:]"),
+             full_description
+           ), 
+         level_secondary = stri_extract_first(full_description, regex = "[:space:]-[:space:](.*)$"),
+         level_primary = str_replace(level_primary,"-","") %>% str_trim(),
+         level_secondary = str_replace(level_secondary,"-","") %>% str_trim())
 
 
 # add additional fund numbers.
@@ -183,27 +207,68 @@ extra_fund_numbers <-
       number %in% (602:698) ~ "Internal Service Funds (as assigned by local government)",
       number %in% (702:798) ~ "Trust and Agency Funds (as assigned by local government)"
     ),
-    "detail" = NA
+    detail = NA,
+    level_primary = case_when(
+      number %in% (202:298) ~ "Special Revenue Funds",
+      number %in% (302:398) ~ "Debt Service Funds",
+      number %in% (402:448) ~ "Capital Projects Funds ",
+      number %in% (452:498) ~ "Permanent Funds",
+      number %in% (502:598) ~ "Enterprise Funds",
+      number %in% (602:698) ~ "Internal Service Funds",
+      number %in% (702:798) ~ "Trust and Agency Funds"
+    ),
+    level_secondary = paste(level_primary,str_extract(number, "[:digit:][:digit:]$"))
   )
+
 
 osa_fund <-
   osa_fund %>%
   bind_rows(extra_fund_numbers) %>%
-  select(number, description = full_description)
+  mutate(code_primary = str_sub(number, 0, 2),
+         code_secondary = str_sub(number, 2, 3)) %>%
+  select(number,
+         description = full_description,
+         code_primary,
+         code_secondary,
+         level_primary,
+         level_secondary)
 
 # funct ========================================================================
 osa_funct <-
-  read_xlsx(osa_file_name, sheet = excel_sheets(osa_file_name)[[2]]) %>%
-  mutate(number = as.character(number)) %>%
-  select(number, description = full_description)
+  read_xlsx(osa_file_name, sheet = excel_sheets(osa_file_name)[[2]])
 
+# quicker than str_pad to the entire column
 osa_funct$number[[1]] <- "000000"
+
+osa_funct<- osa_funct %>% 
+  mutate(number = as.character(number),
+         code_primary = str_sub(number,0,2),
+         code_secondary = str_sub(number,3,4),
+         code_tertiary= str_sub(number,5,6),
+         temp_description = full_description) %>% 
+         separate(temp_description,
+                  into = c("level_primary","level_secondary","level_tertiary"),
+                  sep= "[:space:]-[:space:]") %>% 
+  select(-short_description, -detail) %>% 
+  rename( description = full_description)
+
+
+
 
 # account ======================================================================
 osa_account <-
   read_xlsx(osa_file_name, sheet = excel_sheets(osa_file_name)[[3]]) %>%
-  mutate(number = as.character(number)) %>%
-  select(number, description = full_description)
+  mutate(number = as.character(number),
+         code_primary = str_sub(number,0,4),
+         code_secondary = str_sub(number,5,6),
+         code_tertiary= str_sub(number,7,8),
+         temp_description = full_description) %>% 
+         separate(temp_description,
+                  into = c("level_primary","level_secondary","level_tertiary"),
+                  sep= "[:space:]-[:space:]") %>% 
+  select(-short_description, -detail) %>% 
+  rename( description = full_description)
+
 
 # consolidate ==================================================================
 osa_lookup <-
@@ -409,13 +474,13 @@ rm(
 
 
 
-#IV. Load and Validate UCOA codes
+#IV. Load and Validate UCA codes
  *We will vadidate the code to remove missing values, and "". Then generate for three main reports. The first report contains both invalid LEA and NON-LEA codes. THe second report will be valid LEA codes (lea_reported_ucoa). The third report will be valid NON-LEA codes (I call it osa_reported_ucoa)
 
 ## 1. Query AWS transaction table
 ```{r}
 
-# Query the database, get all the records that are not obviously missing data. 
+# 1. Query the database, get all the records that are not obviously missing data. 
 reported_ucoa <-
 dbGetQuery(
   odbc_aws,
@@ -427,47 +492,47 @@ dbGetQuery(
         account_number,
         type
         FROM transaction
-        WHERE account_number IS NOT NULL
+        WHERE fiscal_year = 2019 
+        AND account_number IS NOT NULL 
         LIMIT 1000000")) %>% # note I am limitingto 10000000 so it doesn't take an eternity.
 as_tibble() 
 
-# double check for NA or "" ----------------------------------------------------
+# 2. double check for NA or "" -------------------------------------------------
 
 invalid_reported_na_or_empty <- reported_ucoa %>%
-  filter(account_number=="",
+  filter(account_number == "",
         is.na(account_number))
 
 reported_ucoa <- 
   reported_ucoa %>% 
   filter(account_number != "", !is.na(account_number))
 
-#check correct length ----------------------------------------------------------
+# 3. check correct length ------------------------------------------------------
 
-# 19 is for normal, 25 is for LEA. (dashes are included in string legth)
+# 19 is for normal, 25 is for USBE (dashes are included in string legth)
 invalid_ucoa_length <- reported_ucoa %>% 
   filter(nchar(account_number) != 19 && nchar(account_number)!= 25) %>% 
   mutate(account_number_length = nchar(account_number),
-         reason = case_when(account_number_length < 19 ~ "uca code too short for non LEA",
-                            account_number_length > 19 & account_number_length<25 ~ "uca code incorrect length",
-                            account_number_length > 25 ~ "uca code too long for LEA"))
+         reason = case_when(
+          account_number_length < 19 ~ "uca code too short for non LEA",
+          account_number_length > 19 & account_number_length<25 ~ "uca code incorrect length",
+          account_number_length > 25 ~ "uca code too long for LEA"))
 
 reported_ucoa <- reported_ucoa %>% 
   filter(nchar(account_number) == 19 || nchar(account_number)== 25)
 
 
-# Generate temp tibbles --------------------------------------------------------
-# this will help with the subsequent reports. You could condense this, but for
-# my mind this is easier to debugg and catch flaws. 
+# 4. partition out queried set into OSA and USBE subsets -----------------------
 
-#filter for only lea
+# a. filter for only lea
 usbe_reported_ucoa <- reported_ucoa %>% filter(nchar(account_number)== 25)
 
-#filter for non USBE
+# b. filter for non USBE
 osa_reported_ucoa <- reported_ucoa %>% filter(nchar(account_number)== 19)
 
-# USBE ==========================================================================
+# USBE validation ==============================================================
 
-# check if the codes are valid form. ie: ##-###-####-####-###-#### 
+# check for valid form. ie: ##-###-####-####-###-#### 
  
 invalid_usbe_ucoa_code <-
   usbe_reported_ucoa %>%
@@ -487,7 +552,7 @@ usbe_reported_ucoa <-
     )
   ))
 
-# non lea ====================================================================== 
+# OSA validation================================================================ 
 
 # check if the codes are valid form. ie: ###-######-########  
 
@@ -531,9 +596,12 @@ rm(
   
 ```
 
+Now that the queried data is in a useful and valid form, we must ensure that the uca correctly maps. The processes for this is as follows: First, we enrich the tables by atomizing the uca block. Then we join off the lookup tables made above. Then we find those without descriptions and save them to invalid tables. Finally we anti-join them from the original query so that visualizations and valid aggregations can be made.
+
+
 ##2. OSA 
 
-### a. Enrich OSA ucoa tibble 
+### a. Enrich OSA 
 ```{r}
 # This breaks out the account numbers into fund, function, and account. 
 osa_ucoa <- osa_ucoa%>% 
@@ -541,24 +609,48 @@ osa_ucoa <- osa_ucoa%>%
     fund = .[["account_number"]] %>% substr(0, 3),
     funct = .[["account_number"]] %>% substr(5, 10),
     account = .[["account_number"]] %>%  substr(12, 19),
+    fund_code_primary = str_sub(fund,0,2),
+    fund_code_secondary = str_sub(fund,2,3),
+    funct_code_primary = str_sub(funct,0,2),
+    funct_code_secondary = str_sub(funct,3,4),
+    funct_code_tertiary = str_sub(funct,5,6),
+    account_code_primary = str_sub(account,0,4),
+    account_code_secondary = str_sub(account,5,6),
+    account_code_tertiary = str_sub(account,7,8)
   ) %>% 
 
 # Now we need to join ucoa.xlsx, so we know what the codes mean.
 
-# join the funds
+  # join the funds
   left_join(
-    osa_lookup %>% 
+    osa_lookup %>%
       pluck("fund") %>%
       as_tibble() %>%
-      select(number, fund_description = description),
+      select(
+        number,
+        fund_description = description,
+        #lu_fund_code_primary = code_primary,
+        #lu_fund_code_secondary = code_secondary,
+        lu_fund_level_primary = level_primary,
+        lu_fund_level_secondary = level_secondary
+      ),
     by = c("fund" = "number")
   ) %>%
   # join the functions
   left_join(
-    osa_lookup %>% 
+    osa_lookup %>%
       pluck("funct") %>%
       as_tibble() %>%
-      select(number, funct_description = description),
+      select(
+        number,
+        funct_description = description,
+        #lu_funct_code_primary = code_primary,
+        #lu_funct_code_secondary = code_secondary,
+        #lu_funct_code_tertiary = code_tertiary,
+        lu_funct_level_primary = level_primary,
+        lu_funct_level_secondary = level_secondary,
+        lu_funct_level_tertiary = level_tertiary
+      ),
     by = c("funct" = "number")
   ) %>%
   # join the accounts
@@ -566,11 +658,20 @@ osa_ucoa <- osa_ucoa%>%
     osa_lookup %>%
       pluck("account") %>%
       as_tibble() %>%
-      select(number, account_description = description),
+      select(
+        number,
+        account_description = description,
+        #lu_account_code_primary = code_primary,
+        #lu_account_code_secondary = code_secondary,
+        #lu_account_code_tertiary = code_tertiary,
+        lu_account_level_primary = level_primary,
+        lu_account_level_secondary = level_secondary,
+        lu_account_level_tertiary = level_tertiary
+      ),
     by = c("account" = "number")
-          )
+  )
 ```
-### b. Find unmapped OSA UCA 
+### b. Find unmapped UCA
 *There are many reasons why this might be the case 
 **They are using an old UCOA
 **They pressed the incorrect key / typos
@@ -583,11 +684,42 @@ osa_bad_fund_code <- osa_ucoa %>%
                        pluck("fund")  %>%
                        select(number) %>%
                        unlist()))
+  #check primary
+osa_bad_fund_code_primary <- osa_ucoa %>%
+  filter(!fund_code_primary %in% (osa_lookup %>%
+                       pluck("fund")  %>%
+                       select(code_primary) %>%
+                       unlist()))
+  #check secondary
+osa_bad_fund_code_secondary <- osa_ucoa %>%
+  filter(!fund_code_secondary %in% (osa_lookup %>%
+                       pluck("fund")  %>%
+                       select(code_secondary) %>%
+                       unlist()))
+
 #find wrong function code
 osa_bad_funct_code<-osa_ucoa %>%
   filter(!funct %in% (osa_lookup %>%
                         pluck("funct") %>%
                         select(number) %>%
+                        unlist()))
+
+osa_bad_funct_code_primary<-osa_ucoa %>%
+  filter(!funct_code_primary %in% (osa_lookup %>%
+                        pluck("funct") %>%
+                        select(code_primary) %>%
+                        unlist()))
+
+osa_bad_funct_code_secondary<-osa_ucoa %>%
+  filter(!funct_code_secondary %in% (osa_lookup %>%
+                        pluck("funct") %>%
+                        select(code_secondary) %>%
+                        unlist()))
+
+osa_bad_funct_code_tertiary<-osa_ucoa %>%
+  filter(!funct_code_tertiary %in% (osa_lookup %>%
+                        pluck("funct") %>%
+                        select(code_tertiary) %>%
                         unlist()))
 #find wrong account code
 osa_bad_account_code <- osa_ucoa %>%
@@ -623,9 +755,9 @@ invalid_tables <- c(invalid_tables, osa_non_mapping)
 rm(osa_non_mapping)
 ```
 
-## 3. LEA
+## 3. USBE
 
-### a. Enrich LEA ucoa tibble
+### a. Enrich USBE
 ```{r}
 # This breaks out the account numbers into fund, function, and account. 
 usbe_ucoa <- usbe_ucoa %>%
@@ -704,7 +836,7 @@ left_join(
   )
 ```
 
-### b. Find unmapped USBE UCA
+### b. Find unmapped UCA
 *There are many reasons why this might be the case 
 **They are using an old UCOA
 **They pressed the incorrect key / typos
@@ -788,7 +920,8 @@ invalid_tables <- c(invalid_tables, usbe_non_mapping)
 rm(usbe_non_mapping)
 ```
 
-### c. check for invalid header use 
+### c. Check for invalid header use 
+entites which report using the USBE uca cannot use the header code number. the usbe gave me a document with a field called can_submit which essentially was a boolean for whether a code was or was not a header code. 
 ```{r}
 
 fund_header <- usbe_ucoa %>% 
@@ -817,6 +950,7 @@ usbe_ucoa <- usbe_ucoa %>%
   anti_join(object_header, by =c("id" = "id")) %>% 
   anti_join(revenue_header, by =c("id" = "id"))  
   
+# consolidate
 usbe_invalid_header <- list(
   usbe_fund_header = fund_header,
   usbe_location_header = location_header,
@@ -828,11 +962,12 @@ usbe_invalid_header <- list(
   
 ```
 
+consolidate the invalid header usage into the invalid tables object
 ```{r}
 invalid_tables <- c(invalid_tables, usbe_invalid_header)
 ```
 
-
+Remove objects
 ```{r}
 rm(
   usbe_invalid_header,
@@ -873,6 +1008,7 @@ usbe_ucoa <- usbe_ucoa %>%
 
 
 #V. Aggregate Tables
+This section was created for two reasons 1) Provide a reference to common and interesting aggregations. These are all possibly report worthy in my opinion 2) To make visualization code run much faster, since the aggregation does not need to be calculated for each plot, it can just sit in memory, and the visualizations can simply reference the aggregation. 
 
 ## 1. OSA
 
@@ -935,7 +1071,7 @@ rm(agg_by_description_and_code,agg_by_description,agg_by_code)
 
 
 
-## 2. LEA
+## 2. USBE
 
 ### a. By Description and Code
 ```{r}
@@ -1060,9 +1196,6 @@ rm(agg_by_description_and_code, agg_by_description, agg_by_code)
 
 I have decided to use the following colors for different uca types:
 
-OSA = "steelblue2"
-LEA = "orchid2"
-
 ## 1. OSA 
 
 
@@ -1077,8 +1210,8 @@ agg_fund_plot <-  osa_agg_tables %>%
   coord_flip() +
   geom_text(
     aes(label = paste0("$", total_amount)),
-    hjust = -.25,
-    vjust = 0,
+    hjust = "inward",
+    vjust = .1,
     size = 2
   ) +
   labs(title = "Barplot of Cumulative Net Amount ($) by Description",
@@ -1213,7 +1346,7 @@ account_plots %>%
   pluck("data")
 ```
 
-##2. LEA
+##2. USBE
 
 ### a. Fund
 ```{r}
@@ -1224,9 +1357,9 @@ agg_fund_plot <-  usbe_agg_tables %>%
   coord_flip() +
   geom_text(
     aes(label = paste0("$", total_amount)),
-    hjust = -.25,
+    hjust = "inward",
     vjust = 0,
-    size = 2
+    size = 2.5
   ) +
   labs(title = "Barplot of Cumulative Net Amount ($) by Description",
        x = "Description of Fund",
