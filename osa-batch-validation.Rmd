@@ -1,0 +1,424 @@
+---
+title: "osa-batch-validation"
+author: "Alexander Nielson"
+date: "2/25/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Program Description
+
+**Purpose**
+
+**Input(s)**
+
+```{r}
+dsn_aws        <- "transpAWS"
+dsn_salesforce <- "salesforce"
+```
+
+**Output(s)**
+
+# Get Input
+```{r}
+validation_type <- 
+#  "file_analysis"
+ "batch_analysis"
+
+if(validation_type=="batch_analysis") {
+  entity_id <- 1010
+}
+
+if (validation_type == "file_analysis"){
+  downloaded_file <- "location_of_pipe_delim_file.txt"
+}
+```
+
+
+# Libraries and Data Sources
+
+```{r}
+options(scipen=999)
+
+library(lubridate)
+library(magrittr)
+library(odbc)
+library(readxl) 
+library(tidyverse)
+library(stringi) 
+library(tidyr)
+
+odbc_aws <- dbConnect(odbc::odbc(), dsn_aws)
+odbc_sf  <- dbConnect(odbc::odbc(), dsn_salesforce)
+
+rm(dsn_aws, dsn_salesforce)
+```
+
+# Function Definitions
+
+# Load Lookup Table
+
+```{r}
+osa_lookup_file_name <- "osa_lookup.xlsx"
+
+osa_lookup <- excel_sheets(osa_lookup_file_name) %>%
+  map(read_excel, path = osa_lookup_file_name)
+
+names(osa_lookup) <- c("fund", "funct", "account")
+
+rm(usbe_lookup_file_name)
+
+# manually add codes
+
+
+
+
+```
+
+```{r}
+# 1. Query the database, get all the records that are not obviously missing data. 
+transaction_report <-
+  dbGetQuery(
+    odbc_aws,
+    paste(
+      "
+        SELECT id,
+        batch_id,
+        amount,
+        fiscal_year,
+        account_number,
+        type
+        FROM transaction
+        WHERE fiscal_year = 2019
+        AND account_number IS NOT NULL
+        AND LENGTH(account_number) = 19
+        LIMIT 1000000"
+    )
+  ) %>% 
+  as_tibble()
+
+# 2. double check for NA or "" -------------------------------------------------
+
+invalid_reported_na <- transaction_report %>%
+  filter(account_number == "",
+         is.na(account_number))
+
+transaction_report <-
+  transaction_report %>%
+  filter(account_number != "", !is.na(account_number))
+
+# 3. check correct length ------------------------------------------------------
+
+# 19 is for normal, 25 is for USBE (dashes are included in string legth)
+invalid_length <- transaction_report %>%
+  filter( nchar(account_number) != 19) %>%
+  mutate(
+    account_number_length = nchar(account_number),
+    reason = case_when(
+      account_number_length < 19 ~ paste("uca code block too short - length =", account_number_length),
+      account_number_length > 19 ~ paste("uca code block too long - length =", account_number_length)
+    )
+  )
+
+transaction_report <- transaction_report %>%
+  filter(nchar(account_number) == 19)
+
+# 4. check for valid form. ie: ##-###-####-####-###-#### -----------------------
+ 
+invalid_form <-
+  transaction_report %>%
+  filter(!str_detect(
+    .$account_number,
+    regex(
+      "^[:digit:]{3}-[:digit:]{6}-[:digit:]{8}$"
+    )
+  ))
+
+transaction_report <-
+  transaction_report %>%
+  filter(str_detect(
+    .$account_number,
+    regex(
+      "^[:digit:]{3}-[:digit:]{6}-[:digit:]{8}$"
+    )
+  ))
+
+
+# consolidate ==================================================================
+invalid_tables <- list(invalid_reported_na=invalid_reported_na,
+                       invalid_length=invalid_length,
+                       invalid_form=invalid_form)
+
+
+
+# remove unneeded objects ======================================================
+# comment any object that you want to inspect in the global environment pane
+rm(invalid_reported_na,
+   invalid_length,
+   invalid_form)
+```
+
+```{r}
+transaction_save <- transaction_report
+```
+
+```{r}
+transaction_report <- transaction_save
+```
+
+```{r}
+
+transaction_report <- transaction_report %>%
+  mutate(
+    fund    = .[["account_number"]] %>% substr(0, 3),
+    funct   = .[["account_number"]] %>% substr(5, 10),
+    account = .[["account_number"]] %>% substr(12, 19)
+  ) %>%
+  
+  # join the funds
+  left_join(
+    osa_lookup %>%
+      pluck("fund") %>%
+      select(
+        number,
+        fund_description = description,
+        fund_level_primary = level_primary,
+        fund_level_secondary = level_secondary,
+        fund_code_primary = code_primary,
+        fund_code_secondary = code_secondary
+      ),
+    by = c("fund" = "number")
+  ) %>%
+  left_join(
+    osa_lookup %>%
+      pluck("funct") %>%
+      select(
+        number,
+        funct_description = description,
+        funct_level_primary = level_primary,
+        funct_level_secondary = level_secondary,
+        funct_level_tertiary = level_tertiary,
+        funct_code_primary = code_primary,
+        funct_code_secondary = code_secondary,
+        funct_code_tertiary = code_tertiary
+      ),
+    by = c("funct" = "number")
+  ) %>% 
+  left_join(
+  osa_lookup %>%
+    pluck("account") %>%
+    select(
+      number,
+      account_description = description,
+      account_level_primary = level_primary,
+      account_level_secondary = level_secondary,
+      account_level_tertiary = level_tertiary,
+      account_level_quaternary = level_quaternary,
+      account_code_primary = code_primary,
+      account_code_secondary = code_secondary,
+      account_code_tertiary = code_tertiary,
+      account_code_quaternary = code_quaternary
+    ),
+  by = c("account" = "number")
+) 
+
+```
+
+```{r}
+osa_lookup$fund %>% group_by(number) %>% summarize(n = n()) %>% filter(n>1)
+osa_lookup$funct %>% group_by(number) %>% summarize(n = n()) %>% filter(n>1)
+osa_lookup$account %>% group_by(number) %>% summarize(n = n()) %>% filter(n>1)
+```
+
+
+# Find unmapped UCA
+*There are many reasons why this might be the case 
+**They are using an old UCOA
+**They pressed the incorrect key / typos
+...regardless, they must be filtered out. 
+
+```{r}
+#find wrong fund code
+bad_fund_code <- transaction_report %>%
+  filter(!fund %in% (osa_lookup %>%
+                       pluck("fund")  %>%
+                       select(number) %>%
+                       unlist()))
+
+#find wrong fund code
+bad_funct_code <- transaction_report %>%
+  filter(!funct %in% (osa_lookup %>%
+                       pluck("funct")  %>%
+                       select(number) %>%
+                       unlist()))
+
+bad_account_code <- transaction_report %>%
+  filter(!account %in% (osa_lookup %>%
+                       pluck("account")  %>%
+                       select(number) %>%
+                       unlist()))
+
+#Remove invalid codes.
+transaction_report<- transaction_report %>%
+  anti_join(bad_fund_code, by = "id") %>%
+  anti_join(bad_funct_code, by = "id") %>%
+  anti_join(bad_account_code, by = "id")
+
+
+unmapped_codes <- list(
+  unmapped_fund    = bad_fund_code,
+  unmapped_funct   = bad_funct_code,
+  unmapped_account = bad_account_code
+)
+#consolidate ## FIX THE NAMEING FOR THE LIST.
+invalid_tables <- c(invalid_tables,
+    unmapped_codes
+  )
+
+```
+
+Remove uneeded objects
+```{r}
+rm(bad_fund_code,
+   bad_funct_code,
+   bad_account_code,
+   unmapped_codes)
+```
+
+```{r}
+
+funct_error <- invalid_tables %>%
+  pluck("unmapped_funct") %>%
+  left_join(
+    osa_lookup %>%
+      pluck("funct") %>%
+      select(code_primary,
+             funct_level_primary_atom = level_primary) %>%
+      distinct() %>%
+      unnest()
+    ,
+    by = c("funct_code_primary" = "code_primary")
+  ) %>%
+  select(
+    id,
+    batch_id,
+    amount,
+    fiscal_year,
+    account_number,
+    funct,
+    funct_code_primary,
+    funct_code_secondary,
+    funct_code_tertiary,
+    funct_description,
+    funct_level_primary_atom
+  )
+
+invalid_primary_code <- funct_error %>% 
+  filter(funct_level_primary_atom %>% is.na())
+
+funct_error <-
+  funct_error %>% anti_join(invalid_primary_code, by = c("id" = "id"))
+
+
+funct_error2 <- funct_error %>%
+  left_join(
+    osa_lookup %>%
+      pluck("funct") %>%
+      select(code_primary,
+             code_secondary,
+             funct_level_secondary_atom = level_secondary) %>%
+      distinct() %>%
+      unnest()
+    ,
+    by = c(
+      "funct_code_primary" = "code_primary",
+      "funct_code_secondary" = "code_secondary"
+    )
+  ) %>%
+  select(
+    id,
+    batch_id,
+    amount,
+    fiscal_year,
+    account_number,
+    funct,
+    funct_code_primary,
+    funct_code_secondary,
+    funct_code_tertiary,
+    funct_description,
+    funct_level_primary_atom,
+    funct_level_secondary_atom
+  )
+
+invalid_secondary_code <- funct_error2 %>% 
+  filter(funct_level_secondary_atom %>% is.na())
+
+
+invalid_tertiary_code <-
+  funct_error2 %>% anti_join(invalid_secondary_code, by = c("id" = "id"))
+
+
+funct_invalid_code <- list(
+  invalid_primary_code = invalid_primary_code,
+  invalid_secondary_code = invalid_secondary_code,
+  invalid_tertiary_code = invalid_tertiary_code
+)
+
+remove(funct_error,funct_error2, invalid_primary_code,invalid_secondary_code,invalid_tertiary_code)
+
+```
+
+
+
+
+
+```{r}
+names(invalid_tables) <- c(
+  "invalid_reported_na",
+  "invalid_length",
+  "invalid_form",
+  "bad_fund_code",
+  "bad_location_code",
+  "bad_program_code",
+  "bad_funct_code",
+  "bad_object_code",
+  "bad_revenue_code",
+  "bad_fund_header",
+  "bad_location_header",
+  "bad_program_header",
+  "bad_funct_header",
+  "bad_object_header",
+  "bad_revenue_header"
+)
+```
+
+Since all uca now is mapped and valid I am going to get rid of unncessary columns
+```{r}
+transaction_report <- transaction_report %>%
+  select(
+    id,
+    batch_id,
+    amount,
+    fiscal_year,
+    account_number,
+    type,
+    fund,
+    location,
+    program,
+    funct,
+    object,
+    revenue,
+    fund_description,
+    location_description,
+    program_description,
+    funct_description,
+    object_description,
+    revenue_description
+  )
+```
+
+
