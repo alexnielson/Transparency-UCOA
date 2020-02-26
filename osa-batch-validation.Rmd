@@ -42,7 +42,7 @@ if (validation_type == "file_analysis"){
 # Libraries and Data Sources
 
 ```{r}
-options(scipen=999)
+options(scipen=6)
 
 library(lubridate)
 library(magrittr)
@@ -60,6 +60,138 @@ rm(dsn_aws, dsn_salesforce)
 
 # Function Definitions
 
+## agg_dollars_and_records
+```{r}
+agg_dollars_and_records<- function(df, ...){
+  # Purpose: groups the data by supplied grouping variables, and aggregates the
+  # date to have a total dollar amount and a count for the number of transactions
+  # with such variables. Basically this will group uca codings into dollar and
+  # frequency amounts. Two metrics of interest to Alex.
+  #
+  # Inputs: *df (tibble or dataframe): a dataframe which has the grouping variables. it should have an amount column
+  #         *... : the grouping variables. should be a uca field.
+  # Outputs: tibble :an aggregated tibble
+  
+  grouping_vars <- enquos(...)
+  
+  agg_table <- df %>% 
+    group_by(!!! grouping_vars) %>% 
+    summarize(total_amount = sum(amount),
+              num_of_trans = n()) %>% 
+    arrange(desc(fiscal_year, total_amount))
+  
+}
+```
+## validate_nrow
+
+```{r}
+validate_nrow <- function(df, expected_nrow) {
+  # Verify the number of rows in a data frame rounds to the expected value.
+  #
+  # Arguments:
+  #   df (tbl): The data frame to validate.
+  #   expected_nrow (num): The number of rows the report should contain, rounded
+  #     to one significant digit.
+  #
+  # Value:
+  #   Nothing, or a `stop()` message.
+  
+  if (!identical(df%>%nrow()%>%signif(1),
+                 expected_nrow)) {
+    
+    paste0("The rounded number of rows in ", 
+           deparse(substitute(df)),
+           " is not near the expected ", 
+           expected_nrow, 
+           ". Did the data frame import correctly? 
+           Did the number of entities we monitor change significantly?") %>% 
+      stop()
+  }
+}
+```
+
+## make_current_begin_fy
+
+```{r}
+make_current_begin_fy <- function(begin_fy_unchecked) {
+  # Update an outdated fiscal year begin date.
+  #
+  # Arguments:
+  #   begin_fy_unchecked (Date): The first day of the entity's fiscal year, not
+  #     yet verified to reflect the current fiscal year.
+  #
+  # Value:
+  #   Date.
+  #
+  # Comments:
+  #   As of 2019-03, our instance of Salesforce does not reliably update the
+  #   Fiscal_Year_Begins__c field. Coding the update in this program was a
+  #   quicker solution than waiting for the problem to be fixed in Salesforce.
+  
+  !(begin_fy_unchecked > today()) || 
+    
+    stop("make_current_begin_fy() must not be applied to future dates.",
+         call. = FALSE)
+  
+  fy_interval <- 
+    begin_fy_unchecked %--% ((begin_fy_unchecked + years(1)) - 1)
+  
+  if (today() %within% fy_interval) {
+    
+    begin_fy_unchecked
+    
+  } else {
+    
+    year_correction <- 
+      (year(today()) - year(begin_fy_unchecked)) %>% 
+      if_else(
+        month(begin_fy_unchecked) != 1 &
+          month(begin_fy_unchecked) > month(today()),
+        . - 1,
+        .)
+    
+    begin_fy_unchecked + months(12 * year_correction)
+  }
+}
+```
+
+## query_batch_ids
+
+```{r}
+query_batch_ids <- function(t_id) {
+  # Query an entity's processed and processing batch IDs.
+  #
+  # Arguments:
+  #   t_id (num): The entity's Transparency ID, as queried from Salesforce
+  #     rather than Transparency.
+  #
+  # Value:
+  #   Numeric.
+  #
+  # Comments:
+  #   The 'DONTDELETE' batch status is a variation of 'PROCESSED.' DONTDELETE 
+  #   indicates the data in the batch has been split among multiple transaction
+  #   tables, as the batch contains data from a fiscal year that has been 
+  #   archived.
+  
+  if (is.na(t_id)) {
+    
+    return(vector(mode = "numeric", length = 0)) 
+  }
+  
+  dbGetQuery(
+    odbc_aws,
+    paste("
+          SELECT id
+          FROM batch
+          WHERE entity_id = ", t_id, "
+          AND status IN ('PROCESSED', 'PROCESSING', 'DONTDELETE')")) %>% 
+    .[["id"]] %>%
+    as.numeric()
+}
+```
+
+
 # Load Lookup Table
 
 ```{r}
@@ -70,7 +202,7 @@ osa_lookup <- excel_sheets(osa_lookup_file_name) %>%
 
 names(osa_lookup) <- c("fund", "funct", "account")
 
-rm(usbe_lookup_file_name)
+rm(osa_lookup_file_name)
 
 # manually add codes
 
@@ -79,346 +211,857 @@ rm(usbe_lookup_file_name)
 
 ```
 
+
+#Load Salesforce Data
+
 ```{r}
-# 1. Query the database, get all the records that are not obviously missing data. 
-transaction_report <-
+sf_entity_info <- 
   dbGetQuery(
-    odbc_aws,
-    paste(
-      "
-        SELECT id,
-        batch_id,
-        amount,
-        fiscal_year,
-        account_number,
-        type
-        FROM transaction
-        WHERE fiscal_year = 2019
-        AND account_number IS NOT NULL
-        AND LENGTH(account_number) = 19
-        LIMIT 1000000"
-    )
-  ) %>% 
+    odbc_sf,
+    "SELECT 
+      a.Name                          AS name,
+      a.Id                            AS id,
+      a.Transparency_ID__c            AS t_id,
+      a.Fiscal_Year_Begins__c         AS begin_fy,
+      a.Expense_Revenue_Start_Date__c AS begin_report_er, 
+      a.Wage_Start_Date__c            AS begin_report_w2,
+      r.Name AS govt_type
+    FROM Account         AS a
+    LEFT JOIN RecordType AS r
+      ON a.RecordTypeId = r.Id
+    WHERE a.RecordTypeId IN (
+      SELECT Id
+      FROM RecordType
+      WHERE SobjectType = 'Account'
+      AND IsActive = 'TRUE'
+      AND Name NOT IN (
+        'Community User',
+        'Component', -- This govt type contains local governments, but not ones for which we enforce compliance.
+        'Court (Search Under Parent Entity)',
+        'CPA Firm',
+        'Educational Foundation or Component Unit', -- Not an entity we review for compliance.
+        'Financial Institution',
+        'Health Provider',
+        'Non Profits'))
+    AND a.Name NOT IN (
+      'Intermountain Power Agency',
+      'test city 2',
+      'Utah Associated Municipal Power Systems',
+      'Utah Municipal Power Agency')
+    AND Entity_Status__c NOT IN ('Inactive', 'Dissolved')
+    AND (
+      a.Expense_Revenue_Start_Date__c <= DATE() OR
+      a.Expense_Revenue_Start_Date__c IS NULL)") %>% 
+  as_tibble() %>% 
+  mutate(
+  govt_type = 
+    if_else(
+      name %in% 
+        c("State of Utah",
+          "Utah System of Higher Education - Student Loan Guarantee Program",
+          "Utah System of Higher Education - Student Loan Purchase Program",
+          "Utah System of Higher Education - Utah Educational Savings Plan dba my529",
+          "Utah System of Higher Education - Utah State Board of Regents"),
+      "Monitored State Agency",
+      govt_type)) %>% 
+  filter(govt_type != "State of Utah (agencies/depts/comp units/ etc.)") %>% 
+  # The State of Utah is required to report to Transparent Utah, but in most instances we do not monitor its data:
+  filter(name != "State of Utah") #%>% 
+  #select(-govt_type)
+
+sf_exemptions <- 
+  dbGetQuery(
+    odbc_sf,
+    paste("
+          SELECT 
+            a.Name                          AS name,
+            t.Account__c                    AS id,
+            a.Fiscal_Year_Begins__c         AS begin_fy,
+            t.Transparency_type_exempted__c AS transaction_type,
+            t.Recurring_Exemption__c        AS recurring_exemption,
+            t.Exemption_Start_Date__c       AS exemption_start,
+            t.Exemption_End_Date__c         AS exemption_end,
+            t.Permanent_or_Temporary__c     AS exemption_type,
+            t.Exemption_Reason__c           AS reason
+          FROM (
+            SELECT 
+              Account__c,
+              Exemption_Start_Date__c,
+              Exemption_End_Date__c,
+              Recurring_Exemption__c,
+              Transparency_type_exempted__c,
+              Permanent_or_Temporary__c,
+              Exemption_Reason__c
+            FROM Transparency_Exemption__c
+            WHERE IsDeleted = FALSE) t
+          LEFT JOIN Account a
+          ON t.Account__c = a.Id
+          WHERE a.Entity_Status__c IN (
+            'Current', 
+            'On hold', 
+            'Delinquent', 
+            'Suspended')
+          AND a.Name != 'test city 2'")) %>% 
   as_tibble()
 
-# 2. double check for NA or "" -------------------------------------------------
-
-invalid_reported_na <- transaction_report %>%
-  filter(account_number == "",
-         is.na(account_number))
-
-transaction_report <-
-  transaction_report %>%
-  filter(account_number != "", !is.na(account_number))
-
-# 3. check correct length ------------------------------------------------------
-
-# 19 is for normal, 25 is for USBE (dashes are included in string legth)
-invalid_length <- transaction_report %>%
-  filter( nchar(account_number) != 19) %>%
-  mutate(
-    account_number_length = nchar(account_number),
-    reason = case_when(
-      account_number_length < 19 ~ paste("uca code block too short - length =", account_number_length),
-      account_number_length > 19 ~ paste("uca code block too long - length =", account_number_length)
-    )
-  )
-
-transaction_report <- transaction_report %>%
-  filter(nchar(account_number) == 19)
-
-# 4. check for valid form. ie: ##-###-####-####-###-#### -----------------------
- 
-invalid_form <-
-  transaction_report %>%
-  filter(!str_detect(
-    .$account_number,
-    regex(
-      "^[:digit:]{3}-[:digit:]{6}-[:digit:]{8}$"
-    )
-  ))
-
-transaction_report <-
-  transaction_report %>%
-  filter(str_detect(
-    .$account_number,
-    regex(
-      "^[:digit:]{3}-[:digit:]{6}-[:digit:]{8}$"
-    )
-  ))
-
-
-# consolidate ==================================================================
-invalid_tables <- list(invalid_reported_na=invalid_reported_na,
-                       invalid_length=invalid_length,
-                       invalid_form=invalid_form)
-
-
-
-# remove unneeded objects ======================================================
-# comment any object that you want to inspect in the global environment pane
-rm(invalid_reported_na,
-   invalid_length,
-   invalid_form)
 ```
-
+# Validate the salesforce data
 ```{r}
-transaction_save <- transaction_report
-```
+validate_nrow(sf_entity_info, 1000)
 
-```{r}
-transaction_report <- transaction_save
-```
+# Validate sf_entity_info ####
 
-```{r}
+if (class(sf_entity_info$name)            != "character" ||
+    class(sf_entity_info$id)              != "character" ||
+    class(sf_entity_info$t_id)            != "numeric"   ||
+    class(sf_entity_info$begin_fy)        != "Date"      ||
+    class(sf_entity_info$begin_report_er) != "Date"      ||
+    class(sf_entity_info$begin_report_w2) != "Date") {
 
-transaction_report <- transaction_report %>%
-  mutate(
-    fund    = .[["account_number"]] %>% substr(0, 3),
-    funct   = .[["account_number"]] %>% substr(5, 10),
-    account = .[["account_number"]] %>% substr(12, 19)
-  ) %>%
+  stop("One or more fields in sf_entity_info is not of the correct class.
+       Review the data before continuing.",
+       call. = FALSE)  
+}
+
+if (sf_entity_info %>% 
+    filter(is.na(name) | is.na(id)) %>% 
+    nrow() > 0) {
+
+  name_or_id_is_na <- 
+    sf_entity_info %>% 
+    filter(is.na(name) | is.na(id))
   
+  stop("Entities should have a name and Salesforce ID.
+       A missing name or Salesforce ID indicates some larger problem with the 
+       data. Review and correct before continuing.",
+       call. = FALSE)
+}
+
+if (sf_entity_info %>% 
+    filter(is.na(begin_fy)) %>% 
+    nrow() > 0) {
+  
+  missing_begin_fy <- 
+    sf_entity_info %>% 
+    filter(is.na(begin_fy))
+  
+  stop("begin_fy should be populated for every active government. Update 
+       Salesforce and reimport before continuing.", call. = FALSE)
+    }
+
+if (sf_entity_info %>% 
+    filter(
+      !is.na(t_id) & (
+        is.na(begin_report_er) |
+        is.na(begin_report_w2))) %>% 
+    nrow() > 0) {
+  
+  incomplete_info <- 
+    sf_entity_info %>% 
+    filter(
+      !is.na(t_id) & (
+        is.na(begin_report_er) |
+        is.na(begin_report_w2)))
+  
+  stop("Entities with a Transparency ID must also have non-NA values for 
+       begin_report_er and begin_report_w2 in
+       order to determine their compliance status.",
+       call. = FALSE)
+}
+
+if (sf_entity_info %>% 
+    filter(begin_fy > today()) %>%
+    nrow() > 0) {
+  
+  future_begin_fy <- 
+    sf_entity_info %>% 
+    filter(begin_fy > today())
+  
+  stop("Entities must not have a begin_fy value in the future.
+       Correct and reimport before continuing.",
+       call. = FALSE)
+}
+
+if (sf_entity_info %>% 
+    filter(begin_fy <= (today() - months(12))) %>% 
+    nrow() > 0) {
+  
+  sf_entity_info$begin_fy <- 
+    sf_entity_info$begin_fy %>% 
+    map_dbl(make_current_begin_fy)
+  
+  class(sf_entity_info$begin_fy) <- "Date"
+}
+
+if (sf_entity_info %>% 
+    filter(month(begin_report_er) != month(begin_fy)) %>% 
+    nrow() > 0) {
+  
+  begin_report_er_month_is_wrong <- 
+    sf_entity_info %>% 
+    filter(month(begin_report_er) != month(begin_fy))
+  
+  stop("The month of begin_report_er must match the month of begin_fy.
+       Update in Salesforce (create an exemption if necessary) and reimport.",
+       call. = FALSE)
+}
+
+if (sf_entity_info %>% 
+    filter(month(begin_report_w2) != month(begin_fy)) %>% 
+    nrow() > 0) {
+  
+  begin_report_w2_month_is_wrong <- 
+    sf_entity_info %>% 
+    filter(month(begin_report_w2) != month(begin_fy))
+  
+  stop("The month of begin_report_w2 must match the month of begin_fy.
+       Update in Salesforce (create an exemption if necessary) and reimport.",
+       call. = FALSE)
+}
+
+if (sf_entity_info %>% 
+    filter(begin_report_w2 < begin_report_er) %>% 
+    nrow() > 0) {
+  
+  w2_date_prior_to_exp_rev <- 
+    sf_entity_info %>% 
+    filter(begin_report_w2 < begin_report_er)
+  
+  stop("begin_report_w2 should not be earlier than
+       begin_report_er. Update in Salesforce and reimport.", 
+       call. = FALSE)
+}
+```
+
+
+
+# Now lets query the batches for the first few entities
+
+
+```{r}
+report <- sf_entity_info %>% 
+  slice(13:16) %>% 
+  mutate(batches = map(t_id ,query_batch_ids))
+```
+
+
+```{r}
+#report$batches
+
+```
+
+```{r}
+query_transactions <- function(batches_list, lookup_table){
+  
+  #wrangled the batches to be readable in MySQL.
+  # I know this is more work, and
+  # that the batches could have been checked in sql, but I want my report to be
+  # able to show exactly which batches were examined. I want this the repor
+  # visible at the R level and not some additional thing happens on the SQL
+  # backend.
+  batches_wrangled <- batches_list %>%
+    unlist() %>%
+    as.character() %>%
+    str_split(" ") %>%
+    unlist() %>%
+    #sQuote() %>%
+    paste(collapse = ", ")
+  
+  
+# 1. Query the database, get all the records -----------------------------------
+  
+  transaction_report <-
+    dbGetQuery(
+      odbc_aws,
+      paste(
+        "
+      SELECT id,
+      batch_id,
+      amount,
+      fiscal_year,
+      account_number,
+      type
+      FROM transaction
+      WHERE batch_id IN (",
+      batches_wrangled,
+      ")"
+      )
+    ) %>%
+    as_tibble()
+
+  # 2. check for NA or "" ------------------------------------------------------
+
+  # generates a invalid table we can send the entity.
+  invalid_reported_na <- transaction_report %>%
+    filter(account_number == "",
+           is.na(account_number))
+  
+  # filter out the bad uca
+  transaction_report <- transaction_report %>%
+    filter(account_number != "",
+           !is.na(account_number))
+
+  # 3. check correct length ----------------------------------------------------
+
+  # 19 is for normal, 25 is for USBE (dashes are included in string legth)
+  invalid_length <- transaction_report %>%
+    filter(nchar(account_number) != 19) %>%
+    mutate(
+      account_number_length = nchar(account_number),
+      reason = case_when(
+        account_number_length < 19 ~ paste("uca code block too short - length =", account_number_length),
+        account_number_length > 19 ~ paste("uca code block too long - length =", account_number_length)
+      )
+    )
+  
+  transaction_report <- transaction_report %>%
+    filter(nchar(account_number) == 19)
+  
+  # 4. check for valid form. ie: ##-###-####-####-###-#### ---------------------
+ 
+  invalid_form <-
+    transaction_report %>%
+    filter(!str_detect(
+      .$account_number,
+      regex("^[:digit:]{3}-[:digit:]{6}-[:digit:]{8}$")
+    ))
+  
+  transaction_report <-
+    transaction_report %>%
+    filter(str_detect(
+      .$account_number,
+      regex("^[:digit:]{3}-[:digit:]{6}-[:digit:]{8}$")
+    ))
+  
+  #enrich the transaction_report
+
+  transaction_report <- transaction_report%>% 
+  mutate(
+    fund                    = .[["account_number"]] %>% substr(0, 3),
+    funct                   = .[["account_number"]] %>% substr(5, 10),
+    account                 = .[["account_number"]] %>%  substr(12, 19),
+    fund_code_primary       = str_sub(fund,0,2),
+    fund_code_secondary     = str_sub(fund,2,3),
+    funct_code_primary      = str_sub(funct,0,2),
+    funct_code_secondary    = str_sub(funct,3,4),
+    funct_code_tertiary     = str_sub(funct,5,6),
+    account_code_primary    = str_sub(account,0,2),
+    account_code_secondary  = str_sub(account,3,4),
+    account_code_tertiary   = str_sub(account,5,6),
+    account_code_quaternary = str_sub(account,7,8)
+  ) %>% 
+
+# Now we need to join ucoa.xlsx, so we know what the codes mean.
+
   # join the funds
   left_join(
-    osa_lookup %>%
+    lookup_table %>%
       pluck("fund") %>%
+      as_tibble() %>%
       select(
         number,
         fund_description = description,
+        #lu_fund_code_primary = code_primary,
+        #lu_fund_code_secondary = code_secondary,
         fund_level_primary = level_primary,
-        fund_level_secondary = level_secondary,
-        fund_code_primary = code_primary,
-        fund_code_secondary = code_secondary
+        fund_level_secondary = level_secondary
       ),
     by = c("fund" = "number")
   ) %>%
+  # join the functions
   left_join(
-    osa_lookup %>%
+    lookup_table %>%
       pluck("funct") %>%
+      as_tibble() %>%
       select(
         number,
         funct_description = description,
+        #lu_funct_code_primary = code_primary,
+        #lu_funct_code_secondary = code_secondary,
+        #lu_funct_code_tertiary = code_tertiary,
         funct_level_primary = level_primary,
         funct_level_secondary = level_secondary,
-        funct_level_tertiary = level_tertiary,
-        funct_code_primary = code_primary,
-        funct_code_secondary = code_secondary,
-        funct_code_tertiary = code_tertiary
+        funct_level_tertiary = level_tertiary
       ),
     by = c("funct" = "number")
-  ) %>% 
+  ) %>%
+  # join the accounts
   left_join(
-  osa_lookup %>%
-    pluck("account") %>%
-    select(
-      number,
-      account_description = description,
-      account_level_primary = level_primary,
-      account_level_secondary = level_secondary,
-      account_level_tertiary = level_tertiary,
-      account_level_quaternary = level_quaternary,
-      account_code_primary = code_primary,
-      account_code_secondary = code_secondary,
-      account_code_tertiary = code_tertiary,
-      account_code_quaternary = code_quaternary
-    ),
-  by = c("account" = "number")
-) 
-
-```
-
-```{r}
-osa_lookup$fund %>% group_by(number) %>% summarize(n = n()) %>% filter(n>1)
-osa_lookup$funct %>% group_by(number) %>% summarize(n = n()) %>% filter(n>1)
-osa_lookup$account %>% group_by(number) %>% summarize(n = n()) %>% filter(n>1)
-```
-
-
-# Find unmapped UCA
-*There are many reasons why this might be the case 
-**They are using an old UCOA
-**They pressed the incorrect key / typos
-...regardless, they must be filtered out. 
-
-```{r}
-#find wrong fund code
-bad_fund_code <- transaction_report %>%
-  filter(!fund %in% (osa_lookup %>%
+    lookup_table %>%
+      pluck("account") %>%
+      as_tibble() %>%
+      select(
+        number,
+        account_description = description,
+        #lu_account_code_primary = code_primary,
+        #lu_account_code_secondary = code_secondary,
+        #lu_account_code_tertiary = code_tertiary,
+        account_level_primary = level_primary,
+        account_level_secondary = level_secondary,
+        account_level_tertiary = level_tertiary
+      ),
+    by = c("account" = "number")
+  )
+  
+  
+  #find wrong fund code
+unmapped_fund_code <- transaction_report %>%
+  filter(!fund %in% (lookup_table %>%
                        pluck("fund")  %>%
                        select(number) %>%
+                       unlist())) %>% 
+  select(id,batch_id, amount, fiscal_year, account_number, fund, fund_code_primary, fund_code_secondary )
+  #check primary
+unmapped_fund_code_primary <- unmapped_fund_code %>%
+  filter(!fund_code_primary %in% (lookup_table %>%
+                       pluck("fund")  %>%
+                       select(code_primary) %>%
                        unlist()))
 
-#find wrong fund code
-bad_funct_code <- transaction_report %>%
-  filter(!funct %in% (osa_lookup %>%
+  #check secondary
+unmapped_fund_code_primary <- unmapped_fund_code %>%
+  filter(!fund_code_primary %in% (lookup_table %>%
+                       pluck("fund")  %>%
+                       select(code_primary) %>%
+                       unlist()))
+
+
+#find wrong function code
+unmapped_funct_code<-transaction_report %>%
+  filter(!funct %in% (lookup_table %>%
+                        pluck("funct") %>%
+                        select(number) %>%
+                        unlist())) %>% 
+  select(id,batch_id, amount, fiscal_year, account_number, funct, funct_code_primary, funct_code_secondary,funct_code_tertiary )
+
+  #check funct primary
+unmapped_funct_code_primary <- unmapped_funct_code %>%
+  filter(!funct_code_primary %in% (lookup_table %>%
                        pluck("funct")  %>%
-                       select(number) %>%
+                       select(code_primary) %>%
                        unlist()))
 
-bad_account_code <- transaction_report %>%
-  filter(!account %in% (osa_lookup %>%
+  #check funct secondary
+unmapped_funct_code_secondary<- unmapped_funct_code %>%
+  filter(funct_code_primary %in% (lookup_table %>%
+                       pluck("funct")  %>%
+                       select(code_primary) %>%
+                       unlist())
+         ,
+         !funct_code_secondary %in% (lookup_table %>%
+                       pluck("funct")  %>%
+                       select(code_secondary) %>%
+                       unlist())
+         )
+
+  # check funct tertiary 
+unmapped_funct_code_tertiary<- unmapped_funct_code %>%
+  filter(funct_code_primary %in% (lookup_table %>%
+                       pluck("funct")  %>%
+                       select(code_primary) %>%
+                       unlist())
+         ,
+         funct_code_secondary %in% (lookup_table %>%
+                       pluck("funct")  %>%
+                       select(code_secondary) %>%
+                       unlist())
+         ,
+         !funct_code_tertiary %in% (lookup_table %>%
+                       pluck("funct")  %>%
+                       select(code_tertiary) %>%
+                       unlist())
+         ) 
+
+
+unmapped_account_code <- transaction_report %>%
+  filter(!account %in% (lookup_table %>%
+                          pluck("account") %>%
+                          select(number)   %>%
+                          unlist()))%>% 
+  select(
+    id,
+    batch_id,
+    amount,
+    fiscal_year,
+    account_number,
+    account,
+    account_code_primary,
+    account_code_secondary,
+    account_code_tertiary,
+    account_code_quaternary
+  )
+
+  #check account primary
+unmapped_account_code_primary <- unmapped_account_code %>%
+  filter(!account_code_primary %in% (lookup_table %>%
                        pluck("account")  %>%
-                       select(number) %>%
+                       select(code_primary) %>%
                        unlist()))
+  #check account secondary
+unmapped_account_code_secondary <- unmapped_account_code %>%
+  filter(account_code_primary %in% (lookup_table %>%
+                       pluck("account")  %>%
+                       select(code_primary) %>%
+                       unlist()),
+         !account_code_secondary %in% (lookup_table %>%
+                       pluck("account")  %>%
+                       select(code_secondary) %>%
+                       unlist())
+         )
 
-#Remove invalid codes.
-transaction_report<- transaction_report %>%
-  anti_join(bad_fund_code, by = "id") %>%
-  anti_join(bad_funct_code, by = "id") %>%
-  anti_join(bad_account_code, by = "id")
+unmapped_account_code_tertiary <- unmapped_account_code %>%
+  filter(account_code_primary %in% (lookup_table %>%
+                       pluck("account")  %>%
+                       select(code_primary) %>%
+                       unlist()),
+         account_code_secondary %in% (lookup_table %>%
+                       pluck("account")  %>%
+                       select(code_secondary) %>%
+                       unlist()),
+         !account_code_tertiary %in% (lookup_table %>%
+                       pluck("account")  %>%
+                       select(code_tertiary) %>%
+                       unlist())
+         )
+
+unmapped_account_code_quaternary <- unmapped_account_code %>%
+  filter(account_code_primary %in% (lookup_table %>%
+                       pluck("account")  %>%
+                       select(code_primary) %>%
+                       unlist()),
+         account_code_secondary %in% (lookup_table %>%
+                       pluck("account")  %>%
+                       select(code_secondary) %>%
+                       unlist()),
+         account_code_tertiary %in% (lookup_table %>%
+                       pluck("account")  %>%
+                       select(code_tertiary) %>%
+                       unlist()),
+         !account_code_quaternary %in% (lookup_table %>%
+                       pluck("account")  %>%
+                       select(code_quaternary) %>%
+                       unlist())
+         )
 
 
-unmapped_codes <- list(
-  unmapped_fund    = bad_fund_code,
-  unmapped_funct   = bad_funct_code,
-  unmapped_account = bad_account_code
-)
-#consolidate ## FIX THE NAMEING FOR THE LIST.
-invalid_tables <- c(invalid_tables,
-    unmapped_codes
-  )
+#now remove incorrectly mapped. we will save them to report, but do not want
+#them in our analysis.
+transaction_report<- transaction_report %>% 
+  anti_join(unmapped_fund_code, by = "id") %>% 
+  anti_join(unmapped_funct_code, by = "id") %>% 
+  anti_join(unmapped_account_code, by = "id")
+
+
+  # consolidate ----------------------------------------------------------------
+  entity_info <-
+    list(
+      "transaction_report"= transaction_report,
+      "invalid_reported_na" = invalid_reported_na,
+      "invalid_length" =invalid_length,
+      "invalid_form" = invalid_form,
+      "unmapped_fund_code" = unmapped_fund_code,
+      "unmapped_funct_code" = unmapped_funct_code,
+      "unmapped_funct_code_primary" = unmapped_funct_code_primary,
+      "unmapped_funct_code_secondary" = unmapped_funct_code_secondary,
+      "unmapped_funct_code_tertiary" = unmapped_funct_code_tertiary,
+      "unmapped_account_code" = unmapped_account_code,
+      "unmapped_account_code_primary" = unmapped_account_code_primary,
+      "unmapped_account_code_secondary" = unmapped_account_code_secondary,
+      "unmapped_account_code_tertiary" = unmapped_account_code_tertiary,
+      "unmapped_account_code_quaternary" = unmapped_account_code_quaternary
+    ) #%>% enframe()
+}
 
 ```
 
-Remove uneeded objects
+
+```{r, eval = FALSE}
+#vignettes of atomized uca
+temp<- query_transactions(54158) # contains incorrect length and form
+temp<- query_transactions(54230,osa_lookup)
+temp<- query_transactions(53818,osa_lookup)
+```
+
+# validate entity uca
 ```{r}
-rm(bad_fund_code,
-   bad_funct_code,
-   bad_account_code,
-   unmapped_codes)
+report <- report %>% 
+  mutate(queried_transactions = batches %>% map(query_transactions, osa_lookup))
+```
+
+
+```{r}
+#view a single entities transaction reports.
+report %>% slice(1) %>% pull(queried_transactions) %>% pluck(1) %>% pluck("transaction_report")
 ```
 
 ```{r}
+report %>% slice(1) %>% pull(queried_transactions) %>% pluck(1) %>% pluck("invalid_length")
+```
 
-funct_error <- invalid_tables %>%
-  pluck("unmapped_funct") %>%
-  left_join(
-    osa_lookup %>%
-      pluck("funct") %>%
-      select(code_primary,
-             funct_level_primary_atom = level_primary) %>%
-      distinct() %>%
-      unnest()
-    ,
-    by = c("funct_code_primary" = "code_primary")
-  ) %>%
-  select(
-    id,
-    batch_id,
-    amount,
-    fiscal_year,
-    account_number,
-    funct,
-    funct_code_primary,
-    funct_code_secondary,
-    funct_code_tertiary,
-    funct_description,
-    funct_level_primary_atom
-  )
+# ===================
+# =Fiscal Health Analysis=
+# ===================
 
-invalid_primary_code <- funct_error %>% 
-  filter(funct_level_primary_atom %>% is.na())
+#Generate a fiscal health score
 
-funct_error <-
-  funct_error %>% anti_join(invalid_primary_code, by = c("id" = "id"))
+##generate some interesting aggregations for an entity
+```{r}
+entity_by_year <- report %>%
+  slice(1) %>%
+  pull(queried_transactions) %>%
+  pluck(1) %>%
+  pluck("transaction_report") %>%
+  agg_dollars_and_records(account_description, account, fiscal_year)
 
 
-funct_error2 <- funct_error %>%
-  left_join(
-    osa_lookup %>%
-      pluck("funct") %>%
-      select(code_primary,
-             code_secondary,
-             funct_level_secondary_atom = level_secondary) %>%
-      distinct() %>%
-      unnest()
-    ,
-    by = c(
-      "funct_code_primary" = "code_primary",
-      "funct_code_secondary" = "code_secondary"
+```
+
+```{r}
+entity_by_year <- report %>%
+  slice(2) %>%
+  pull(queried_transactions) %>%
+  pluck(1) %>%
+  pluck("transaction_report") %>%
+  agg_dollars_and_records(funct_description, funct, fiscal_year)
+
+```
+
+
+
+
+# Break down by Fund and fiscal year
+
+```{r}
+compare_rev_exp<- function(df, ...){
+  # Purpose: groups the data by supplied grouping variables, and aggregates the
+  # date to have a total dollar amount and a count for the number of transactions
+  # with such variables. Basically this will group uca codings into dollar and
+  # frequency amounts. Two metrics of interest to Alex.
+  #
+  # Inputs: *df (tibble or dataframe): a dataframe which has the grouping variables. it should have an amount column
+  #         *... : the grouping variables. should be a uca field.
+  # Outputs: tibble :an aggregated tibble
+  
+  grouping_vars <- enquos(...)
+  
+  revenues <- df %>% 
+    filter(type==2)%>% 
+    group_by(!!! grouping_vars) %>% 
+    summarize(rev_total_amount = sum(amount),
+              rev_num_of_trans = n()) %>% 
+    arrange(desc(fiscal_year, total_amount))
+  
+  expenditures <- df %>% 
+  filter(type==1)%>% 
+  group_by(!!! grouping_vars) %>% 
+  summarize(exp_total_amount = sum(amount),
+            exp_num_of_trans = n()) %>% 
+  arrange(desc(fiscal_year, total_amount))
+  
+  rev_minus_exp_tib <- revenues %>% full_join(expenditures#, 
+                                          # by = c("fiscal_year"="fiscal_year",
+                                          #        !!!grouping_vars = )
+                                          ) %>% 
+    mutate(rev_minus_exp = rev_total_amount - exp_total_amount,
+           total_num_of_trans = rev_num_of_trans + exp_num_of_trans,
+           category = case_when(rev_minus_exp >= 0 ~ "surplus",
+                                                      rev_minus_exp <  0 ~ "deficit" ),
+           fiscal_year = factor(fiscal_year)
+           )
+  
+}
+```
+
+
+```{r}
+entity_by_year <- report %>%
+  slice(2) %>%
+  pull(queried_transactions) %>%
+  pluck(1) %>%
+  pluck("transaction_report") %>%
+  compare_rev_exp(fund, fund_description, fiscal_year)
+```
+# Break down by Funct and fiscal year
+```{r}
+entity_by_year <- report %>%
+  slice(2) %>%
+  pull(queried_transactions) %>%
+  pluck(1) %>%
+  pluck("transaction_report") %>%
+  filter(fiscal_year < 2020) %>% 
+  compare_rev_exp(funct, funct_description, fiscal_year)
+```
+```{r}
+p <-
+  ggplot(data = entity_by_year, aes(
+    x = funct_description,
+    y = rev_minus_exp,
+    fill = category
+  )) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  geom_text(aes(label = paste(
+    "$", format(rev_minus_exp, big.mark = ",", trim = TRUE)
+  )),
+  color = "black",
+  fontface = "bold",
+  #vjust = 'inward',
+  hjust = "inward",
+  size = 4,
+  alpha = .5)+
+  facet_grid( fiscal_year ~ .)
+
+print(p)
+```
+
+# Break down by Account and fiscal year
+
+```{r}
+agg_accounts <- function(df,trxn_type, ...) {
+  # Purpose: groups the data by supplied grouping variables, and aggregates the
+  # date to have a total dollar amount and a count for the number of transactions
+  # with such variables. Basically this will group uca codings into dollar and
+  # frequency amounts. Two metrics of interest to Alex.
+  #
+  # Inputs: *df (tibble or dataframe): a dataframe which has the grouping variables. it should have an amount column
+  #         * trxn_type (a numeric): 1 == expense, 2==revenue, 3 == w2. meant to stand for Revenue OR Expense.
+  #         *... : the grouping variables. should be a uca field.
+  # Outputs: tibble :an aggregated tibble
+  
+  grouping_vars <- enquos(...)
+  
+  expenditures <- df %>%
+    filter(type == trxn_type) %>%
+    group_by(!!!grouping_vars) %>%
+    summarize(total_amount = sum(amount),
+              num_of_trans = n()) %>%
+    mutate(avg = mean(total_amount),
+           stdv = sd(total_amount)) %>%
+    arrange(desc(fiscal_year, total_amount)) %>%
+    mutate(
+      fiscal_year = factor(fiscal_year),
+      category = case_when(
+        total_amount <= avg - stdv ~ 'below average',
+        total_amount >= avg + stdv ~ 'above average',
+        TRUE ~ 'average'
+      )
     )
-  ) %>%
-  select(
-    id,
-    batch_id,
-    amount,
-    fiscal_year,
-    account_number,
-    funct,
-    funct_code_primary,
-    funct_code_secondary,
-    funct_code_tertiary,
-    funct_description,
-    funct_level_primary_atom,
-    funct_level_secondary_atom
-  )
-
-invalid_secondary_code <- funct_error2 %>% 
-  filter(funct_level_secondary_atom %>% is.na())
-
-
-invalid_tertiary_code <-
-  funct_error2 %>% anti_join(invalid_secondary_code, by = c("id" = "id"))
-
-
-funct_invalid_code <- list(
-  invalid_primary_code = invalid_primary_code,
-  invalid_secondary_code = invalid_secondary_code,
-  invalid_tertiary_code = invalid_tertiary_code
-)
-
-remove(funct_error,funct_error2, invalid_primary_code,invalid_secondary_code,invalid_tertiary_code)
-
+  
+}
 ```
-
-
-
 
 
 ```{r}
-names(invalid_tables) <- c(
-  "invalid_reported_na",
-  "invalid_length",
-  "invalid_form",
-  "bad_fund_code",
-  "bad_location_code",
-  "bad_program_code",
-  "bad_funct_code",
-  "bad_object_code",
-  "bad_revenue_code",
-  "bad_fund_header",
-  "bad_location_header",
-  "bad_program_header",
-  "bad_funct_header",
-  "bad_object_header",
-  "bad_revenue_header"
-)
+entity_by_expenditures_year <- report %>%
+  slice(2) %>%
+  pull(queried_transactions) %>%
+  pluck(1) %>%
+  pluck("transaction_report") %>%
+  filter(fiscal_year < 2020) %>% 
+  agg_accounts(trxn_type = 1,account, account_description, fiscal_year)
+
+
+entity_by_revenues_year <- report %>%
+  slice(2) %>%
+  pull(queried_transactions) %>%
+  pluck(1) %>%
+  pluck("transaction_report") %>%
+  filter(fiscal_year < 2020) %>% 
+  agg_accounts(trxn_type = 2,account, account_description, fiscal_year)
 ```
 
-Since all uca now is mapped and valid I am going to get rid of unncessary columns
 ```{r}
-transaction_report <- transaction_report %>%
-  select(
-    id,
-    batch_id,
-    amount,
-    fiscal_year,
-    account_number,
-    type,
-    fund,
-    location,
-    program,
-    funct,
-    object,
-    revenue,
-    fund_description,
-    location_description,
-    program_description,
-    funct_description,
-    object_description,
-    revenue_description
-  )
+
+plot_account_by_year <- function( fiscal_years,df){
+  fiscal_years <- enquo(fiscal_years)
+  df<- df %>% filter(fiscal_year == !!fiscal_years)
+  
+  ggplot(data = df,
+         aes(x = account_description,
+             y = total_amount,
+             fill = category
+             )
+         ) +
+    geom_bar(stat = "identity") +
+    coord_flip() +
+    geom_text(
+      aes(label = paste(
+        "$", format(total_amount, big.mark = ",", trim = TRUE)
+      )),
+      color = "black",
+      fontface = "bold",
+      #vjust = 'inward',
+      hjust = "inward",
+      size = 4,
+      alpha = .5
+    )+
+    labs(title = paste("Fiscal Year: ",as_label(fiscal_years)))+
+    scale_fill_manual(values = c("average" = "#7CAE00", "below average" = "#F8766D",
+                                   "above average" = "#00BFC4"
+                                     ))
+  
+}
 ```
 
+```{r}
+years<- entity_by_expenditures_year %>% ungroup() %>% select(fiscal_year) %>% distinct() %>% as.list()
+
+years <- list("2014","2015","2016","2017","2018","2019")
+
+plots <- years %>% map(plot_account_by_year, entity_by_expenditures_year)
+```
+
+# Break down account by account with year as variable
+
+```{r}
+plot_net_amount_by_account <- function( account_numbers,df){
+  fiscal_years <- enquo(account_numbers)
+  df<- df %>% filter(account == !!account_numbers)
+  
+  ggplot(data = df,
+         aes(x = fiscal_year,
+             y = total_amount,
+             fill = category
+             )
+         ) +
+    geom_bar(stat = "identity") +
+    coord_flip() +
+    geom_text(
+      aes(label = paste(
+        "$", format(total_amount, big.mark = ",", trim = TRUE)
+      )),
+      color = "black",
+      fontface = "bold",
+      #vjust = 'inward',
+      hjust = "inward",
+      size = 4,
+      alpha = .5
+    )+
+    labs(title = paste("Account: ",df$account_description))+
+    scale_fill_manual(values = c("average" = "#7CAE00", "below average" = "#F8766D",
+                                   "above average" = "#00BFC4"
+                                     ))
+  
+}
+
+```
+
+
+## check expenditures
+```{r}
+#testing some random expenditure numbers
+account_num <- list(40010100,	40020300,40021100)
+
+plots <- account_num %>% map(plot_net_amount_by_account, entity_by_expenditures_year)
+plots
+```
+
+## check revenues
+```{r}
+# testing some random revenue numbers
+account_num <- list(30030100,	30030300,30060000)
+
+plots <- account_num %>% map(plot_net_amount_by_account, entity_by_revenues_year)
+plots
+```
 

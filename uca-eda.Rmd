@@ -24,7 +24,7 @@ dsn_salesforce <- "salesforce"
 # I. Libraries and Data Sources
 
 ```{r}
-options(scipen=999)
+#options(scipen=999)
 
 library(lubridate)
 library(magrittr)
@@ -40,6 +40,7 @@ odbc_sf  <- dbConnect(odbc::odbc(), dsn_salesforce)
 rm(dsn_aws, dsn_salesforce)
 
 ```
+
 ## stuff for parellel processing
 ```{r}
 # library(parallel)
@@ -494,7 +495,7 @@ dbGetQuery(
         FROM transaction
         WHERE fiscal_year = 2019 
         AND account_number IS NOT NULL 
-        LIMIT 10000000")) %>% # note I am limitingto 10000000 so it doesn't take an eternity.
+        LIMIT 1000000")) %>% # note I am limitingto 10000000 so it doesn't take an eternity.
 as_tibble() 
 
 # 2. double check for NA or "" -------------------------------------------------
