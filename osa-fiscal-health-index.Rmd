@@ -1,7 +1,7 @@
 ---
-title: "osa-batch-validation"
+title: "osa-fiscal-health-index"
 author: "Alexander Nielson"
-date: "2/25/2020"
+date: "2/27/2020"
 output: html_document
 ---
 
@@ -51,6 +51,7 @@ library(readxl)
 library(tidyverse)
 library(stringi) 
 library(tidyr)
+library(plotly)
 
 odbc_aws <- dbConnect(odbc::odbc(), dsn_aws)
 odbc_sf  <- dbConnect(odbc::odbc(), dsn_salesforce)
@@ -437,10 +438,10 @@ if (sf_entity_info %>%
 
 # Now lets query the batches for the first few entities
 
-
+## Get a subset of entities
 ```{r}
 report <- sf_entity_info %>% 
-  slice(13:16) %>% 
+  filter(govt_type == "City") %>% 
   mutate(batches = map(t_id ,query_batch_ids))
 ```
 
@@ -865,22 +866,23 @@ temp
 
 # validate entity uca
 ```{r}
+# takes about 10 minutes
 report <- report %>% 
   mutate(queried_transactions = batches %>% map(query_transactions, osa_lookup))
 ```
 
 ```{r}
-report
+#report
 ```
 
 
 ```{r}
 #view a single entities transaction reports.
-report %>% slice(1) %>% pull(queried_transactions) %>% pluck(1) %>% pluck("transaction_report")
+#report %>% slice(1) %>% pull(queried_transactions) %>% pluck(1) %>% pluck("transaction_report")
 ```
 
 ```{r}
-report %>% slice(1) %>% pull(queried_transactions) %>% pluck(1) %>% pluck("invalid_length")
+#report %>% slice(1) %>% pull(queried_transactions) %>% pluck(1) %>% pluck("invalid_length")
 ```
 
 # ===================
@@ -912,10 +914,7 @@ entity_by_year <- report %>%
 
 # Single Entity Comparison
 
-## Fund Analysis
-
-### Net Amount by Fund per fiscal year
-
+## compare_rev_exp
 ```{r}
 compare_rev_exp<- function(df, ...){
   # Purpose: groups the data by supplied grouping variables, and aggregates the
@@ -929,102 +928,193 @@ compare_rev_exp<- function(df, ...){
   
   grouping_vars <- enquos(...)
   
-  revenues <- df %>% 
-    filter(type==2)%>% 
-    group_by(!!! grouping_vars) %>% 
+  revenues <- df %>%
+    filter(type == 2) %>%
+    group_by(!!!grouping_vars) %>%
     summarize(rev_total_amount = sum(amount),
-              rev_num_of_trans = n()) %>% 
-    arrange(desc(fiscal_year, total_amount))
+              rev_num_of_trans = n()) %>%
+    mutate(rev_total_amount = rev_total_amount) 
   
-  expenditures <- df %>% 
-  filter(type==1)%>% 
-  group_by(!!! grouping_vars) %>% 
-  summarize(exp_total_amount = sum(amount),
-            exp_num_of_trans = n()) %>% 
-  arrange(desc(fiscal_year, total_amount))
+  expenditures <- df %>%
+    filter(type == 1) %>%
+    group_by(!!!grouping_vars) %>%
+    summarize(exp_total_amount = sum(amount),
+              exp_num_of_trans = n()) %>%
+    mutate(exp_total_amount = exp_total_amount)
+    
   
-  rev_minus_exp_tib <- revenues %>% full_join(expenditures#, 
-                                          # by = c("fiscal_year"="fiscal_year",
-                                          #        !!!grouping_vars = )
-                                          ) %>% 
-    mutate(rev_minus_exp = rev_total_amount - exp_total_amount,
-           total_num_of_trans = rev_num_of_trans + exp_num_of_trans,
-           category = case_when(rev_minus_exp >= 0 ~ "surplus",
-                                                      rev_minus_exp <  0 ~ "deficit" ),
-           fiscal_year = factor(fiscal_year)
+  difference <- revenues %>% full_join(expenditures,) %>%
+    mutate_each(~ replace(., which(is.na(.)), 0))
+  
+  difference <- difference %>%
+    mutate(
+      rev_minus_exp = abs(rev_total_amount) - abs(exp_total_amount),
+      avg = mean(rev_minus_exp),
+      sd = sd(rev_minus_exp),
+      sd = case_when(is.na(sd) ~ 0,
+                     TRUE ~ sd)
+    ) %>%
+    mutate(sord_category = case_when(
+      rev_minus_exp >= 0 ~ "surplus",
+                                rev_minus_exp <  0 ~ "deficit"),
+           
+           avg_category = case_when (
+             rev_minus_exp > avg + sd ~ "above average",
+             rev_minus_exp < avg - sd ~ "below average",
+             TRUE ~ "average"
            )
+           ) %>%
+    mutate(fiscal_year = factor(as.character(fiscal_year))) %>% 
+    arrange(desc(fiscal_year, exp_total_amount))
+}
+```
+## Fund Analysis
+
+### plot_fund_by_year
+```{r}
+
+plot_fund_by_year <- function(fiscal_years,entity_name, df) {
+  fiscal_years <- enquo(fiscal_years)
+  df <- df %>% filter(fiscal_year == !!fiscal_years)
+  
+  ggplot(data = df,
+         aes(x = fund_descr_code,
+             y = rev_minus_exp,
+             fill = sord_category)) +
+    geom_bar(stat = "identity") +
+    coord_flip() +
+    geom_text(
+      aes(label = paste(
+        "$", format(rev_minus_exp, big.mark = ",", trim = TRUE)
+      )),
+      color = "black",
+      fontface = "bold",
+      #vjust = 'inward',
+      hjust = "inward",
+      size = 4,
+      alpha = .5
+    ) +
+    labs(
+      title = paste("Fund- Fiscal Health Analysis - Fiscal Year: ", as_label(fiscal_years)),
+      subtitle = paste(entity_name)
+    ) +
+    scale_fill_manual(
+      values = c(
+        "surplus" = "#7CAE00",
+        "deficit" = "#F8766D"
+      )
+    ) +
+        xlab("Fiscal Year") +
+      ylab("Difference of Revenues and Expenditures")
   
 }
 ```
 
+## Funct Analysis
 
+
+
+### plot_funct_by_year
 ```{r}
-agg_fund_by_fiscal_year <- report %>%
-  slice(2) %>%
-  pull(queried_transactions) %>%
-  pluck(1) %>%
-  pluck("transaction_report") %>%
-  compare_rev_exp(fund, fund_description, fiscal_year)
 
-p <-
-  ggplot(data = agg_fund_by_fiscal_year, aes(
-    x = fund_description,
-    y = rev_minus_exp,
-    fill = category
-  )) +
-  geom_bar(stat = "identity") +
-  coord_flip() +
-  geom_text(aes(label = paste(
-    "$", format(rev_minus_exp, big.mark = ",", trim = TRUE)
-  )),
-  color = "black",
-  fontface = "bold",
-  #vjust = 'inward',
-  hjust = "inward",
-  size = 4,
-  alpha = .5)+
-  facet_grid( fiscal_year ~ .)
 
-print(p)
+plot_funct_by_year <- function(fiscal_years, entity_name, df) {
+  fiscal_years <- enquo(fiscal_years)
+  df <- df %>% filter(fiscal_year == !!fiscal_years)
+  
+  ggplot(data = df,
+         aes(x = funct_descr_code,
+             y = rev_minus_exp,
+             fill = sord_category)) +
+    geom_bar(stat = "identity") +
+    coord_flip() +
+    geom_text(
+      aes(label = paste(
+        "$", format(rev_minus_exp, big.mark = ",", trim = TRUE)
+      )),
+      color = "black",
+      fontface = "bold",
+      #vjust = 'inward',
+      hjust = "inward",
+      size = 4,
+      alpha = .5
+    ) +
+    labs(
+      title = paste(
+        "Function- Fiscal Health Analysis - Fiscal Year: ",
+        as_label(fiscal_years)
+      ),
+      subtitle = paste(entity_name)
+    ) +
+    scale_fill_manual(values = c("surplus" = "#7CAE00",
+                                 "deficit" = "#F8766D")) +
+    xlab("Fiscal Year") +
+    ylab("Difference of Revenues and Expenditures")
+  
+}
 ```
 
-## Funct (Function) Analysis
-### Net Amount by Funct per fiscal year
+### plot_net_amount_by_funct
 ```{r}
-agg_funct_by_fiscal_year <- report %>%
-  slice(2) %>%
-  pull(queried_transactions) %>%
-  pluck(1) %>%
-  pluck("transaction_report") %>%
-  filter(fiscal_year < 2020) %>% 
-  compare_rev_exp(funct, funct_description, fiscal_year)
-
-p <-
-  ggplot(data = agg_funct_by_fiscal_year, aes(
-    x = funct_description,
-    y = rev_minus_exp,
-    fill = category
-  )) +
-  geom_bar(stat = "identity") +
-  coord_flip() +
-  geom_text(aes(label = paste(
-    "$", format(rev_minus_exp, big.mark = ",", trim = TRUE)
-  )),
-  color = "black",
-  fontface = "bold",
-  #vjust = 'inward',
-  hjust = "inward",
-  size = 4,
-  alpha = .5)+
-  facet_grid( fiscal_year ~ .)+
-  labs(title = paste("Funct Fiscal Health Analysis:"))
-
-print(p)
+plot_net_amount_by_funct <-
+  function(funct_numbers, entity_name, df) {
+    funct_numbers <- enquo(funct_numbers)
+    
+    df <- df %>% filter(funct == !!funct_numbers)
+    
+    ggplot(data = df,
+           aes(x = fiscal_year,
+               y = rev_minus_exp,
+               fill = avg_category)) +
+      geom_bar(stat = "identity") +
+      coord_flip() +
+      geom_text(
+        aes(label = paste(
+          "$", format(rev_minus_exp, big.mark = ",", trim = TRUE)
+        )),
+        color = "black",
+        fontface = "bold",
+        #vjust = 'inward',
+        hjust = "inward",
+        size = 4,
+        alpha = .5
+      ) +
+      labs(
+        title = paste(
+          "Funct-",
+          # case_when(
+          #   str_detect(account_numbers, "^0") ~ "Not Applicable",
+          #   str_detect(account_numbers, "^0") ~ "General Government",
+          #   str_detect(account_numbers, "^0") ~ "Not Applicable",
+          #   str_detect(account_numbers, "^0") ~ "Not Applicable",
+          # ),
+          df$funct_description
+        ),
+        subtitle = paste(entity_name)
+      ) +
+      
+      scale_fill_manual(
+        values = c(
+          
+          "average" = "#00BFC4",
+          "below average" = "#F8766D",
+          "above average" = "#7CAE00"
+          # #"average" = "#00BFC4",
+          # "deficit" = "#F8766D",
+          # "surplus" = "#7CAE00"
+        )
+      ) +
+      ylab("Fiscal Year") +
+      xlab("Net Amount ($)")
+    
+  }
 
 ```
+
+
 ##Account Analysis
-### Net Amount of all Accounts by fiscal fiscal year
 
+#### agg_accounts
 ```{r}
 agg_accounts <- function(df,trxn_type, ...) {
   # Purpose: groups the data by supplied grouping variables, and aggregates the
@@ -1060,27 +1150,12 @@ agg_accounts <- function(df,trxn_type, ...) {
 ```
 
 
+
+
+
+
+### plot_account_by_year
 ```{r}
-entity_by_expenditures_year <- report %>%
-  slice(2) %>%
-  pull(queried_transactions) %>%
-  pluck(1) %>%
-  pluck("transaction_report") %>%
-  filter(fiscal_year < 2020) %>% 
-  agg_accounts(trxn_type = 1,account, account_description, fiscal_year)
-
-
-entity_by_revenues_year <- report %>%
-  slice(2) %>%
-  pull(queried_transactions) %>%
-  pluck(1) %>%
-  pluck("transaction_report") %>%
-  filter(fiscal_year < 2020) %>% 
-  agg_accounts(trxn_type = 2,account, account_description, fiscal_year)
-```
-## plot_account_by_year
-```{r}
-
 plot_account_by_year <- function(fiscal_years,entity_name, df) {
   fiscal_years <- enquo(fiscal_years)
   df <- df %>% filter(fiscal_year == !!fiscal_years)
@@ -1118,26 +1193,6 @@ plot_account_by_year <- function(fiscal_years,entity_name, df) {
   
 }
 ```
-
-```{r}
-# years<- entity_by_expenditures_year %>% pull(fiscal_year) %>% unique()
-# plots <- years %>% map(plot_account_by_year, entity_by_expenditures_year)
-# plots
-```
-
-```{r}
-# years<- entity_by_revenues_year %>% pull(fiscal_year) %>% unique()
-# plots <- years %>% map(plot_account_by_year, entity_by_revenues_year)
-# plots
-```
-```{r}
-rm(years)
-```
-
-It can be challenging to read those plots, and maybe we would want to compare a single account by changes by year. The next section will handle this idea:
-
-
-## Net Amount of Account by year, faceted by account
 
 ### plot_net_amount_by_account
 ```{r}
@@ -1190,27 +1245,6 @@ plot_net_amount_by_account <-
 
 ```
 
-
-## check expenditures
-```{r}
-account_nums <- entity_by_expenditures_year %>% pull(account) %>% unique()
-
-plots <- account_nums %>% map(plot_net_amount_by_account, entity_by_expenditures_year)
-plots
-```
-
-## check revenues
-```{r}
-account_nums <- entity_by_revenues_year %>% pull(account) %>% unique()
-
-plots <- account_nums %>% map(plot_net_amount_by_account, entity_by_revenues_year)
-plots
-```
-
-```{r}
-rm(account_nums,plots)
-```
-
 #automate Single entity Comparison
 ```{r}
 entity_fiscal_health_data <- function(entity_name , report_df){
@@ -1220,13 +1254,15 @@ entity_fiscal_health_data <- function(entity_name , report_df){
     pull(queried_transactions) %>%
     pluck(1) %>%
     pluck("transaction_report") %>%
-    compare_rev_exp(fund, fund_description, fiscal_year)
+    filter(fiscal_year < 2020) %>%
+    compare_rev_exp(fund, fund_description, fiscal_year) %>% 
+    mutate(fund_descr_code = paste(fund,fund_description))
   
-  p <-
+  fund_faceted_plot <-
     ggplot(data = agg_fund_by_fiscal_year,
-           aes(x = fund_description,
+           aes(x = fund_descr_code,
                y = rev_minus_exp,
-               fill = category)) +
+               fill = sord_category)) +
     geom_bar(stat = "identity") +
     coord_flip() +
     geom_text(
@@ -1237,21 +1273,36 @@ entity_fiscal_health_data <- function(entity_name , report_df){
       fontface = "bold",
       #vjust = 'inward',
       hjust = "inward",
-      size = 4,
+      size = 3,
       alpha = .5
     ) +
     facet_grid(fiscal_year ~ .) +
     labs(
       title = paste("Fund - Fiscal Health Analysis"),
       subtitle = paste(entity_name)#,
-    #  ylab("Fund"),
-     # xlab("Difference of Revenues and Expenditures")
     )+
     xlab("Fund")+
-    ylab("Difference of Revenues and Expenditures")
+    ylab("Difference of Revenues and Expenditures") +
+    scale_fill_manual(
+      values = c(
+        "surplus" = "#7CAE00",
+        "deficit" = "#F8766D"
+      )
+    )
+  
+  
+  
+  fund_years <-
+    agg_fund_by_fiscal_year %>% pull(fiscal_year) %>% unique()
+  
+  fund_individual_plots <-
+    fund_years %>% map(plot_fund_by_year,entity_name=entity_name, agg_fund_by_fiscal_year)
+  
+  fund_plots <- list(fund_faceted_plot = fund_faceted_plot,
+                     fund_individual_plots = fund_individual_plots)
   
   fund_health <- list(data = agg_fund_by_fiscal_year,
-                      plots = p)
+                      plots = fund_plots)
   
   
   
@@ -1262,13 +1313,14 @@ entity_fiscal_health_data <- function(entity_name , report_df){
     pluck(1) %>%
     pluck("transaction_report") %>%
     filter(fiscal_year < 2020) %>%
-    compare_rev_exp(funct, funct_description, fiscal_year)
+    compare_rev_exp(funct, funct_description, fiscal_year) %>% 
+    mutate(funct_descr_code = paste(funct,funct_description))
   
-  p <-
+  funct_faceted_plot <-
     ggplot(data = agg_funct_by_fiscal_year,
-           aes(x = funct_description,
+           aes(x = funct_descr_code,
                y = rev_minus_exp,
-               fill = category)) +
+               fill = sord_category)) +
     geom_bar(stat = "identity") +
     coord_flip() +
     geom_text(
@@ -1279,7 +1331,7 @@ entity_fiscal_health_data <- function(entity_name , report_df){
       fontface = "bold",
       #vjust = 'inward',
       hjust = "inward",
-      size = 4,
+      size = 3,
       alpha = .5
     ) +
     facet_grid(fiscal_year ~ .) +
@@ -1287,18 +1339,50 @@ entity_fiscal_health_data <- function(entity_name , report_df){
       title = paste("Function - Fiscal Health Analysis"),
       subtitle = paste(entity_name))+
     xlab("Funct")+
-    ylab("Difference of Revenues and Expenditures")
-  
-  funct_health <- list(data = agg_funct_by_fiscal_year,
-                       plots = p)
-  
+    ylab("Difference of Revenues and Expenditures")+
+    scale_fill_manual(
+      values = c(
+        "surplus" = "#7CAE00",
+        "deficit" = "#F8766D"
+      )
+    )
   
 
+  funct_years <-
+    agg_funct_by_fiscal_year %>% pull(fiscal_year) %>% unique()
+  
+  funct_individual_plots <-
+    funct_years %>% map(plot_funct_by_year,entity_name=entity_name, agg_funct_by_fiscal_year)
+  
+
+
+  
+  #funct by Year
+  entity_by_funct_year <- report_df %>%
+    filter(name == entity_name) %>%
+    pull(queried_transactions) %>%
+    pluck(1) %>%
+    pluck("transaction_report") %>%
+    filter(fiscal_year < 2020) %>%
+    compare_rev_exp(funct, funct_description, fiscal_year)
+  
+  funct_nums <- entity_by_funct_year %>% pull(funct) %>% unique()
+  
+  funct_by_year_plots<- funct_nums %>% map(plot_net_amount_by_funct,
+                                           entity_name=entity_name,
+                                           entity_by_funct_year)
+  
+  funct_plots <- list(funct_faceted_plot = funct_faceted_plot,
+                   funct_individual_plots = funct_individual_plots,
+                   funct_by_year_plots = funct_by_year_plots)
+  
+  funct_health <- list(data = agg_funct_by_fiscal_year,
+                       plots = funct_plots)
   
   
   # Account Analysis
   entity_by_expenditures_year <- report_df %>%
-    slice(2) %>%
+    filter(name == entity_name) %>%
     pull(queried_transactions) %>%
     pluck(1) %>%
     pluck("transaction_report") %>%
@@ -1307,7 +1391,7 @@ entity_fiscal_health_data <- function(entity_name , report_df){
   
   
   entity_by_revenues_year <- report_df %>%
-    slice(2) %>%
+    filter(name == entity_name) %>%
     pull(queried_transactions) %>%
     pluck(1) %>%
     pluck("transaction_report") %>%
@@ -1361,34 +1445,66 @@ entity_fiscal_health_data <- function(entity_name , report_df){
                         account_health = account_health)
 }
 ```
-
+# testing
 ```{r}
 # report <- report %>% 
 #   mutate(
 #     
-    name <- "Bear River Association of Governments"
+    name <- "Alpine City"
     fiscal_health <- name %>% map(entity_fiscal_health_data, report)
 
 #)
 ```
 
 
+
+
+
 ```{r}
-report
-```
-```{r}
-fiscal_health
+# temp<- fiscal_health %>% pluck(1) %>%
+#   pluck("funct_health")
+#   
+
+temp<- fiscal_health %>% pluck(1) %>%
+  pluck("fund_health") %>% 
+  pluck("plots") 
+temp
 ```
 
 ```{r}
-names_of_entities<- report %>% pull(name)
+temp<- fiscal_health %>% pluck(1) %>% 
+  pluck("funct_health") %>% 
+  pluck("plots") %>% 
+  #pluck("funct_faceted_plot")
+  #pluck("funct_individual_plots")
+  pluck("funct_by_year_plots")
+temp
+# temp<- fiscal_health %>% pluck(1) %>% 
+#   pluck("funct_health") %>% 
+#   pluck("data") #%>% 
+#   #pluck("funct_faceted_plot")
+#   #pluck("funct_individual_plots")
+#   pluck("funct_by_year_plots")
+```
+
+
+```{r}
+plotly_temp <- ggplotly(temp)
+```
+
+```{r}
+#names_of_entities<- report %>% pull(name)
 
 test_report <- report %>% mutate(
   fiscal_health = name %>% map(entity_fiscal_health_data, report)
 )
 
-fiscal_health <- names_of_entities %>%  map(entity_fiscal_health_data, report)
+#fiscal_health <- names_of_entities %>%  map(entity_fiscal_health_data, report)
 
+```
+
+```{r}
+test_report %>% filter()
 ```
 
 ```{r, eval = FALSE}
@@ -1404,5 +1520,3 @@ test_report %>% filter(t_id ==1601) %>% pluck("fiscal_health") %>% pluck(1) %>% 
 #get account
 test_report %>% filter(t_id ==1601) %>% pluck("fiscal_health") %>% pluck(1) %>% pluck("account_health") 
 ```
-
-
