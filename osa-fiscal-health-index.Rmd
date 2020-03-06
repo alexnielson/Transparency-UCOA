@@ -5,12 +5,7 @@ date: "2/27/2020"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
-
-# Program Description
+Program Description:
 
 **Purpose**
 
@@ -23,23 +18,7 @@ dsn_salesforce <- "salesforce"
 
 **Output(s)**
 
-# Get Input
-```{r}
-validation_type <- 
-#  "file_analysis"
- "batch_analysis"
-
-if(validation_type=="batch_analysis") {
-  entity_id <- 1010
-}
-
-if (validation_type == "file_analysis"){
-  downloaded_file <- "location_of_pipe_delim_file.txt"
-}
-```
-
-
-# Libraries and Data Sources
+# LIB AND DATA SOURCE
 
 ```{r}
 options(scipen=6)
@@ -59,9 +38,13 @@ odbc_sf  <- dbConnect(odbc::odbc(), dsn_salesforce)
 rm(dsn_aws, dsn_salesforce)
 ```
 
-# Function Definitions
 
-## agg_dollars_and_records
+
+# FUNCTION DEFINITIONS
+
+## Validation functions
+
+### agg_dollars_and_records
 ```{r}
 agg_dollars_and_records<- function(df, ...){
   # Purpose: groups the data by supplied grouping variables, and aggregates the
@@ -83,7 +66,7 @@ agg_dollars_and_records<- function(df, ...){
   
 }
 ```
-## validate_nrow
+### validate_nrow
 
 ```{r}
 validate_nrow <- function(df, expected_nrow) {
@@ -111,7 +94,7 @@ validate_nrow <- function(df, expected_nrow) {
 }
 ```
 
-## make_current_begin_fy
+### make_current_begin_fy
 
 ```{r}
 make_current_begin_fy <- function(begin_fy_unchecked) {
@@ -156,7 +139,7 @@ make_current_begin_fy <- function(begin_fy_unchecked) {
 }
 ```
 
-## query_batch_ids
+### query_batch_ids
 
 ```{r}
 query_batch_ids <- function(t_id) {
@@ -192,267 +175,9 @@ query_batch_ids <- function(t_id) {
 }
 ```
 
-
-# Load Lookup Table
-
+###query_transactions 
 ```{r}
-osa_lookup_file_name <- "osa_lookup.xlsx"
-
-osa_lookup <- excel_sheets(osa_lookup_file_name) %>%
-  map(read_excel, path = osa_lookup_file_name)
-
-names(osa_lookup) <- c("fund", "funct", "account")
-
-rm(osa_lookup_file_name)
-
-```
-
-browse the lookup tables
-```{r,eval = FALSE}
-osa_lookup
-```
-
-#Load Salesforce Data
-
-```{r}
-sf_entity_info <- 
-  dbGetQuery(
-    odbc_sf,
-    "SELECT 
-      a.Name                          AS name,
-      a.Id                            AS id,
-      a.Transparency_ID__c            AS t_id,
-      a.Fiscal_Year_Begins__c         AS begin_fy,
-      a.Expense_Revenue_Start_Date__c AS begin_report_er, 
-      a.Wage_Start_Date__c            AS begin_report_w2,
-      r.Name AS govt_type
-    FROM Account         AS a
-    LEFT JOIN RecordType AS r
-      ON a.RecordTypeId = r.Id
-    WHERE a.RecordTypeId IN (
-      SELECT Id
-      FROM RecordType
-      WHERE SobjectType = 'Account'
-      AND IsActive = 'TRUE'
-      AND Name NOT IN (
-        'Community User',
-        'Component', -- This govt type contains local governments, but not ones for which we enforce compliance.
-        'Court (Search Under Parent Entity)',
-        'CPA Firm',
-        'Educational Foundation or Component Unit', -- Not an entity we review for compliance.
-        'Financial Institution',
-        'Health Provider',
-        'Non Profits'))
-    AND a.Name NOT IN (
-      'Intermountain Power Agency',
-      'test city 2',
-      'Utah Associated Municipal Power Systems',
-      'Utah Municipal Power Agency')
-    AND Entity_Status__c NOT IN ('Inactive', 'Dissolved')
-    AND (
-      a.Expense_Revenue_Start_Date__c <= DATE() OR
-      a.Expense_Revenue_Start_Date__c IS NULL)") %>% 
-  as_tibble() %>% 
-  mutate(
-  govt_type = 
-    if_else(
-      name %in% 
-        c("State of Utah",
-          "Utah System of Higher Education - Student Loan Guarantee Program",
-          "Utah System of Higher Education - Student Loan Purchase Program",
-          "Utah System of Higher Education - Utah Educational Savings Plan dba my529",
-          "Utah System of Higher Education - Utah State Board of Regents"),
-      "Monitored State Agency",
-      govt_type)) %>% 
-  filter(govt_type != "State of Utah (agencies/depts/comp units/ etc.)") %>% 
-  # The State of Utah is required to report to Transparent Utah, but in most instances we do not monitor its data:
-  filter(name != "State of Utah") #%>% 
-  #select(-govt_type)
-
-sf_exemptions <- 
-  dbGetQuery(
-    odbc_sf,
-    paste("
-          SELECT 
-            a.Name                          AS name,
-            t.Account__c                    AS id,
-            a.Fiscal_Year_Begins__c         AS begin_fy,
-            t.Transparency_type_exempted__c AS transaction_type,
-            t.Recurring_Exemption__c        AS recurring_exemption,
-            t.Exemption_Start_Date__c       AS exemption_start,
-            t.Exemption_End_Date__c         AS exemption_end,
-            t.Permanent_or_Temporary__c     AS exemption_type,
-            t.Exemption_Reason__c           AS reason
-          FROM (
-            SELECT 
-              Account__c,
-              Exemption_Start_Date__c,
-              Exemption_End_Date__c,
-              Recurring_Exemption__c,
-              Transparency_type_exempted__c,
-              Permanent_or_Temporary__c,
-              Exemption_Reason__c
-            FROM Transparency_Exemption__c
-            WHERE IsDeleted = FALSE) t
-          LEFT JOIN Account a
-          ON t.Account__c = a.Id
-          WHERE a.Entity_Status__c IN (
-            'Current', 
-            'On hold', 
-            'Delinquent', 
-            'Suspended')
-          AND a.Name != 'test city 2'")) %>% 
-  as_tibble()
-
-```
-
-# Validate the salesforce data
-```{r}
-validate_nrow(sf_entity_info, 1000)
-
-# Validate sf_entity_info ####
-
-if (class(sf_entity_info$name)            != "character" ||
-    class(sf_entity_info$id)              != "character" ||
-    class(sf_entity_info$t_id)            != "numeric"   ||
-    class(sf_entity_info$begin_fy)        != "Date"      ||
-    class(sf_entity_info$begin_report_er) != "Date"      ||
-    class(sf_entity_info$begin_report_w2) != "Date") {
-
-  stop("One or more fields in sf_entity_info is not of the correct class.
-       Review the data before continuing.",
-       call. = FALSE)  
-}
-
-if (sf_entity_info %>% 
-    filter(is.na(name) | is.na(id)) %>% 
-    nrow() > 0) {
-
-  name_or_id_is_na <- 
-    sf_entity_info %>% 
-    filter(is.na(name) | is.na(id))
-  
-  stop("Entities should have a name and Salesforce ID.
-       A missing name or Salesforce ID indicates some larger problem with the 
-       data. Review and correct before continuing.",
-       call. = FALSE)
-}
-
-if (sf_entity_info %>% 
-    filter(is.na(begin_fy)) %>% 
-    nrow() > 0) {
-  
-  missing_begin_fy <- 
-    sf_entity_info %>% 
-    filter(is.na(begin_fy))
-  
-  stop("begin_fy should be populated for every active government. Update 
-       Salesforce and reimport before continuing.", call. = FALSE)
-    }
-
-if (sf_entity_info %>% 
-    filter(
-      !is.na(t_id) & (
-        is.na(begin_report_er) |
-        is.na(begin_report_w2))) %>% 
-    nrow() > 0) {
-  
-  incomplete_info <- 
-    sf_entity_info %>% 
-    filter(
-      !is.na(t_id) & (
-        is.na(begin_report_er) |
-        is.na(begin_report_w2)))
-  
-  stop("Entities with a Transparency ID must also have non-NA values for 
-       begin_report_er and begin_report_w2 in
-       order to determine their compliance status.",
-       call. = FALSE)
-}
-
-if (sf_entity_info %>% 
-    filter(begin_fy > today()) %>%
-    nrow() > 0) {
-  
-  future_begin_fy <- 
-    sf_entity_info %>% 
-    filter(begin_fy > today())
-  
-  stop("Entities must not have a begin_fy value in the future.
-       Correct and reimport before continuing.",
-       call. = FALSE)
-}
-
-if (sf_entity_info %>% 
-    filter(begin_fy <= (today() - months(12))) %>% 
-    nrow() > 0) {
-  
-  sf_entity_info$begin_fy <- 
-    sf_entity_info$begin_fy %>% 
-    map_dbl(make_current_begin_fy)
-  
-  class(sf_entity_info$begin_fy) <- "Date"
-}
-
-if (sf_entity_info %>% 
-    filter(month(begin_report_er) != month(begin_fy)) %>% 
-    nrow() > 0) {
-  
-  begin_report_er_month_is_wrong <- 
-    sf_entity_info %>% 
-    filter(month(begin_report_er) != month(begin_fy))
-  
-  stop("The month of begin_report_er must match the month of begin_fy.
-       Update in Salesforce (create an exemption if necessary) and reimport.",
-       call. = FALSE)
-}
-
-if (sf_entity_info %>% 
-    filter(month(begin_report_w2) != month(begin_fy)) %>% 
-    nrow() > 0) {
-  
-  begin_report_w2_month_is_wrong <- 
-    sf_entity_info %>% 
-    filter(month(begin_report_w2) != month(begin_fy))
-  
-  stop("The month of begin_report_w2 must match the month of begin_fy.
-       Update in Salesforce (create an exemption if necessary) and reimport.",
-       call. = FALSE)
-}
-
-if (sf_entity_info %>% 
-    filter(begin_report_w2 < begin_report_er) %>% 
-    nrow() > 0) {
-  
-  w2_date_prior_to_exp_rev <- 
-    sf_entity_info %>% 
-    filter(begin_report_w2 < begin_report_er)
-  
-  stop("begin_report_w2 should not be earlier than
-       begin_report_er. Update in Salesforce and reimport.", 
-       call. = FALSE)
-}
-```
-
-
-
-# Now lets query the batches for the first few entities
-
-## Get a subset of entities
-```{r}
-report <- sf_entity_info %>% 
-  filter(govt_type == "City") %>% 
-  mutate(batches = map(t_id ,query_batch_ids))
-```
-
-
-```{r}
-#report$batches
-
-```
-
-```{r}
-query_transactions <- function(batches_list, lookup_table) {
+query_transactions <- function(batches_list,lookup_table) {
   #wrangled the batches to be readable in MySQL.
   # I know this is more work, and
   # that the batches could have been checked in sql, but I want my report to be
@@ -474,17 +199,22 @@ query_transactions <- function(batches_list, lookup_table) {
     dbGetQuery(
       odbc_aws,
       paste(
-        "
-      SELECT id,
-      batch_id,
-      amount,
-      fiscal_year,
-      account_number,
-      type
-      FROM transaction
-      WHERE batch_id IN (",
+                "
+      SELECT e.name    AS name,
+      t.id             AS id,
+      t.batch_id       AS batch_id,
+      t.amount         AS amount,
+      t.fiscal_year    AS fiscal_year,
+      t.account_number AS account_number,
+      type             AS type
+      FROM transaction t
+      JOIN batch b
+        ON t.batch_id = b.id
+      JOIN entity e 
+        ON b.entity_id = e.id
+      WHERE t.batch_id IN (",
       batches_wrangled,
-      ")"
+      ") "
       )
     ) %>%
     as_tibble()
@@ -826,7 +556,12 @@ query_transactions <- function(batches_list, lookup_table) {
     anti_join(unmapped_fund_code, by = "id") %>%
     anti_join(unmapped_funct_code, by = "id") %>%
     anti_join(unmapped_account_code, by = "id")
-  
+
+  #fix the year variable. We need it to be a factor.
+  transaction_report<- transaction_report %>% mutate(
+    # fiscal_year = forcats::fct_explicit_na(as.character(fiscal_year))
+    fiscal_year = as.character(fiscal_year)
+  )
   
   # consolidate ----------------------------------------------------------------
   entity_info <-
@@ -850,71 +585,9 @@ query_transactions <- function(batches_list, lookup_table) {
 
 ```
 
-Single batch examples -- show tae
-```{r, eval = FALSE}
+## FHI functions
 
-#vignettes of atomized uca
-temp<- query_transactions(54158, osa_lookup) # contains incorrect length, form, and unmapped account code, it also shows how it can find the quaternary failure
-temp<- query_transactions(54230,osa_lookup) # contains incorrect funct, and secondary funct code. 
-temp<- query_transactions(53818,osa_lookup) # contains incorrect account, and primary account code. 
-```
-
-
-```{r,eval=FALSE}
-temp
-```
-
-# validate entity uca
-```{r}
-# takes about 10 minutes
-report <- report %>% 
-  mutate(queried_transactions = batches %>% map(query_transactions, osa_lookup))
-```
-
-```{r}
-#report
-```
-
-
-```{r}
-#view a single entities transaction reports.
-#report %>% slice(1) %>% pull(queried_transactions) %>% pluck(1) %>% pluck("transaction_report")
-```
-
-```{r}
-#report %>% slice(1) %>% pull(queried_transactions) %>% pluck(1) %>% pluck("invalid_length")
-```
-
-# ===================
-# =Fiscal Health Analysis=
-# ===================
-#Boilerplates
-##generate some interesting aggregations for an entity
-### boilerplate for agg by account
-```{r, eval = FALSE}
-entity_by_year <- report %>%
-  slice(1) %>%
-  pull(queried_transactions) %>%
-  pluck(1) %>%
-  pluck("transaction_report") %>%
-  agg_dollars_and_records(account_description, account, fiscal_year)
-
-
-```
-### boilerplate for agg by funct
-```{r, eval = FALSE}
-entity_by_year <- report %>%
-  slice(2) %>%
-  pull(queried_transactions) %>%
-  pluck(1) %>%
-  pluck("transaction_report") %>%
-  agg_dollars_and_records(funct_description, funct, fiscal_year)
-
-```
-
-# Single Entity Comparison
-
-## compare_rev_exp
+### compare_rev_exp
 ```{r}
 compare_rev_exp<- function(df, ...){
   # Purpose: groups the data by supplied grouping variables, and aggregates the
@@ -964,13 +637,13 @@ compare_rev_exp<- function(df, ...){
              TRUE ~ "average"
            )
            ) %>%
-    mutate(fiscal_year = factor(as.character(fiscal_year))) %>% 
+   # mutate(fiscal_year = factor(fiscal_year)) %>% 
     arrange(desc(fiscal_year, exp_total_amount))
 }
 ```
-## Fund Analysis
+### Fund Analysis
 
-### plot_fund_by_year
+#### plot_fund_by_year
 ```{r}
 
 plot_fund_by_year <- function(fiscal_years,entity_name, df) {
@@ -1010,11 +683,11 @@ plot_fund_by_year <- function(fiscal_years,entity_name, df) {
 }
 ```
 
-## Funct Analysis
+### Funct Analysis
 
 
 
-### plot_funct_by_year
+#### plot_funct_by_year
 ```{r}
 
 
@@ -1054,7 +727,7 @@ plot_funct_by_year <- function(fiscal_years, entity_name, df) {
 }
 ```
 
-### plot_net_amount_by_funct
+#### plot_net_amount_by_funct
 ```{r}
 plot_net_amount_by_funct <-
   function(funct_numbers, entity_name, df) {
@@ -1112,7 +785,7 @@ plot_net_amount_by_funct <-
 ```
 
 
-##Account Analysis
+###Account Analysis
 
 #### agg_accounts
 ```{r}
@@ -1138,7 +811,7 @@ agg_accounts <- function(df,trxn_type, ...) {
            stdv = sd(total_amount)) %>%
     arrange(desc(fiscal_year, total_amount)) %>%
     mutate(
-      fiscal_year = factor(fiscal_year),
+      fiscal_year = fct_explicit_na(fiscal_year),
       category = case_when(
         total_amount <= avg - stdv ~ 'below average',
         total_amount >= avg + stdv ~ 'above average',
@@ -1154,7 +827,7 @@ agg_accounts <- function(df,trxn_type, ...) {
 
 
 
-### plot_account_by_year
+#### plot_account_by_year
 ```{r}
 plot_account_by_year <- function(fiscal_years,entity_name, df) {
   fiscal_years <- enquo(fiscal_years)
@@ -1194,7 +867,7 @@ plot_account_by_year <- function(fiscal_years,entity_name, df) {
 }
 ```
 
-### plot_net_amount_by_account
+#### plot_net_amount_by_account
 ```{r}
 plot_net_amount_by_account <-
   function(account_numbers, entity_name, df) {
@@ -1245,17 +918,19 @@ plot_net_amount_by_account <-
 
 ```
 
-#automate Single entity Comparison
+### Single entity Comparison
+####entity_fiscal_health_data
 ```{r}
 entity_fiscal_health_data <- function(entity_name , report_df){
   #Fund Analysis:
+  print(paste("DEBUGG: starting entity_fiscal_health_data for :", entity_name))
   agg_fund_by_fiscal_year <- report_df %>%
     filter(name == entity_name) %>%
     pull(queried_transactions) %>%
     pluck(1) %>%
     pluck("transaction_report") %>%
     filter(fiscal_year < 2020) %>%
-    compare_rev_exp(fund, fund_description, fiscal_year) %>% 
+    compare_rev_exp(name,fund, fund_description, fiscal_year) %>% 
     mutate(fund_descr_code = paste(fund,fund_description))
   
   fund_faceted_plot <-
@@ -1313,7 +988,7 @@ entity_fiscal_health_data <- function(entity_name , report_df){
     pluck(1) %>%
     pluck("transaction_report") %>%
     filter(fiscal_year < 2020) %>%
-    compare_rev_exp(funct, funct_description, fiscal_year) %>% 
+    compare_rev_exp(name,funct, funct_description, fiscal_year) %>% 
     mutate(funct_descr_code = paste(funct,funct_description))
   
   funct_faceted_plot <-
@@ -1445,78 +1120,724 @@ entity_fiscal_health_data <- function(entity_name , report_df){
                         account_health = account_health)
 }
 ```
-# testing
-```{r}
-# report <- report %>% 
-#   mutate(
-#     
-    name <- "Alpine City"
-    fiscal_health <- name %>% map(entity_fiscal_health_data, report)
 
-#)
+# VALIDATE AND CLEAN
+
+## Load Lookup Table
+
+```{r}
+osa_lookup_file_name <- "osa_lookup.xlsx"
+
+osa_lookup <- excel_sheets(osa_lookup_file_name) %>%
+  map(read_excel, path = osa_lookup_file_name)
+
+names(osa_lookup) <- c("fund", "funct", "account")
+
+rm(osa_lookup_file_name)
+
+```
+
+browse the lookup tables
+```{r,eval = FALSE}
+osa_lookup
+```
+
+## Query Salesforce Data
+
+```{r}
+sf_entity_info <- 
+  dbGetQuery(
+    odbc_sf,
+    "SELECT 
+      a.Name                          AS name,
+      a.Id                            AS id,
+      a.Transparency_ID__c            AS t_id,
+      a.Fiscal_Year_Begins__c         AS begin_fy,
+      a.Expense_Revenue_Start_Date__c AS begin_report_er, 
+      a.Wage_Start_Date__c            AS begin_report_w2,
+      r.Name AS govt_type
+    FROM Account         AS a
+    LEFT JOIN RecordType AS r
+      ON a.RecordTypeId = r.Id
+    WHERE a.RecordTypeId IN (
+      SELECT Id
+      FROM RecordType
+      WHERE SobjectType = 'Account'
+      AND IsActive = 'TRUE'
+      AND Name NOT IN (
+        'Community User',
+        'Component', -- This govt type contains local governments, but not ones for which we enforce compliance.
+        'Court (Search Under Parent Entity)',
+        'CPA Firm',
+        'Educational Foundation or Component Unit', -- Not an entity we review for compliance.
+        'Financial Institution',
+        'Health Provider',
+        'Non Profits'))
+    AND a.Name NOT IN (
+      'Intermountain Power Agency',
+      'test city 2',
+      'Utah Associated Municipal Power Systems',
+      'Utah Municipal Power Agency')
+    AND Entity_Status__c NOT IN ('Inactive', 'Dissolved')
+    AND (
+      a.Expense_Revenue_Start_Date__c <= DATE() OR
+      a.Expense_Revenue_Start_Date__c IS NULL)") %>% 
+  as_tibble() %>% 
+  mutate(
+  govt_type = 
+    if_else(
+      name %in% 
+        c("State of Utah",
+          "Utah System of Higher Education - Student Loan Guarantee Program",
+          "Utah System of Higher Education - Student Loan Purchase Program",
+          "Utah System of Higher Education - Utah Educational Savings Plan dba my529",
+          "Utah System of Higher Education - Utah State Board of Regents"),
+      "Monitored State Agency",
+      govt_type)) %>% 
+  filter(govt_type != "State of Utah (agencies/depts/comp units/ etc.)") %>% 
+  # The State of Utah is required to report to Transparent Utah, but in most instances we do not monitor its data:
+  filter(name != "State of Utah") #%>% 
+  #select(-govt_type)
+
+sf_exemptions <- 
+  dbGetQuery(
+    odbc_sf,
+    paste("
+          SELECT 
+            a.Name                          AS name,
+            t.Account__c                    AS id,
+            a.Fiscal_Year_Begins__c         AS begin_fy,
+            t.Transparency_type_exempted__c AS transaction_type,
+            t.Recurring_Exemption__c        AS recurring_exemption,
+            t.Exemption_Start_Date__c       AS exemption_start,
+            t.Exemption_End_Date__c         AS exemption_end,
+            t.Permanent_or_Temporary__c     AS exemption_type,
+            t.Exemption_Reason__c           AS reason
+          FROM (
+            SELECT 
+              Account__c,
+              Exemption_Start_Date__c,
+              Exemption_End_Date__c,
+              Recurring_Exemption__c,
+              Transparency_type_exempted__c,
+              Permanent_or_Temporary__c,
+              Exemption_Reason__c
+            FROM Transparency_Exemption__c
+            WHERE IsDeleted = FALSE) t
+          LEFT JOIN Account a
+          ON t.Account__c = a.Id
+          WHERE a.Entity_Status__c IN (
+            'Current', 
+            'On hold', 
+            'Delinquent', 
+            'Suspended')
+          AND a.Name != 'test city 2'")) %>% 
+  as_tibble()
+
+```
+
+## Validate Salesforce Data
+```{r}
+validate_nrow(sf_entity_info, 1000)
+
+# Validate sf_entity_info ####
+
+if (class(sf_entity_info$name)            != "character" ||
+    class(sf_entity_info$id)              != "character" ||
+    class(sf_entity_info$t_id)            != "numeric"   ||
+    class(sf_entity_info$begin_fy)        != "Date"      ||
+    class(sf_entity_info$begin_report_er) != "Date"      ||
+    class(sf_entity_info$begin_report_w2) != "Date") {
+
+  stop("One or more fields in sf_entity_info is not of the correct class.
+       Review the data before continuing.",
+       call. = FALSE)  
+}
+
+if (sf_entity_info %>% 
+    filter(is.na(name) | is.na(id)) %>% 
+    nrow() > 0) {
+
+  name_or_id_is_na <- 
+    sf_entity_info %>% 
+    filter(is.na(name) | is.na(id))
+  
+  stop("Entities should have a name and Salesforce ID.
+       A missing name or Salesforce ID indicates some larger problem with the 
+       data. Review and correct before continuing.",
+       call. = FALSE)
+}
+
+if (sf_entity_info %>% 
+    filter(is.na(begin_fy)) %>% 
+    nrow() > 0) {
+  
+  missing_begin_fy <- 
+    sf_entity_info %>% 
+    filter(is.na(begin_fy))
+  
+  stop("begin_fy should be populated for every active government. Update 
+       Salesforce and reimport before continuing.", call. = FALSE)
+    }
+
+if (sf_entity_info %>% 
+    filter(
+      !is.na(t_id) & (
+        is.na(begin_report_er) |
+        is.na(begin_report_w2))) %>% 
+    nrow() > 0) {
+  
+  incomplete_info <- 
+    sf_entity_info %>% 
+    filter(
+      !is.na(t_id) & (
+        is.na(begin_report_er) |
+        is.na(begin_report_w2)))
+  
+  stop("Entities with a Transparency ID must also have non-NA values for 
+       begin_report_er and begin_report_w2 in
+       order to determine their compliance status.",
+       call. = FALSE)
+}
+
+if (sf_entity_info %>% 
+    filter(begin_fy > today()) %>%
+    nrow() > 0) {
+  
+  future_begin_fy <- 
+    sf_entity_info %>% 
+    filter(begin_fy > today())
+  
+  stop("Entities must not have a begin_fy value in the future.
+       Correct and reimport before continuing.",
+       call. = FALSE)
+}
+
+if (sf_entity_info %>% 
+    filter(begin_fy <= (today() - months(12))) %>% 
+    nrow() > 0) {
+  
+  sf_entity_info$begin_fy <- 
+    sf_entity_info$begin_fy %>% 
+    map_dbl(make_current_begin_fy)
+  
+  class(sf_entity_info$begin_fy) <- "Date"
+}
+
+if (sf_entity_info %>% 
+    filter(month(begin_report_er) != month(begin_fy)) %>% 
+    nrow() > 0) {
+  
+  begin_report_er_month_is_wrong <- 
+    sf_entity_info %>% 
+    filter(month(begin_report_er) != month(begin_fy))
+  
+  stop("The month of begin_report_er must match the month of begin_fy.
+       Update in Salesforce (create an exemption if necessary) and reimport.",
+       call. = FALSE)
+}
+
+if (sf_entity_info %>% 
+    filter(month(begin_report_w2) != month(begin_fy)) %>% 
+    nrow() > 0) {
+  
+  begin_report_w2_month_is_wrong <- 
+    sf_entity_info %>% 
+    filter(month(begin_report_w2) != month(begin_fy))
+  
+  stop("The month of begin_report_w2 must match the month of begin_fy.
+       Update in Salesforce (create an exemption if necessary) and reimport.",
+       call. = FALSE)
+}
+
+if (sf_entity_info %>% 
+    filter(begin_report_w2 < begin_report_er) %>% 
+    nrow() > 0) {
+  
+  w2_date_prior_to_exp_rev <- 
+    sf_entity_info %>% 
+    filter(begin_report_w2 < begin_report_er)
+  
+  stop("begin_report_w2 should not be earlier than
+       begin_report_er. Update in Salesforce and reimport.", 
+       call. = FALSE)
+}
 ```
 
 
 
+## Query Batches 
 
+### Get subset of entities
 
+Since we are making a fiscal health index, I think cities are a good starting point
 ```{r}
-# temp<- fiscal_health %>% pluck(1) %>%
-#   pluck("funct_health")
-#   
-
-temp<- fiscal_health %>% pluck(1) %>%
-  pluck("fund_health") %>% 
-  pluck("plots") 
-temp
+report <- sf_entity_info %>% 
+  filter(govt_type == "City") %>% 
+  mutate(batches = map(t_id ,query_batch_ids))
 ```
 
-```{r}
-temp<- fiscal_health %>% pluck(1) %>% 
-  pluck("funct_health") %>% 
-  pluck("plots") %>% 
-  #pluck("funct_faceted_plot")
-  #pluck("funct_individual_plots")
-  pluck("funct_by_year_plots")
-temp
-# temp<- fiscal_health %>% pluck(1) %>% 
-#   pluck("funct_health") %>% 
-#   pluck("data") #%>% 
-#   #pluck("funct_faceted_plot")
-#   #pluck("funct_individual_plots")
-#   pluck("funct_by_year_plots")
-```
-
-
-```{r}
-plotly_temp <- ggplotly(temp)
-```
-
-```{r}
-#names_of_entities<- report %>% pull(name)
-
-test_report <- report %>% mutate(
-  fiscal_health = name %>% map(entity_fiscal_health_data, report)
-)
-
-#fiscal_health <- names_of_entities %>%  map(entity_fiscal_health_data, report)
-
-```
-
-```{r}
-test_report %>% filter()
-```
 
 ```{r, eval = FALSE}
-#get all
-test_report %>% filter(t_id ==1601) %>% pluck("fiscal_health") 
+# temp <- dbGetQuery(
+#       odbc_aws,
+#       paste(
+#         "
+#       SELECT e.name           AS name,
+#       t.id             AS id,
+#       t.batch_id       AS batch_id,
+#       t.amount         AS amount,
+#       t.fiscal_year    AS fiscal_year,
+#       t.account_number AS account_number,
+#       type
+#       FROM transaction t
+#       JOIN batch b
+#         ON t.batch_id = b.id
+#       JOIN entity e 
+#         ON b.entity_id = e.id
+#       WHERE t.batch_id IN (",
+#       54158,
+#       ") "
+#       )
+#     ) %>%
+#     as_tibble()
 
-#get fund
-test_report %>% filter(t_id ==1601) %>% pluck("fiscal_health") %>% pluck(1) %>% pluck("fund_health") 
-
-#get funct
-test_report %>% filter(t_id ==1601) %>% pluck("fiscal_health") %>% pluck(1) %>% pluck("funct_health") 
-
-#get account
-test_report %>% filter(t_id ==1601) %>% pluck("fiscal_health") %>% pluck(1) %>% pluck("account_health") 
 ```
+
+
+
+Single batch examples -- show tae
+```{r, eval = FALSE}
+# 
+# #vignettes of atomized uca
+# temp <-
+#   query_transactions(54158, osa_lookup) # contains incorrect length, form, and unmapped account code, it also shows how it can find the quaternary failure
+# temp <-
+#   query_transactions(54230, osa_lookup) # contains incorrect funct, and secondary funct code.
+# temp <-
+#   query_transactions(53818, osa_lookup) # contains incorrect account, and primary account code. 
+```
+
+
+```{r,eval=FALSE}
+# temp
+```
+
+## EXECUTE: Validate entity uca
+```{r}
+# takes about 10 minutes
+report <- report %>% head() %>% 
+  mutate(queried_transactions = batches %>% map(query_transactions, lookup_table=osa_lookup))
+
+```
+
+
+```{r}
+#view a single entities transaction reports.
+report %>%
+  filter(name=="Alpine City" ) %>%
+  pull(queried_transactions) %>%
+  pluck(1) %>% 
+  pluck("transaction_report") %>% 
+  #other interesting reports might something like "invalid_length" or "invalid_funct_code"
+  head()
+```
+
+Conclusion: So at this point the data is cleaned. All cleaned UCA is in the "transaction_report" and all the transactions with erroronous uca is in one of the invalid reports. We can now do analysis on the transaction_report. 
+
+
+# FISCAL HEALTH ANALYSIS
+<!-- ##Boilerplates -->
+<!-- ###generate some interesting aggregations for an entity -->
+<!-- #### boilerplate for agg by account -->
+<!-- ```{r, eval = FALSE} -->
+<!-- entity_by_year <- report %>% -->
+<!--   slice(1) %>% -->
+<!--   pull(queried_transactions) %>% -->
+<!--   pluck(1) %>% -->
+<!--   pluck("transaction_report") %>% -->
+<!--   agg_dollars_and_records(account_description, account, fiscal_year) -->
+
+
+<!-- ``` -->
+<!-- #### boilerplate for agg by funct -->
+<!-- ```{r, eval = FALSE} -->
+<!-- entity_by_year <- report %>% -->
+<!--   slice(2) %>% -->
+<!--   pull(queried_transactions) %>% -->
+<!--   pluck(1) %>% -->
+<!--   pluck("transaction_report") %>% -->
+<!--   agg_dollars_and_records(funct_description, funct, fiscal_year) -->
+
+<!-- ``` -->
+
+## Single Entity Comparison 
+
+
+### DEV: testing a single entity
+```{r, eval = FALSE}
+#note to get the names simply do : 
+# report %>% pull(name) 
+
+    name <- "Alpine City"
+           #"Hildate City"
+           #"Aurora City"
+    single_entity_fiscal_health <- name %>% map(entity_fiscal_health_data, report)
+
+```
+
+
+
+```{r, eval = FALSE}
+#single_entity_fiscal_health
+
+single_entity_fiscal_health %>% pluck(1) %>% pluck("fund_health")
+
+single_entity_fiscal_health %>% pluck(1) %>% pluck("funct_health") %>% pluck("plots") %>% pluck("funct_faceted_plot")
+
+#single_entity_fiscal_health %>% pluck(1) %>% pluck("account_health")
+```
+### Remove Entities without any valid transaction reports:
+
+```{r}
+report <-report %>%  filter(name != "Hildale City" & name != "East Carbon City")
+```
+### Execute - Aggregations
+```{r}
+fiscal_health_report <- report %>%
+  mutate(fiscal_health = name %>% map(entity_fiscal_health_data, report)) 
+
+```
+
+### Post Hoc Analysis -- DAVID
+```{r}
+
+e_name = "Alpine City" 
+        #"Aurora City"
+
+temp_report <- fiscal_health_report %>%
+  filter(name == e_name) %>%
+  pluck("fiscal_health") %>%
+  pluck(1) %>%
+  pluck("fund_health") # "funct_health" or "account_health"
+```
+
+Some plots are hard to see, so we can view them as a plotly object. 
+```{r}
+plotly <- temp_report %>%
+  pluck("plots") %>%
+  pluck("fund_faceted_plot") %>%
+  ggplotly()
+
+#run plotly in the console
+```
+
+
+###EXECUTE- Gen fiscal health index -- DAVID
+```{r}
+gen_fhi <- function(fhi_data){
+  
+  #suffix explanation: cy = current year, ay = all_years
+  
+  # MARK explanation
+  # mark1 : 1 if number of funds in surplus is greater than number of funds in deficit this year;0 otherwise.
+  # mark2 : 
+  
+  # Current Year Analysis ======================================================
+  
+  #fund analysis +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    fhi_fund_data_current_year <- fhi_data %>%
+    pluck("fund_health") %>%
+    pluck("data")  %>%
+    filter(fiscal_year == "2019")
+    
+  # mark1 ----------------------------------------------------------------------
+
+  sord_count_cy <- fhi_fund_data_current_year %>%
+    group_by(sord_category) %>%
+    summarize(n = n())
+
+  if (sord_count_cy %>% filter(sord_category == "surplus") %>% nrow() == 0) {
+    fund_surplus_count <- 0
+  } else{
+    fund_surplus_count<-sord_count_cy %>% filter(sord_category == "surplus") %>% pull(n)
+  }
+
+  if (sord_count_cy %>% filter(sord_category == "deficit") %>% nrow() == 0) {
+    fund_deficit_count <- 0
+  } else{
+    fund_deficit_count<-sord_count_cy %>% filter(sord_category == "deficit") %>% pull(n)
+  }
+
+  #fund_total_count <- fund_surplus_count + fund_deficit_count
+
+  if(fund_surplus_count > fund_deficit_count){
+    mark1 = 1
+  }else{
+    mark1 = 0
+  }
+  
+  ### MARK 2--------------------------------------------------------------------
+
+  avg_cat_count_cy <- fhi_fund_data_current_year %>%
+    ungroup() %>%
+    mutate(avg_category  = fct_explicit_na(factor(avg_category))#,
+           #avg_category  =avg_category %>% fct_expand("average", "above average","below average")
+           ) %>%
+    group_by(avg_category) %>%
+    summarize(n = n())
+
+  if (avg_cat_count_cy %>% filter(avg_category == "below average") %>% nrow() == 0) {
+    fund_below_average_count <- 0
+  } else{
+    fund_below_average_count <-
+      avg_cat_count_cy %>% filter(avg_category == "below average") %>% pull(n)
+  }
+
+  if (avg_cat_count_cy %>% filter(avg_category == "above average") %>% nrow() == 0) {
+    fund_above_average_count <- 0
+  } else{
+    fund_above_average_count <-
+      avg_cat_count_cy %>% filter(avg_category == "above average") %>% pull(n)
+  }
+
+  if (avg_cat_count_cy %>% filter(avg_category == "average") %>% nrow() == 0) {
+    fund_average_count <- 0
+  } else{
+    fund_average_count <-
+      avg_cat_count_cy %>% filter(avg_category == "average") %>% pull(n)
+  }
+
+  fund_avg_cat_total <- fund_below_average_count + fund_above_average_count + fund_average_count
+
+  mark2 <- (fund_average_count + fund_above_average_count) / fund_avg_cat_total
+  
+  # mark3 ----------------------------------------------------------------------
+
+  sord_magnitude_cy <- fhi_fund_data_current_year %>%
+    mutate(surplus_only = case_when(sord_category == "surplus" ~ rev_minus_exp,
+                                 sord_category == "deficit" ~ 0),
+           deficit_only = case_when(sord_category == "deficit" ~ rev_minus_exp,
+                                 sord_category == "surplus" ~ 0),
+           )
+  
+  fund_surplus_sum <- sord_magnitude_cy %>% pull(surplus_only) %>% sum()
+  fund_deficit_sum <- sord_magnitude_cy %>% pull(deficit_only) %>% sum()
+
+  mark3 <- fund_surplus_sum / (abs(fund_surplus_sum) + abs(fund_deficit_sum))
+  
+  
+
+  
+  
+  # Function Analysis ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  
+  ##*Put function analysis here*##
+  
+  
+  # Account Analysis +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  
+  ##*Put account analysis here*##
+  
+################################################################################  
+  # Five Year analysis =========================================================
+  
+  # Fund Analysis ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  
+  fhi_fund_data_five_year <- fhi_data %>%
+    pluck("fund_health") %>%
+    pluck("data") 
+  
+  
+  # Mark 4 ---------------------------------------------------------------------
+  sord_count_ay <- fhi_fund_data_five_year %>%
+    group_by(sord_category) %>%
+    summarize(n = n())
+  
+  if (sord_count_ay %>% filter(sord_category == "surplus") %>% nrow() == 0) {
+    fund_surplus_count <- 0
+  } else{
+    fund_surplus_count <-
+      sord_count_ay %>% filter(sord_category == "surplus") %>% pull(n)
+  }
+  
+  if (sord_count_ay %>% filter(sord_category == "deficit") %>% nrow() == 0) {
+    fund_deficit_count <- 0
+  } else{
+    fund_deficit_count <-
+      sord_count_ay %>% filter(sord_category == "deficit") %>% pull(n)
+  }
+  
+  #fund_total_count <- fund_surplus_count + fund_deficit_count
+  
+  if (fund_surplus_count > fund_deficit_count) {
+    mark4 = 1
+  } else{
+    mark4 = 0
+  }
+  
+  # mark 5 ---------------------------------------------------------------------
+  
+  avg_cat_count_ay <- fhi_fund_data_five_year %>%
+    ungroup() %>%
+    mutate(avg_category  = fct_explicit_na(factor(avg_category))#,
+           #avg_category  =avg_category %>% fct_expand("average", "above average","below average")
+           ) %>%
+    group_by(avg_category) %>%
+    summarize(n = n())
+
+  if (avg_cat_count_ay %>% filter(avg_category == "below average") %>% nrow() == 0) {
+    fund_below_average_count <- 0
+  } else{
+    fund_below_average_count <-
+      avg_cat_count_ay %>% filter(avg_category == "below average") %>% pull(n)
+  }
+
+  if (avg_cat_count_ay %>% filter(avg_category == "above average") %>% nrow() == 0) {
+    fund_above_average_count <- 0
+  } else{
+    fund_above_average_count <-
+      avg_cat_count_ay %>% filter(avg_category == "above average") %>% pull(n)
+  }
+
+  if (avg_cat_count_ay %>% filter(avg_category == "average") %>% nrow() == 0) {
+    fund_average_count <- 0
+  } else{
+    fund_average_count <-
+      avg_cat_count_ay %>% filter(avg_category == "average") %>% pull(n)
+  }
+
+  fund_avg_cat_total <- fund_below_average_count + fund_above_average_count + fund_average_count
+
+  mark5 <- (fund_average_count + fund_above_average_count) / fund_avg_cat_total
+  
+  # Function Analysis ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  
+  ##*Put function analysis here*##
+  
+  
+  # Account Analysis +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  
+  ##*Put account analysis here*##  
+  
+  
+  
+################################################################################  
+  # Consolidate ================================================================
+  # total_marks <-  list(mark1 = mark1,
+  #                      mark2 = mark2,
+  #                      mark3 = mark3,
+  #                      total_marks = total_marks)
+  
+  total_marks <- mark1 + mark2 + mark3 +
+    mark4 + mark5
+  
+}
+```
+```{r}
+
+fiscal_health_index <- tibble::rowid_to_column(fiscal_health_report, "row_id") 
+
+fiscal_health_index <- fiscal_health_index %>% 
+  rowwise() %>% 
+  mutate(
+    fhi = gen_fhi(fiscal_health))
+```
+
+```{r}
+fiscal_health_index %>% select(name, fhi)
+```
+
+look at 'fiscally health' entity
+```{r, eval = FALSE}
+fiscal_health_index %>% filter(name == "Ballard Town") %>% pull(fiscal_health) %>% pluck(1) %>% pluck("fund_health")
+```
+
+Look at the 'fiscally unhealthy' entity
+```{r, eval = FALSE}
+fiscal_health_index %>% filter(name == "Beaver City") %>% pull(fiscal_health) %>% pluck(1) %>% pluck("fund_health")
+```
+
+
+
+#Cross Entity========================================================================================================================
+this area is not finished yet. I am still working through the process. 
+
+```{r}
+test_nums <- 1:10
+
+test_df<- fiscal_health_index %>% mutate(
+  fund_data = rowid %>% map(test_function, report_df = fiscal_health_index) 
+)
+
+test_df <- test_nums %>% map(test_function, report_df = fiscal_health_index) 
+
+total_df <- bind_rows(test_df)
+
+```
+
+```{r}
+test_function <- function(temp_num, report_df){
+    temp_data <- report_df %>%
+    slice(temp_num) %>%
+    pull(fiscal_health) %>%
+    pluck(1) %>%
+    pluck("fund_health") %>%
+    pluck("data")
+}
+```
+
+
+```{r}
+total_df <- total_df %>%
+  group_by(fund) %>%
+  mutate(cross_avg = mean(rev_minus_exp),
+         cross_sd  = sd(rev_minus_exp)) %>%
+  mutate(cross_avg_cateogry = case_when (
+    rev_minus_exp > cross_avg + cross_sd ~ "above_average",
+    rev_minus_exp < cross_avg - cross_sd ~ "below_average",
+    TRUE ~ "average", 
+  ))
+
+```
+
+```{r}
+cross_plot_fund_by_year <- function(fiscal_years,entity_name, df) {
+  fiscal_years <- enquo(fiscal_years)
+  df <- df %>% filter(fiscal_year == !!fiscal_years)
+  
+  ggplot(data = df,
+         aes(x = fund_descr_code,
+             y = rev_minus_exp,
+             fill = cross_sord_category)) +
+    geom_bar(stat = "identity") +
+    coord_flip() +
+    geom_text(
+      aes(label = paste(
+        "$", format(rev_minus_exp, big.mark = ",", trim = TRUE)
+      )),
+      color = "black",
+      fontface = "bold",
+      #vjust = 'inward',
+      hjust = "inward",
+      size = 4,
+      alpha = .5
+    ) +
+    labs(
+      title = paste("Fund- Cross Fiscal Health Analysis - Fiscal Year: ", as_label(fiscal_years)),
+      subtitle = paste(entity_name)
+    ) +
+    scale_fill_manual(
+      values = c(
+        "average" = "#00BFC4",
+        "below average" = "#F8766D",
+        "above average" = "#7CAE00"
+      )
+    ) +
+        xlab("Fiscal Year") +
+      ylab("Difference of Revenues and Expenditures")
+  
+}
+```
+
+
