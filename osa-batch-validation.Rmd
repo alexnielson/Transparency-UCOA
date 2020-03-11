@@ -219,8 +219,8 @@ query_transactions <- function(batches_list, lookup_table) {
     mutate(
       account_number_length = nchar(account_number),
       reason = case_when(
-        account_number_length < 19 ~ paste("uca code block too short - length =", account_number_length),
-        account_number_length > 19 ~ paste("uca code block too long - length =", account_number_length)
+        account_number_length < 19 ~ paste("Invalid Length - Code block too short - length =", account_number_length),
+        account_number_length > 19 ~ paste("Invalid Length - Code block too long  - length =", account_number_length)
       )
     )
   
@@ -238,7 +238,7 @@ query_transactions <- function(batches_list, lookup_table) {
       regex("^[:digit:]{3}-[:digit:]{6}-[:digit:]{8}$")
     )) %>% 
     mutate(
-      reason = "uca code incorrect form. form must be :###-######-########"
+      reason = "Invalid Form - form must be : ###-######-########"
     )
   
   transaction_report <-
@@ -276,8 +276,6 @@ query_transactions <- function(batches_list, lookup_table) {
         select(
           number,
           fund_description = description,
-          #lu_fund_code_primary = code_primary,
-          #lu_fund_code_secondary = code_secondary,
           fund_level_primary = level_primary,
           fund_level_secondary = level_secondary
         ),
@@ -291,9 +289,6 @@ query_transactions <- function(batches_list, lookup_table) {
         select(
           number,
           funct_description = description,
-          #lu_funct_code_primary = code_primary,
-          #lu_funct_code_secondary = code_secondary,
-          #lu_funct_code_tertiary = code_tertiary,
           funct_level_primary = level_primary,
           funct_level_secondary = level_secondary,
           funct_level_tertiary = level_tertiary
@@ -308,9 +303,6 @@ query_transactions <- function(batches_list, lookup_table) {
         select(
           number,
           account_description = description,
-          #lu_account_code_primary = code_primary,
-          #lu_account_code_secondary = code_secondary,
-          #lu_account_code_tertiary = code_tertiary,
           account_level_primary = level_primary,
           account_level_secondary = level_secondary,
           account_level_tertiary = level_tertiary
@@ -318,33 +310,83 @@ query_transactions <- function(batches_list, lookup_table) {
       by = c("account" = "number")
     )
   
-  #6. Filter out any non revenue and expense uca
+  #6. Filter out any non revenue and expense uca -------------------------------
   
-  # invalid_transaction_type <- transaction_report %>% 
-  #   filter(type ==4 || type ==5 || type ==6 || type== 7) %>% 
-  #   mutate(
-  #     # transaction_type = case_when(
-  #     #   type == 4 ~ "stimulus expense",
-  #     #   type == 5 ~ "stimulus revenue",
-  #     #   type == 6 ~ "budget",
-  #     #   type == 7 ~ "balance sheet"
-  #     # ),
-  #     
-  #     reason =  case_when(
-  #       type == 4 ~ "transaction type correpsonds to stimulus expense",
-  #       type == 5 ~ "transaction type correpsonds to stimulus revenue",
-  #       type == 6 ~ "transaction type correpsonds to budget",
-  #       type == 7 ~ "transaction type correpsonds to balance sheet"
-  #     )
-  #     
-  #   )
+  # stimexp <- transaction_report %>%
+  #   filter(type == 4) %>%
+  #   mutate(type=type,
+  #          transaction_type = "stimulus expense",
+  #          reason = "Invalid Transaction Type - transaction type correpsonds to stimulus expense(must be a Revenue or Expense).")
   # 
-  # transaction_report <- transaction_report %>% 
-  #   anti_join(invalid_transaction_type, by="id")
+  # stimrev <- transaction_report %>%
+  #   filter(type == 5) %>%
+  #   mutate(type=type,
+  #          transaction_type = "stimulus revenue",
+  #          reason = "Invalid Transaction Type - transaction type correpsonds to stimulus revenue(must be a Revenue or Expense).")
+  # 
+  # budget <- transaction_report %>%
+  #   filter(type == 6) %>%
+  #   mutate(type=type,
+  #          transaction_type = "budget",
+  #          reason = "Invalid Transaction Type - transaction type correpsonds to budget (must be a Revenue or Expense).")
+  # 
+  # balance_sheet <- transaction_report %>%
+  #   filter(type == 7) %>%
+  #   mutate(type=type,
+  #          transaction_type = "balance sheet",
+  #          reason = "Invalid Transaction Type - transaction type correpsonds to balance sheet (must be a Revenue or Expense).")
+  # 
+  # invalid_transaction_type <- stimexp %>%
+  #   bind_rows(stimrev) %>%
+  #   bind_rows(budget) %>%
+  #   bind_rows(balance_sheet)
+  # 
+  # transaction_report<- transaction_report %>%
+  #    anti_join(stimexp, by="id")%>%
+  #    anti_join(stimrev, by="id")%>%
+  #    anti_join(budget, by="id")%>%
+  #    anti_join(balance_sheet, by="id")
+
+  #get all the accounts that start with a 1 or a 2. These are not acceptable uca according to Darell. 
+  # rev_begin_with1 <- transaction_report %>%
+  #   filter(type == 2 && str_sub(account, 0, 1) == 1) %>%
+  #   mutate(reason = "Invalid Account block - account block starts with 1 - Account chunk must start with a 3 (revenue) or 4 (expenditure).")
+  # 
+  # exp_begin_with1 <- transaction_report %>%
+  #   filter(type == 1 && str_sub(account, 0, 1) == 1) %>%
+  #   mutate(reason = "Invalid Account block - account block starts with 1 - Account chunk must start with a 3 (revenue) or 4 (expenditure).")
+  # 
+  # rev_begin_with2 <- transaction_report %>%
+  #   filter(type == 2 && str_sub(account, 0, 1) == 2) %>%
+  #   mutate(reason = "Invalid Account block - account block starts with 2 - Account chunk must start with a 3 (revenue) or 4 (expenditure).")
+  # 
+  # exp_begin_with2 <- transaction_report %>%
+  #   filter(type == 1 && str_sub(account, 0, 1) == 2) %>%
+  #   mutate(reason = "Invalid Account block - account block starts with 2 - Account chunk must start with a 3 (revenue) or 4 (expenditure).")
+
+  # invalid_account_type <- rev_begin_with1 %>%
+  #   bind_rows(exp_begin_with1)%>%
+  #   bind_rows(rev_begin_with2)%>%
+  #   bind_rows(exp_begin_with2)
+  #   
   
-  invalid_transaction_type <- tibble()
+  # invalid_account_type <- transaction_report %>%
+  #   filter((type == 1 || type ==2) && (str_sub(account, 0, 1) == 1 ||str_sub(account, 0, 1) == 2)) %>%
+  #   mutate(reason = "Invalid Account block - Account chunk must start with a 3 (revenue) or 4 (expenditure).")
   
-  #7. Find unmapped uca codes
+  invalid_account_type <- transaction_report %>%
+    filter((str_sub(account, 0, 1) == 1  & type == 1) |
+             (str_sub(account, 0, 1) == 1  & type == 2) |
+             (str_sub(account, 0, 1) == 2  & type == 1) |
+             (str_sub(account, 0, 1) == 2  & type == 1)
+    ) %>%
+    mutate(reason = "Invalid Account Chunk - Account chunk must start with a 3 (revenue) or 4 (expenditure).")
+
+  transaction_report<- transaction_report %>%
+     anti_join(invalid_account_type, by="id")
+  
+  
+  #7. Find unmapped uca codes --------------------------------------------------
   
   #find wrong fund code
   unmapped_fund_code <- transaction_report %>%
@@ -364,7 +406,7 @@ query_transactions <- function(batches_list, lookup_table) {
       fund_code_secondary
     ) %>% 
     mutate(
-      reason = "The fund code does not exist in the current uniform chart of accounts. "
+      reason = "Invalid Fund Code - The fund code does not exist in the current uniform chart of accounts. "
     )
   
   #If the fund code does not map, we want to know which component of the code
@@ -379,7 +421,7 @@ query_transactions <- function(batches_list, lookup_table) {
         unlist()
     ))%>% 
     mutate(
-      reason = "The primary piece of the fund code does not exist in the current uniform chart of accounts. "
+      reason = "Invalid Fund Code - The primary piece of the fund code does not exist in the current uniform chart of accounts. "
     )
   
   #check secondary
@@ -391,7 +433,7 @@ query_transactions <- function(batches_list, lookup_table) {
         unlist()
     )) %>% 
     mutate(
-      reason = "The secondary piece the fund code does not exist in the current uniform chart of accounts. "
+      reason = "Invalid Fund Code - The secondary piece the fund code does not exist in the current uniform chart of accounts. "
     )
   
   
@@ -415,7 +457,7 @@ query_transactions <- function(batches_list, lookup_table) {
       funct_code_secondary,
       funct_code_tertiary
     ) %>%
-    mutate(reason = "The function code does not exist in the current uniform chart of accounts. ")
+    mutate(reason = "Invalid Function Code - The function code does not exist in the current uniform chart of accounts. ")
   
   #If the funct code does not map, we want to know which component of the code
   #failed. ie: was it the primary, secondary, or tertiary component?
@@ -428,7 +470,7 @@ query_transactions <- function(batches_list, lookup_table) {
         select(code_primary) %>%
         unlist()
     )) %>%
-    mutate(reason = "Invalid function code - The first and second digits of the function code do not exist in the current uniform chart of accounts. ")
+    mutate(reason = "Invalid Function Code - The first and/or second digits of the function code do not exist in the current uniform chart of accounts. ")
   
   
   #check funct secondary
@@ -448,7 +490,7 @@ query_transactions <- function(batches_list, lookup_table) {
           unlist()
       )
     ) %>%
-    mutate(reason = "Invalid function code -The third and fourth digits of the function code do not exist in the current uniform chart of accounts. ")
+    mutate(reason = "Invalid Function Code - The third and/or fourth digits of the function code do not exist in the current uniform chart of accounts. ")
   
   
   # check funct tertiary
@@ -475,7 +517,7 @@ query_transactions <- function(batches_list, lookup_table) {
           unlist()
       )
     ) %>%
-    mutate(reason = "Invalid function code - The fifth and sixth digits of the function code do not exist in the current uniform chart of accounts. ")
+    mutate(reason = "Invalid Function Code - The fifth and/or sixth digits of the function code do not exist in the current uniform chart of accounts. ")
   
   # check account
   unmapped_account_code <- transaction_report %>%
@@ -498,7 +540,7 @@ query_transactions <- function(batches_list, lookup_table) {
       account_code_tertiary,
       account_code_quaternary
     )%>%
-    mutate(reason = "The account code does not exist in the current uniform chart of accounts. ")
+    mutate(reason = "Invalid Account Code - The account code does not exist in the current uniform chart of accounts. ")
   
   #If the funct code does not map, we want to know which component of the code
   #failed. ie: was it the primary, secondary, tertiary, quaternary component?
@@ -511,7 +553,7 @@ query_transactions <- function(batches_list, lookup_table) {
         select(code_primary) %>%
         unlist()
     )) %>% 
-    mutate(reason = "Invalid account code - The first and second digits of account code do not exist in the current uniform chart of accounts. ")
+    mutate(reason = "Invalid Account Code - The first and/or second digits of account code do not exist in the current uniform chart of accounts. ")
   
   
   #check account secondary
@@ -530,7 +572,7 @@ query_transactions <- function(batches_list, lookup_table) {
           unlist()
       )
     )%>%
-    mutate(reason = "Invalid account code - The third and fourth digits of the account code do not exist in the current uniform chart of accounts. ")
+    mutate(reason = "Invalid Account Code - The third and/or fourth digits of the account code do not exist in the current uniform chart of accounts. ")
   
   
   unmapped_account_code_tertiary <- unmapped_account_code %>%
@@ -554,7 +596,7 @@ query_transactions <- function(batches_list, lookup_table) {
           unlist()
       )
     )%>%
-    mutate(reason = "Invalid account code - The fifth and sixth digits of the account code do not exist in the current uniform chart of accounts. ")
+    mutate(reason = "Invalid Account Code - The fifth and/or sixth digits of the account code do not exist in the current uniform chart of accounts. ")
   
   unmapped_account_code_quaternary <- unmapped_account_code %>%
     filter(
@@ -583,7 +625,7 @@ query_transactions <- function(batches_list, lookup_table) {
       #     unlist()
       # )
     )%>%
-    mutate(reason = "Invalid account code -The seventh and eighth digits of the account code do not exist in the current uniform chart of accounts. ")
+    mutate(reason = "Invalid Account Code - The seventh and/or eighth digits of the account code do not exist in the current uniform chart of accounts. ")
   
   #now remove incorrectly mapped. we will save them to report, but do not want
   #them in our analysis.
@@ -592,13 +634,15 @@ query_transactions <- function(batches_list, lookup_table) {
     anti_join(unmapped_funct_code, by = "id") %>%
     anti_join(unmapped_account_code, by = "id")
   
-    #finally check that the account is mapped to the correct type. 
-  # 1= expediture
+  #8. check account type -------------------------------------------------------
+  
+  # finally check that the account is mapped to the transaction type 
+  # 1 = expediture
   # 2 = revenue
-  # 
+  
   exp_transaction_but_rev_account <- transaction_report %>%
-    filter(type == 1 && str_sub(account, 0, 1) ==3)%>%
-    mutate(reason = "the transaction is listed as an expenditure, but has an account code correpsonding to a revenue ") %>% 
+    filter(type == 1 & str_sub(account, 0, 1) == 3)%>%
+    mutate(reason = "Invalid Account Code or Transaction Type - the transaction is listed as an expenditure, but has an account code correpsonding to a revenue ") %>% 
     select(
       id,
       batch_id,
@@ -611,8 +655,8 @@ query_transactions <- function(batches_list, lookup_table) {
     )
 
   rev_transaction_but_exp_account <- transaction_report %>%
-    filter(type == 2 && str_sub(account, 0, 1) == 4)%>%
-    mutate(reason = "the transaction is listed as a revenue, but has an account code correpsonding to a expenditure ") %>%
+    filter(type == 2 & str_sub(account, 0, 1) == 4)%>%
+    mutate(reason = "Invalid Account Code or Transaction Type - the transaction is listed as a revenue, but has an account code correpsonding to a expenditure ") %>%
     select(
       id,
       batch_id,
@@ -628,21 +672,31 @@ query_transactions <- function(batches_list, lookup_table) {
     anti_join(exp_transaction_but_rev_account, by = "id") %>% 
     anti_join(rev_transaction_but_exp_account, by = "id")
   
-  # Deal with NOT Applicable Function
+
+  # Deal with NOT Applicable Function Code. We need to filter these out now. 
   
-  invalid_function_use <- transaction_report %>% 
-    filter(funct == "000000") %>% 
-    mutate(reason = "'Not Applicable' function code is no longer acceptable. Fix function code to have more detail.")
+  rev_invalid_function_use <- transaction_report %>%
+    filter( type == 2 & funct == "000000") %>%
+    mutate(reason = "Invalid Function Code - The 'Not Applicable' function code (000000) is no longer acceptable. Fix by listing an appropriate function code.")
+  
+  
+  exp_invalid_function_use <- transaction_report %>%
+    filter(type == 1  & funct == "000000") %>%
+    mutate(reason = "Invalid Function Code - The 'Not Applicable' function code (000000) is no longer acceptable. Fix by listing an appropriate function code.")
+  
+  invalid_function_use <- rev_invalid_function_use %>% bind_rows(exp_invalid_function_use)
   
   transaction_report<- transaction_report %>% 
     anti_join(invalid_function_use, by="id")
   
+
   #now create a tibble which can let us know if there are errors present.
   if(transaction_report %>% nrow()==0){no_transactions = TRUE }else{no_transactions= FALSE}
   if(invalid_reported_na %>% nrow()>0){fail_na = TRUE }else{fail_na= FALSE}
   if(invalid_length %>% nrow()>0){fail_length = TRUE }else{fail_length = FALSE}
   if(invalid_form %>% nrow()>0){fail_form = TRUE }else{fail_form =FALSE}
-  if(invalid_transaction_type %>% nrow()>0){fail_transaction_type = TRUE }else{fail_transaction_type =FALSE}
+#  if(invalid_transaction_type %>% nrow()>0){fail_transaction_type = TRUE }else{fail_transaction_type =FALSE}
+  if(invalid_account_type %>% nrow()>0){fail_account_type = TRUE }else{fail_account_type =FALSE}
   if(unmapped_fund_code %>% nrow()>0){fail_fund = TRUE }else{fail_fund = FALSE}
   if(unmapped_funct_code %>% nrow()>0){fail_funct = TRUE }else{fail_funct =FALSE}
   if(unmapped_funct_code_primary %>% nrow()>0){fail_funct_pri = TRUE }else{fail_funct_pri =FALSE}
@@ -664,7 +718,8 @@ query_transactions <- function(batches_list, lookup_table) {
       "invalid_reported_na",
       "invalid_length",
       "invalid_form",
-      "fail_transaction_type",
+#      "fail_transaction_type",
+      "fail_account_type",
       "unmapped_fund_code",
       "unmapped_funct_code",
       "unmapped_funct_code_primary",
@@ -685,7 +740,8 @@ query_transactions <- function(batches_list, lookup_table) {
       fail_na,
       fail_length,
       fail_form,
-      fail_transaction_type,
+#      fail_transaction_type,
+      fail_account_type,
       fail_fund,
       fail_funct,
       fail_funct_pri,
@@ -724,7 +780,8 @@ query_transactions <- function(batches_list, lookup_table) {
       "unmapped_account_code_quaternary" = unmapped_account_code_quaternary,#14
       "exp_transaction_but_rev_account" = exp_transaction_but_rev_account,  #15
       "rev_transaction_but_exp_account" = rev_transaction_but_exp_account,
-      "invalid_transaction_type" = invalid_transaction_type,
+#      "invalid_transaction_type" = invalid_transaction_type,
+      "invalid_account_type" = invalid_account_type,
       "invalid_function_use" = invalid_function_use,
       "summary_tibble" = summary_tibble
       
@@ -1009,9 +1066,32 @@ report_empty_batches <- report  %>%
 report <- report %>% anti_join(report_empty_batches , by = "id")
 ```
 
+### Clean: for right now get rid of all school districts
+```{r}
+report_schools <- report %>% 
+  filter(govt_type == "School District or Charter School")
+
+report <- report %>% 
+  anti_join(report_schools, by="id")
+```
+
+### Clean : take out counties because they are massive. Will run analysis separetely. 
+```{r}
+report_county <- report %>% 
+  filter(govt_type == "County")
+
+report <- report %>% 
+  anti_join(report_county, by = "id")
+```
+
+### Clean: fix names with a "/" in the name
+```{r}
+report <- report %>% 
+  mutate(name = str_replace(name, "/"," "))
+```
 
 
-## 2. Validate
+## 2. Validate - non counties
 
 for each entity, take the list of batches and run the query_transaction function on the batches. 
 
@@ -1021,7 +1101,7 @@ for each entity, take the list of batches and run the query_transaction function
 #start_time <- Sys.time()
 
 report <- report %>% 
-   slice(1:50) %>% #uncomment/comment to run a subset. 
+   #slice(1:50) %>%  #uncomment/comment to run a subset. 
   mutate(queried_transactions = batches %>% map(query_transactions, osa_lookup))
 
 #end_time <- Sys.time()
@@ -1150,13 +1230,6 @@ bad_uca_entities <- report %>%
 ```
 
 #find precisely what is wrong with the uca.
-
-```{r}
-find_precise_uca_failures <- function(entity_name,uca_summary_string, report_df){
-  
-}
-```
-
 ```{r}
 pluck_queried_transactions <- function(entity_name, report_df){
       report_df %>% 
@@ -1166,21 +1239,11 @@ pluck_queried_transactions <- function(entity_name, report_df){
 }
 ```
 
-```{r}
-pluck_queried_transactions("Bluffdale City", bad_uca_entities)
-```
-
-
-```{r}
-export_uca_problems(entity_name = "Bluffdale City",
-                    bad_uca_entities = bad_uca_entities)
-```
-
 #Export
 ```{r}
 
 export_uca_problems<- function(entity_name, bad_uca_entities){
-  
+  print(paste(entity_name,"exporting"))
 uca_problems <- list()
 
 #invalid_length-----------------------------------------------------------------
@@ -1199,6 +1262,7 @@ if(entity_name %>%
       batch_id,
       "transaction_id" = id,
       amount,
+      type,
       transaction_type,
       account_number,
       account_number_length,
@@ -1232,6 +1296,7 @@ if(entity_name %>%
       batch_id,
       "transaction_id" = id,
       amount,
+      type,
       transaction_type,
       account_number,
       reason,
@@ -1263,6 +1328,7 @@ if(entity_name %>%
       batch_id,
       "transaction_id" = id,
       amount,
+      type,
       transaction_type,
       account_number,
       reason,
@@ -1280,30 +1346,31 @@ if(entity_name %>%
    pluck("unmapped_funct_code")%>%
    nrow() > 0) {
   
-    unmapped_funct_code <-  entity_name %>%
-    pluck_queried_transactions(report_df = bad_uca_entities) %>%
-    pluck("unmapped_funct_code") %>%
-    mutate(
-      transaction_type = case_when(
-        type == 1 ~ "expenditure",
-        type == 2 ~ "revenue",
-        type == 3 ~ "employee compensation",
-        type == 4 ~ "stimulus expense",
-        type == 5 ~ "stimulus revenue",
-        type == 6 ~ "budget",
-        type == 7 ~ "balance sheet"
-      )
-    ) %>%
-    select(
-      fiscal_year,
-      batch_id,
-      "transaction_id" = id,
-      amount,
-      transaction_type,
-      account_number,
-      reason,
-    )
-  uca_problems[["invalid_funct_code"]] <- unmapped_funct_code
+  #   unmapped_funct_code <-  entity_name %>%
+  #   pluck_queried_transactions(report_df = bad_uca_entities) %>%
+  #   pluck("unmapped_funct_code") %>%
+  #   mutate(
+  #     transaction_type = case_when(
+  #       type == 1 ~ "expenditure",
+  #       type == 2 ~ "revenue",
+  #       type == 3 ~ "employee compensation",
+  #       type == 4 ~ "stimulus expense",
+  #       type == 5 ~ "stimulus revenue",
+  #       type == 6 ~ "budget",
+  #       type == 7 ~ "balance sheet"
+  #     )
+  #   ) %>%
+  #   select(
+  #     fiscal_year,
+  #     batch_id,
+  #     "transaction_id" = id,
+  #     amount,
+  #     type,
+  #     transaction_type,
+  #     account_number,
+  #     reason,
+  #   )
+  # uca_problems[["invalid_funct_code"]] <- unmapped_funct_code
   
   # check primary level ````````````````````````````````````````````````````````
   if(entity_name %>%
@@ -1329,6 +1396,7 @@ if(entity_name %>%
       batch_id,
       "transaction_id" = id,
       amount,
+      type,
       transaction_type,
       account_number,
       reason,
@@ -1360,6 +1428,7 @@ if(entity_name %>%
       batch_id,
       "transaction_id" = id,
       amount,
+      type,
       transaction_type,
       account_number,
       reason,
@@ -1391,6 +1460,7 @@ if(entity_name %>%
       batch_id,
       "transaction_id" = id,
       amount,
+      type,
       transaction_type,
       account_number,
       reason,
@@ -1407,30 +1477,31 @@ if(entity_name %>%
    pluck("unmapped_account_code")%>%
    nrow() > 0) {
   
-  unmapped_account_code <-  entity_name %>%
-    pluck_queried_transactions(report_df = bad_uca_entities) %>%
-    pluck("unmapped_account_code") %>%
-    mutate(
-      transaction_type = case_when(
-        type == 1 ~ "expenditure",
-        type == 2 ~ "revenue",
-        type == 3 ~ "employee compensation",
-        type == 4 ~ "stimulus expense",
-        type == 5 ~ "stimulus revenue",
-        type == 6 ~ "budget",
-        type == 7 ~ "balance sheet"
-      )
-    ) %>%
-    select(
-      fiscal_year,
-      batch_id,
-      "transaction_id" = id,
-      amount,
-      transaction_type,
-      account_number,
-      reason,
-    )
-  uca_problems[["invalid_account_code"]] <- unmapped_account_code
+  # unmapped_account_code <-  entity_name %>%
+  #   pluck_queried_transactions(report_df = bad_uca_entities) %>%
+  #   pluck("unmapped_account_code") %>%
+  #   mutate(
+  #     transaction_type = case_when(
+  #       type == 1 ~ "expenditure",
+  #       type == 2 ~ "revenue",
+  #       type == 3 ~ "employee compensation",
+  #       type == 4 ~ "stimulus expense",
+  #       type == 5 ~ "stimulus revenue",
+  #       type == 6 ~ "budget",
+  #       type == 7 ~ "balance sheet"
+  #     )
+  #   ) %>%
+  #   select(
+  #     fiscal_year,
+  #     batch_id,
+  #     "transaction_id" = id,
+  #     amount,
+  #     type,
+  #     transaction_type,
+  #     account_number,
+  #     reason,
+  #   )
+  # uca_problems[["invalid_account_code"]] <- unmapped_account_code
   
   # primary level ``````````````````````````````````````````````````````````````
   if (entity_name %>%
@@ -1456,6 +1527,7 @@ if(entity_name %>%
         batch_id,
         "transaction_id" = id,
         amount,
+        type,
         transaction_type,
         account_number,
         reason,
@@ -1489,6 +1561,7 @@ if(entity_name %>%
         batch_id,
         "transaction_id" = id,
         amount,
+        type,
         transaction_type,
         account_number,
         reason,
@@ -1522,6 +1595,7 @@ if(entity_name %>%
         batch_id,
         "transaction_id" = id,
         amount,
+        type,
         transaction_type,
         account_number,
         reason,
@@ -1556,6 +1630,7 @@ if(entity_name %>%
         batch_id,
         "transaction_id" = id,
         amount,
+        type,
         transaction_type,
         account_number,
         reason,
@@ -1572,7 +1647,8 @@ if(entity_name %>%
    pluck_queried_transactions(report_df = bad_uca_entities) %>%
    pluck("exp_transaction_but_rev_account")%>%
    nrow() > 0) {
-incorrect_account_code_expenditure <- entity_name %>%
+  print(paste("--",entity_name,"exp_transaction_but_rev_account"))
+  incorrect_account_code_expenditure <- entity_name %>%
       pluck_queried_transactions(report_df = bad_uca_entities) %>%
       pluck("exp_transaction_but_rev_account") %>%
       mutate(
@@ -1591,6 +1667,7 @@ incorrect_account_code_expenditure <- entity_name %>%
         batch_id,
         "transaction_id" = id,
         amount,
+        type,
         transaction_type,
         account_number,
         reason,
@@ -1622,6 +1699,7 @@ if (entity_name %>%
       batch_id,
       "transaction_id" = id,
       amount,
+      type,
       transaction_type,
       account_number,
       reason,
@@ -1631,14 +1709,52 @@ if (entity_name %>%
     incorrect_account_code_revenue
 }
 
-# get the ones with invalid transaction types
+# get the ones with invalid transaction types ==================================
+# if (entity_name %>%
+#     pluck_queried_transactions(report_df = bad_uca_entities) %>%
+#     pluck("invalid_transaction_type") %>%
+#     nrow() > 0) {
+#   incorrect_transaction_type <- entity_name %>%
+#     pluck_queried_transactions(report_df = bad_uca_entities) %>%
+#     pluck("invalid_transaction_type") %>%
+#     mutate(
+#       transaction_type = case_when(
+#         # type == 1 ~ "expenditure",
+#         # type == 2 ~ "revenue",
+#         # type == 3 ~ "employee compensation",
+#         type == 4 ~ "stimulus expense",
+#         type == 5 ~ "stimulus revenue",
+#         type == 6 ~ "budget",
+#         type == 7 ~ "balance sheet"
+#       )
+#     ) %>%
+#     select(
+#       fiscal_year,
+#       batch_id,
+#       "transaction_id" = id,
+#       amount,
+#       type,
+#       transaction_type,
+#       account_number,
+#       reason,
+#     )
+#   
+#   uca_problems[["incorrect_transaction_type"]] <-
+#     incorrect_transaction_type
+# }
+
+# get the ones with invalid account code types =================================
 if (entity_name %>%
     pluck_queried_transactions(report_df = bad_uca_entities) %>%
-    pluck("invalid_transaction_type") %>%
+    pluck("invalid_account_type") %>%
     nrow() > 0) {
-  incorrect_transaction_type <- entity_name %>%
+  
+  #print(paste(entity_name,"invalid account code found!"))
+  
+  
+  invalid_account_type <- entity_name %>%
     pluck_queried_transactions(report_df = bad_uca_entities) %>%
-    pluck("invalid_transaction_type") %>%
+    pluck("invalid_account_type") %>%
     mutate(
       transaction_type = case_when(
         type == 1 ~ "expenditure",
@@ -1655,16 +1771,18 @@ if (entity_name %>%
       batch_id,
       "transaction_id" = id,
       amount,
+      type,
       transaction_type,
       account_number,
       reason,
     )
   
-  uca_problems[["incorrect_transaction_type"]] <-
-    incorrect_transaction_type
+  uca_problems[["invalid_account_type"]] <-
+    invalid_account_type
 }
 
-# get the ones with 'Not Applicable' Function
+
+# get the ones with 'Not Applicable' Function ==================================
 if (entity_name %>%
     pluck_queried_transactions(report_df = bad_uca_entities) %>%
     pluck("invalid_function_use") %>%
@@ -1672,22 +1790,23 @@ if (entity_name %>%
   incorrect_function_use <- entity_name %>%
     pluck_queried_transactions(report_df = bad_uca_entities) %>%
     pluck("invalid_function_use") %>%
-    # mutate(
-    #   transaction_type = case_when(
-    #     type == 1 ~ "expenditure",
-    #     type == 2 ~ "revenue",
-    #     type == 3 ~ "employee compensation",
-    #     type == 4 ~ "stimulus expense",
-    #     type == 5 ~ "stimulus revenue",
-    #     type == 6 ~ "budget",
-    #     type == 7 ~ "balance sheet"
-    #   )
-    #) %>%
+    mutate(
+      transaction_type = case_when(
+        type == 1 ~ "expenditure",
+        type == 2 ~ "revenue",
+        type == 3 ~ "employee compensation",
+        type == 4 ~ "stimulus expense",
+        type == 5 ~ "stimulus revenue",
+        type == 6 ~ "budget",
+        type == 7 ~ "balance sheet"
+      )
+    ) %>%
     select(
       fiscal_year,
       batch_id,
       "transaction_id" = id,
       amount,
+      type,
       transaction_type,
       account_number,
       reason,
@@ -1696,6 +1815,41 @@ if (entity_name %>%
   uca_problems[["not_applicable_function_code"]] <-
     incorrect_function_use
 }
+
+
+# summary of problems:
+summary_uca <- tibble()
+account_holder <- tibble()
+
+for (tib in uca_problems) {
+ 
+  unique_account_nums <- tib %>% pull(account_number) %>% unique()
+  
+  for (account_num in unique_account_nums) {
+    fiscal_years <- tib %>% filter(account_number == account_num) %>% pull(fiscal_year) %>% unique() %>% paste(collapse = ", ")
+    batches <- tib %>% filter(account_number == account_num) %>% pull(batch_id) %>% unique() %>% paste(collapse = ", ")
+    reason <- tib %>% filter(account_number == account_num) %>% pull(reason) %>% unique()
+    type <- tib %>% filter(account_number == account_num) %>% pull(type) %>% unique()
+    transaction_type <- tib %>% filter(account_number == account_num) %>% pull(transaction_type) %>% unique()
+    temp_tib <- tibble("fiscal_year(s)" = fiscal_years,
+                       "batch_id(s)" = batches,
+                       #"type" = type,
+                       "transaction_type"=transaction_type,
+                       "account_number" = account_num,
+                       "reason" = reason)
+    
+    account_holder <- account_holder %>% bind_rows(temp_tib)
+  }
+  
+  
+  
+  summary_uca <- summary_uca %>% bind_rows(account_holder)
+}
+
+summary_uca <- summary_uca %>% distinct()
+
+uca_problems[["summary_of_problems"]] <-
+    summary_uca
 
 
 
@@ -1728,10 +1882,155 @@ Map(function(data, name) {
  
 ## Save workbook to working directory
 ## 
-file_path <- paste0("E:/rprojects/Transparency-UCOA/bad-entity-files/",entity_name,".xlsx")
+#file_path <- paste0("E:/rprojects/Transparency-UCOA/bad-entity-files/",entity_name,"-admin.xlsx")
+file_path <- paste0("E:/reports/admin-uca/",entity_name,".xlsx")
 saveWorkbook(wb, file = file_path, overwrite = TRUE)
 
+
+wb_entity <- createWorkbook()
+addWorksheet(wb_entity, "summary of uca problems")
+
+writeData(wb_entity,
+            "summary of uca problems",
+            uca_problems[["summary_of_problems"]],
+            headerStyle = header_st)
+  setColWidths(wb_entity, "summary of uca problems", cols = 1:ncol(uca_problems[["summary_of_problems"]]), widths = "auto")
+
+file_path <- paste0("E:/reports/bad-uca/",entity_name,".xlsx")
+saveWorkbook(wb_entity, file = file_path, overwrite = TRUE)
 }
 ```
+
+
+```{r}
+names <- bad_uca_entities %>% pull(name) %>% str_sort()
+
+names %>% map(export_uca_problems,bad_uca_entities)
+```
+
+
+```{r}
+bad_uca_entities %>% filter(name == "Northern Utah Environmental Resource Agency") %>% pluck("queried_transactions")
+```
+
+
+
+# Now execute for Counties:
+
+```{r}
+report_county <- report_county %>% 
+   #slice(1:50) %>%  #uncomment/comment to run a subset. 
+  mutate(queried_transactions = batches %>% map(query_transactions, osa_lookup))
+```
+
+```{r}
+report_county <- report_county %>% 
+  rowwise() %>% 
+  mutate(
+    uca_summary = name %>% map_chr(extract_summary_tibble_errors,report_county)
+  )
+```
+
+```{r}
+good_uca_counties <- report_county %>% 
+  filter(uca_summary == "no_errors")
+```
+
+
+```{r}
+bad_uca_counties <- report_county %>%  
+  filter(uca_summary != "no_errors")
+```
+
+
+```{r}
+names <- bad_uca_counties %>% pull(name) %>% str_sort()
+
+names %>% map(export_uca_problems,bad_uca_counties)
+```
+
+
+<!-- #NEURA -->
+<!-- ```{r} -->
+<!-- #start_time <- Sys.time() -->
+
+<!-- NEURA_report <- sf_entity_info %>% -->
+<!--   filter(name == "Northern Utah Environmental Resource Agency") %>% -->
+<!--   mutate(batches = map(t_id ,query_batch_ids)) -->
+
+<!-- #end_time <- Sys.time() -->
+<!-- #time_elapsed_query_batch_ids <- end_time - start_time -->
+<!-- #time_elapsed_query_batch_ids -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- NEURA_report <- NEURA_report %>% -->
+<!--    #slice(1:50) %>%  #uncomment/comment to run a subset. -->
+<!--   mutate(queried_transactions = batches %>% map(query_transactions, osa_lookup)) -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- NEURA_report <- NEURA_report %>% -->
+<!--   rowwise() %>% -->
+<!--   mutate( -->
+<!--     uca_summary = name %>% map_chr(extract_summary_tibble_errors,report) -->
+<!--   ) -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- good_uca_counties <- report_county %>% -->
+<!--   filter(uca_summary == "no_errors") -->
+<!-- ``` -->
+
+
+<!-- ```{r} -->
+<!-- bad_uca_counties <- report_county %>% -->
+<!--   filter(uca_summary != "no_errors") -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- NEURA_report %>%  pluck("queried_transactions") -->
+<!-- ``` -->
+
+
+
+<!-- ```{r} -->
+<!-- entity_name <- "Northern Utah Environmental Resource Agency" -->
+<!-- if(entity_name %>% -->
+<!--    pluck_queried_transactions(report_df = bad_uca_entities) %>% -->
+<!--    pluck("exp_transaction_but_rev_account")%>% -->
+<!--    nrow() > 0) { -->
+<!-- incorrect_account_code_expenditure <- entity_name %>% -->
+<!--       pluck_queried_transactions(report_df = bad_uca_entities) %>% -->
+<!--       pluck("exp_transaction_but_rev_account") %>% -->
+<!--       mutate( -->
+<!--         transaction_type = case_when( -->
+<!--           type == 1 ~ "expenditure", -->
+<!--           type == 2 ~ "revenue", -->
+<!--           type == 3 ~ "employee compensation", -->
+<!--           type == 4 ~ "stimulus expense", -->
+<!--           type == 5 ~ "stimulus revenue", -->
+<!--           type == 6 ~ "budget", -->
+<!--           type == 7 ~ "balance sheet" -->
+<!--         ) -->
+<!--       ) %>% -->
+<!--       select( -->
+<!--         fiscal_year, -->
+<!--         batch_id, -->
+<!--         "transaction_id" = id, -->
+<!--         amount, -->
+<!--         type, -->
+<!--         transaction_type, -->
+<!--         account_number, -->
+<!--         reason, -->
+<!--       ) -->
+
+<!--  #uca_problems[["fail_trans_type_exp"]] <- incorrect_account_code_expenditure -->
+<!-- } -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- export_uca_problems("Northern Utah Environmental Resource Agency", bad_uca_entities) -->
+<!-- ``` -->
 
 
