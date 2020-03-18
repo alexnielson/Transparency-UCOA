@@ -1,0 +1,254 @@
+---
+title: "lea-file-checker"
+author: "Alexander Nielson"
+date: "3/17/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Libraries 
+```{r}
+library(tidyverse)
+library(readxl)
+library(stringi)
+```
+
+```{r}
+batch_file_path <- "E:/rprojects/Transparency-UCOA/test_files/2019 Expenses.txt"
+
+file_data <- read.csv(batch_file_path, header = FALSE, sep = "|")
+
+# https://finance.utah.gov/wp-content/uploads/filelayout.pdf
+cols_given <- file_data %>% ncol()
+  
+  potential_names <-
+    c(
+      "id",
+      "fiscal_year",
+      "entity_name",
+      "fund1",
+      "fund2",
+      "fund3",
+      "fund4",
+      "o1",
+      "o2",
+      "o3",
+      "o4",
+      "o5",
+      "o6",
+      "o7",
+      "o8",
+      "o9",
+      "o10",
+      "type",
+      "cat1",
+      "cat2",
+      "cat3",
+      "cat4",
+      "cat5",
+      "cat6",
+      "cat7",
+      "pcv_name",
+      "payee_dba_name",
+      "vendor_id_code",
+      "posting_date",
+      "transaction_description",
+      "transaction_id",
+      "transaction_reference_id",
+      "contract_name",
+      "contract_number",
+      "position_title",
+      "hourly_rate",
+      "gender",
+      "amount",
+      "protection_indicator",
+      "account_number",
+      "p1",
+      "p2",
+      "p3",
+      "p4",
+      "p5",
+      "p6",
+      "p7",
+      "funct1",
+      "funct2",
+      "funct3",
+      "funct4",
+      "funct5",
+      "funct6",
+      "funct7"
+    )
+  
+  actual_names <- potential_names[1:cols_given]
+  
+  names(file_data) <- actual_names
+
+```
+
+## Load USBE lookup table
+```{r}
+usbe_lookup_file_name <- "usbe_lookup.xlsx"
+
+usbe_lookup <- excel_sheets(usbe_lookup_file_name) %>%
+  map(read_excel, path = usbe_lookup_file_name)
+
+names(usbe_lookup) <- c("fund", "location", "program", "funct", "object", "revenue")
+
+rm(usbe_lookup_file_name)
+
+```
+
+
+###Atomize the UCA field
+```{r}
+# This breaks out the account numbers into fund, function, and account. 
+file_data <- file_data %>%
+  mutate(
+    fund                   = .[["account_number"]] %>% substr(0, 2),
+    location               = .[["account_number"]] %>% substr(4, 6),
+    program                = .[["account_number"]] %>%  substr(8, 11),
+    funct                  = .[["account_number"]] %>%  substr(13, 16),
+    object                 = .[["account_number"]] %>%  substr(18, 20),
+    revenue  = .[["account_number"]] %>%  substr(22, 25),
+  ) %>% 
+
+# join the funds
+left_join(usbe_lookup %>%
+            pluck("fund") %>%
+            select(number, fund_description = description),
+          by = c("fund"="number")
+          ) %>%
+# join the functions
+left_join(usbe_lookup %>%
+            pluck("location") %>%
+            select(number, location_description = description),
+          by = c("location" = "number")
+          ) %>% 
+# join the accounts
+left_join(usbe_lookup %>% 
+            pluck("program") %>% 
+            select(number, program_description = description),
+          by = c("program" = "number")
+          ) %>% 
+left_join(usbe_lookup %>% 
+            pluck("funct") %>%
+          select(number, function_description = description),
+        by = c("funct" = "number")
+        ) %>% 
+left_join(usbe_lookup %>% 
+            pluck("object") %>%
+            select(number, object_description = description),
+          by = c("object" = "number")
+          ) %>% 
+left_join(usbe_lookup %>% 
+            pluck("revenue") %>%
+            select(number, revenue_description = description),
+          by = c("revenue" = "number")
+          )
+```
+
+#### Find a list of entities who used codes which do no map to the LEA UCA. 
+*There are many reasons why this might be the case 
+**They are using an old UCOA
+**They pressed the incorrect key / typos
+...regardless, they must be filtered out. 
+
+```{r}
+#find wrong fund code
+lea_bad_fund_code <- file_data %>%
+  filter(!fund %in% (usbe_lookup %>%
+                       pluck("fund")  %>%
+                       select(number) %>%
+                       unlist()))
+
+#find wrong location code
+lea_bad_location_code<-file_data %>%
+  filter(!location %in% (usbe_lookup %>%
+                        pluck("location") %>%
+                        select(number) %>%
+                        unlist()))
+#find wrong program code
+lea_bad_program_code <- file_data %>%
+  filter(!program %in% (usbe_lookup %>%
+                          pluck("program") %>%
+                          select(number)   %>%
+                          unlist()))
+
+lea_bad_funct_code <- file_data %>%
+  filter(!funct %in% (usbe_lookup %>%
+                          pluck("funct") %>%
+                          select(number)   %>%
+                          unlist()))
+
+lea_bad_object_code <- file_data %>%
+  filter(!object %in% (usbe_lookup %>%
+                          pluck("object") %>%
+                          select(number)   %>%
+                          unlist()))
+
+lea_bad_revenue_code <- file_data %>%
+  filter(!revenue %in% (usbe_lookup %>%
+                          pluck("revenue") %>%
+                          select(number)   %>%
+                          unlist()))
+
+#now remove incorrectly mapped. we will save them to report, but do not want them in our analysis.
+# 
+# lea_ucoa<- lea_ucoa %>%
+#   anti_join(lea_bad_fund_code, by = "id") %>%
+#   anti_join(lea_bad_location_code, by = "id") %>%
+#   anti_join(lea_bad_program_code, by = "id") %>%
+#   anti_join(lea_bad_funct_code, by = "id") %>%
+#   anti_join(lea_bad_object_code, by = "id") %>%
+#   anti_join(lea_bad_revenue_classification_code, by = "id")
+#temp_lea_ucoa <- lea_ucoa
+
+file_data<- file_data %>%
+  anti_join(lea_bad_fund_code, by = "transaction_id") %>%
+ # anti_join(lea_bad_location_code, by = "transaction_id") %>% # commented until I figure out how to better do the location codes.
+  anti_join(lea_bad_program_code, by = "transaction_id") %>%
+  anti_join(lea_bad_funct_code, by = "transaction_id") %>%
+  anti_join(lea_bad_object_code, by = "transaction_id") %>%
+  anti_join(lea_bad_revenue_code, by = "transaction_id")
+
+#consolidate
+
+
+
+#remove objects
+
+```
+
+# now we need to wrangle
+```{r}
+
+fund_analysis <- 
+  file_data %>% 
+  as.data.frame() %>% 
+  group_by(fiscal_year, fund) %>% 
+  summarize(fy_amount_exp = sum(if_else(type == "EX", amount, 0)),
+            fy_amount_rev = sum(if_else(type == "RV", amount, 0))) %>% 
+  mutate(fy_net_amount = fy_amount_rev - fy_amount_exp) %>% 
+  mutate(fy_net_amount = paste("$",prettyNum(fy_net_amount,big.mark=",",scientific=FALSE)))
+
+
+agg_fund_analysis <- 
+  file_data %>% 
+  as.data.frame() %>% 
+  group_by(fiscal_year, fund) %>% 
+  summarize(fy_net_amount = sum(amount)) %>% 
+  mutate(fy_net_amount = paste("$",prettyNum(fy_net_amount,big.mark=",",scientific=FALSE)))
+```
+
+
+```{r}
+fund_analysis
+```
+
+```{r}
+agg_fund_analysis
+```
+

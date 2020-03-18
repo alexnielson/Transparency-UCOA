@@ -9,10 +9,6 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
 # Libraries 
 ```{r}
 library(tidyverse)
@@ -22,74 +18,74 @@ library(stringi)
 
 # Load .txt file which needs UCA validation
 ```{r}
-batch_file_path <- "E:\\rprojects\\Transparency-UCOA\\testing_batch_file_lea.txt"
+batch_file_path <- "E:/rprojects/Transparency-UCOA/test_files/2019 Expenses.txt"
 
-batch_file <- read.csv(batch_file_path, header = FALSE, sep = "|")
+file_data <- read.csv(batch_file_path, header = FALSE, sep = "|")
 
 # https://finance.utah.gov/wp-content/uploads/filelayout.pdf
-names(batch_file) <- c("record_num",
-                       "fiscal_yr",
-                       "entity_name",
-                       "f1", # fund level 1
-                       "f2",
-                       "f3",
-                       "f4",
-                       "o1", # organization_level_1_name
-                       "o2",
-                       "o3",
-                       "o4",
-                       "o5",
-                       "o6",
-                       "o7",
-                       "o8",
-                       "o9",
-                       "o10",
-                       "transaction_type",
-                       "c1", # category level 1
-                       "c2",
-                       "c3",
-                       "c4",
-                       "c5",
-                       "c6",
-                       "c7",
-                       "pcv_name", # payee/customer/vendor name
-                       "payee_dba",
-                       "vendor_id",
-                       "posting_date",
-                       "transaction_description",
-                       "transaction_id",
-                       "transaction_reference_id",
-                       "contract_name",
-                       "contract_number",
-                       "position_title",
-                       "hourly_rate",
-                       "gender",
-                       "amount",
-                       "protection_indicator",
-                       "uca_coding_block",
-                        "p1", # program level 1 name
-                       "p2",
-                       "p3",
-                       "p4",
-                       "p5",
-                       "p6",
-                       "p7",
-                       "funct1",
-                       "funct2",
-                       "funct3",
-                       "funct4",
-                       "funct5",
-                       "funct6",
-                       "funct7"
-                       ) 
-
-batch_file <- batch_file %>%
-  select(record_num,
-         fiscal_yr,
-         transaction_id,
-         amount,
-         uca_coding_block) %>% 
-  mutate(uca_coding_block = as.character(uca_coding_block))
+cols_given <- file_data %>% ncol()
+  
+  potential_names <-
+    c(
+      "id",
+      "fiscal_year",
+      "entity_name",
+      "fund1",
+      "fund2",
+      "fund3",
+      "fund4",
+      "o1",
+      "o2",
+      "o3",
+      "o4",
+      "o5",
+      "o6",
+      "o7",
+      "o8",
+      "o9",
+      "o10",
+      "type",
+      "cat1",
+      "cat2",
+      "cat3",
+      "cat4",
+      "cat5",
+      "cat6",
+      "cat7",
+      "pcv_name",
+      "payee_dba_name",
+      "vendor_id_code",
+      "posting_date",
+      "transaction_description",
+      "transaction_id",
+      "transaction_reference_id",
+      "contract_name",
+      "contract_number",
+      "position_title",
+      "hourly_rate",
+      "gender",
+      "amount",
+      "protection_indicator",
+      "account_number",
+      "p1",
+      "p2",
+      "p3",
+      "p4",
+      "p5",
+      "p6",
+      "p7",
+      "funct1",
+      "funct2",
+      "funct3",
+      "funct4",
+      "funct5",
+      "funct6",
+      "funct7"
+    )
+  
+  actual_names <- potential_names[1:cols_given]
+  
+  names(file_data) <- actual_names
 
 
 

@@ -1,0 +1,587 @@
+---
+title: "usbe-batch-upload-validation"
+author: "Alexander Nielson"
+date: "3/12/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Library 
+```{r}
+options(scipen=999)
+
+library(lubridate)
+library(magrittr)
+library(odbc)
+library(readxl) 
+library(tidyverse)
+library(stringi) 
+library(tidyr)
+```
+#DMBS
+```{r}
+dsn_aws        <- "transpAWS"
+odbc_aws <- dbConnect(odbc::odbc(), dsn_aws)
+
+rm(dsn_aws)
+```
+#Load txt file
+```{r}
+
+#put the donwloaded batch into your working directory, and the below file path with work.
+file_path <- "RAS.txt"
+
+file_data<- read_delim(file_path, delim = "|", col_names = FALSE, locale = locale(encoding = "windows-1252"))
+
+names(file_data) <- c("record_number",                                 
+                      "fiscal_year",                                   
+                      "entity_name",                                   
+                      "fund1",                                           
+                      "fund2",
+                      "fund3",
+                      "fund4",
+                      "org1",
+                      "org2",
+                      "org3",
+                      "org4",
+                      "org5",
+                      "org6",
+                      "org7",
+                      "org8",
+                      "org9",
+                      "org10",
+                      "transaction_type",
+                      "cat1",
+                      "cat2",
+                      "cat3",
+                      "cat4",
+                      "cat5",
+                      "cat6",
+                      "cat7",
+                      "pcv_name",
+                      "payee_dba_name",
+                      "vendor_id_code",
+                      "posting_date",
+                      "transaction_description",
+                      "transaction_id",
+                      "transaction_reference_id",
+                      "contract_name",
+                      "contract_number",
+                      "position_title",
+                      "hourly_rate",
+                      "gender",
+                      "amount",
+                      "protection_indicator",
+                      "uca_block",
+                      "program1",
+                      "program2",
+                      "program3",
+                      "program4",
+                      "program5",
+                      "program6",
+                      "program7",
+                      "funct1",
+                      "funct2",
+                      "funct3",
+                      "funct4",
+                      "funct5",
+                      "funct6",
+                      "funct7"
+                      )
+
+```
+
+to view the txt file uploade run below
+```{r, eval = FALSE}
+file_data %>% glimpse()
+```
+
+
+#Query Juab Batch
+```{r}
+juab_data <-
+  dbGetQuery(
+    odbc_aws,
+    paste(
+      "
+    SELECT
+      t.id,
+      t.batch_id,
+      t.fiscal_year,
+      t.type,
+      entity.name as entity_name,
+      entity.govt_lvl,
+      transaction_group.name as fund1,
+      transaction_group2.name as fund2,
+      transaction_group3.name as fund3,
+      transaction_group4.name as fund4,
+      transaction_group5.name as org1,
+      transaction_group6.name as org2,
+      transaction_group7.name as org3,
+      transaction_group8.name as org4,
+      transaction_group15.name as cat1,
+      transaction_group16.name as cat2,
+      transaction_group17.name as cat3,
+      transaction_group18.name as cat4,
+      vendor.name as vendor_name,
+      t.posting_date,
+      t.description,
+      t.entity_trans_id,
+      t.ref_id,
+      t.contract_name,
+      t.contract_number,
+      vendor.title,
+      vendor.hourly_rate,
+      t.amount,
+      t.account_number,
+      transaction_group22.name as program1,
+      transaction_group23.name as program2,
+      transaction_group24.name as program3,
+      transaction_group25.name as program4
+    FROM transaction t
+    INNER JOIN batch ON batch_id = batch.id
+    INNER JOIN entity ON entity_id = entity.id
+    INNER JOIN vendor ON vendor_id = vendor.id
+    LEFT JOIN transaction_group ON t.Fund1 = transaction_group.id
+    LEFT JOIN transaction_group as transaction_group2 ON t.Fund2 = transaction_group2.id
+    LEFT JOIN transaction_group as transaction_group3 ON t.Fund3 = transaction_group3.id
+    LEFT JOIN transaction_group as transaction_group4 ON t.Fund4 = transaction_group4.id
+    LEFT JOIN transaction_group as transaction_group5 ON t.Org1 = transaction_group5.id
+    LEFT JOIN transaction_group as transaction_group6 ON t.Org2 = transaction_group6.id
+    LEFT JOIN transaction_group as transaction_group7 ON t.Org3 = transaction_group7.id
+    LEFT JOIN transaction_group as transaction_group8 ON t.Org4 = transaction_group8.id
+    LEFT JOIN transaction_group as transaction_group9 ON t.Org5 = transaction_group9.id
+    LEFT JOIN transaction_group as transaction_group10 ON t.Org6 = transaction_group10.id
+    LEFT JOIN transaction_group as transaction_group11 ON t.Org7 = transaction_group11.id
+    LEFT JOIN transaction_group as transaction_group12 ON t.Org8 = transaction_group12.id
+    LEFT JOIN transaction_group as transaction_group13 ON t.Org9 = transaction_group13.id
+    LEFT JOIN transaction_group as transaction_group14 ON t.Org10 = transaction_group14.id
+    LEFT JOIN transaction_group as transaction_group15 ON t.cat1 = transaction_group15.id
+    LEFT JOIN transaction_group as transaction_group16 ON t.cat2 = transaction_group16.id
+    LEFT JOIN transaction_group as transaction_group17 ON t.cat3 = transaction_group17.id
+    LEFT JOIN transaction_group as transaction_group18 ON t.cat4 = transaction_group18.id
+    LEFT JOIN transaction_group as transaction_group19 ON t.cat5 = transaction_group19.id
+    LEFT JOIN transaction_group as transaction_group20 ON t.cat6 = transaction_group20.id
+    LEFT JOIN transaction_group as transaction_group21 ON t.cat7 = transaction_group21.id
+    LEFT JOIN transaction_group as transaction_group22 ON t.Program1 = transaction_group22.id
+    LEFT JOIN transaction_group as transaction_group23 ON t.Program2 = transaction_group23.id
+    LEFT JOIN transaction_group as transaction_group24 ON t.Program3 = transaction_group24.id
+    LEFT JOIN transaction_group as transaction_group25 ON t.Program4 = transaction_group25.id
+    LEFT JOIN transaction_group as transaction_group26 ON t.Program5 = transaction_group26.id
+    LEFT JOIN transaction_group as transaction_group27 ON t.Program6 = transaction_group27.id
+    LEFT JOIN transaction_group as transaction_group28 ON t.Program7 = transaction_group28.id
+    LEFT JOIN transaction_group as transaction_group29 ON t.Function1 = transaction_group29.id
+    LEFT JOIN transaction_group as transaction_group30 ON t.Function2 = transaction_group30.id
+    LEFT JOIN transaction_group as transaction_group31 ON t.Function3 = transaction_group31.id
+    LEFT JOIN transaction_group as transaction_group32 ON t.Function4 = transaction_group32.id
+    LEFT JOIN transaction_group as transaction_group33 ON t.Function5 = transaction_group33.id
+    LEFT JOIN transaction_group as transaction_group34 ON t.Function6 = transaction_group34.id
+    LEFT JOIN transaction_group as transaction_group35 ON t.Function7 = transaction_group35.id
+    WHERE batch_id = 55788 OR batch_id = 57990 Or batch_id = 59216"
+    )
+  ) 
+```
+
+
+```{r,eval = FALSE}
+juab_data %>% glimpse()
+```
+
+Hopefully you can see how even though their uca code block is faulty, the other fields like org1 or fund1 are still populate and get populated by the database.  Juab needs to be sent an email to fix their UCA. 
+
+
+#creating UCA features
+```{r}
+juab_data_fixed <- juab_data %>%
+  mutate(
+    fund_code = case_when(
+      is.na(fund4) &
+        is.na(fund3) &
+        is.na(fund2)  &
+        !is.na(fund1) ~ str_extract(fund1, "^[:digit:][:digit:]"),
+      is.na(fund4) &
+        is.na(fund3) &
+        !is.na(fund2) &
+        !is.na(fund1) ~ str_extract(fund2, "^[:digit:][:digit:]"),
+    ),
+    location_code = str_extract(org3, "^[:digit:][:digit:][:digit:]"),
+    revenue_code = case_when(
+      type == 1  ~ "0000",# its an expenditure.
+      type == 2  ~ str_extract(description, "^[:digit:][:digit:][:digit:][:digit:]") ,
+    ),
+    program_code = case_when(
+      is.na(program4) &
+        is.na(program3) &
+        is.na(program2)  &
+        !is.na(program1) ~ str_extract(program1, "^[:digit:][:digit:][:digit:][:digit:]"),
+      is.na(program4) &
+        is.na(program3) &
+        !is.na(program2) &
+        !is.na(program1) ~ str_extract(program2, "^[:digit:][:digit:][:digit:][:digit:]"),
+      is.na(program4) &
+        !is.na(program3) &
+        !is.na(program2) &
+        !is.na(program1) ~ str_extract(program3, "^[:digit:][:digit:][:digit:][:digit:]")
+    ),
+    function_code = "0000", # not provided so I just listed this.
+    object_code = case_when(
+      type == 1  ~ str_extract(description, "^[:digit:][:digit:][:digit:]"),
+      type == 2  ~ "000" # its a revenue
+    )
+  ) %>%
+  rowwise() %>%
+  mutate(
+    uca_block =  paste0(
+      fund_code,
+      "-",
+      location_code,
+      "-",
+      program_code,
+      "-",
+      function_code,
+      "-",
+      object_code,
+      "-",
+      revenue_code,
+      sep = ""
+    )
+  ) %>%
+  select(
+    fiscal_year,
+    amount,
+    type,
+    fund_code,
+    location_code,
+    program_code,
+    function_code,
+    object_code,
+    revenue_code,
+    uca_block
+  )
+  
+  ##-###-####-####-###-#### 
+    # fund                   = .[["account_number"]] %>% substr(0, 2),
+    # location               = .[["account_number"]] %>% substr(4, 6),
+    # program                = .[["account_number"]] %>% substr(8, 11),
+    # funct                  = .[["account_number"]] %>% substr(13, 16),
+    # object                 = .[["account_number"]] %>% substr(18, 20),
+    # revenue                = .[["account_number"]] %>% substr(22, 25),
+
+```
+
+```{r, eval = FALSE}
+juab_data_fixed %>% glimpse()
+```
+
+
+# You can do the fund analysis off of the fund code. 
+
+```{r}
+agg_fund_analysis <- 
+  juab_data_fixed %>% 
+  as.data.frame() %>% 
+  group_by(fiscal_year, fund_code) %>% 
+  summarize(fy_net_amount = sum(amount)) %>% 
+  mutate(fy_net_amount = paste("$",prettyNum(fy_net_amount,big.mark=",",scientific=FALSE)))
+```
+
+```{r}
+agg_fund_analysis
+```
+
+
+```{r}
+fund_analysis <- 
+  juab_data_fixed %>% 
+  as.data.frame() %>% 
+  group_by(fiscal_year, fund_code) %>% 
+  summarize(fy_amount_exp = sum(if_else(type == 1, amount, 0)),
+            fy_amount_rev = sum(if_else(type == 2, amount, 0))) %>% 
+  mutate(fy_net_amount = fy_amount_rev - fy_amount_exp) %>% 
+  mutate(fy_net_amount = paste("$",prettyNum(fy_net_amount,big.mark=",",scientific=FALSE)))# just makes nice formatting.
+```
+
+
+
+```{r}
+fund_analysis
+```
+
+
+
+
+
+
+
+
+#Common check:
+
+```{r}
+file_data %>% summarize(
+  net_amount = paste("$",formatC(sum(amount), format="d", big.mark=",")),
+  num_of_records = formatC(n(),format="d", big.mark=",")
+)
+```
+
+
+
+#validate record number
+```{r}
+if(file_data %>% 
+  group_by(record_number) %>%
+  summarize(n=n()) %>% 
+  filter(n>1) %>%
+  nrow() > 0){
+    stop("duplicate 'record number' observations")
+  }
+```
+
+#validate fiscal year
+```{r}
+# if(file_data %>% 
+#   group_by(record_number) %>%
+#   summarize(n=n()) %>% 
+#   filter(n>1) %>% nrow() > 0){
+#     stop("duplicate 'record number' observations")
+#   }
+```
+
+# entity name
+```{r}
+if(file_data %>% 
+  filter(nchar(entity_name) > 60) %>%
+  nrow() > 0){
+    stop("records with entity name too long > 60 characters")
+  }
+```
+
+#fund1 1 nam
+```{r}
+if(file_data %>% 
+  filter(nchar(fund1) > 60) %>%
+  nrow() > 0){
+    stop("records with fund 1 name too long > 60 characters")
+}
+
+if(file_data %>% 
+  filter(is.na(fund1)) %>%
+  nrow() > 0){
+    stop("records with missing fund1 cells")
+  }
+```
+
+# organization level 1 name
+```{r}
+if(file_data %>% 
+  filter(nchar(org1) > 60) %>%
+  nrow() > 0){
+    stop("records with organization level 1 name too long > 60 characters")
+}
+
+if(file_data %>% 
+  filter(is.na(org1)) %>%
+  nrow() > 0){
+    stop("records with missing organizaiton level 1 cells")
+  }
+```
+
+
+# transaction type
+```{r}
+if(file_data %>% 
+  filter(nchar(transaction_type) > 2) %>%
+  nrow() > 0){
+    stop("records with a transaction type > 2")
+}
+
+if(file_data %>%
+   filter(
+     transaction_type != "EX" &&
+     transaction_type != "PY" &&
+     transaction_type != "RV" &&
+     transaction_type != "BG" &&
+     transaction_type != "BS"
+   ) %>% nrow() > 0) {
+  stop("records with an invalid transaction type ")
+}
+
+```
+
+# category level 1 name
+```{r}
+if(file_data %>% 
+  filter(nchar(cat1) > 60) %>%
+  nrow() > 0){
+    stop("records with category level 1 name too long > 60 characters")
+}
+
+if(file_data %>% 
+  filter(is.na(cat1)) %>%
+  nrow() > 0){
+    stop("records with missing category level 1 cells")
+  }
+```
+```{r}
+file_data %>% 
+  filter(is.na(cat1)) %>%
+  view()
+```
+
+
+# pcv_name
+```{r}
+if(file_data %>% 
+  filter(nchar(pcv_name) > 60) %>%
+  nrow() > 0){
+    stop("records with payee/customer/vendor name too long > 60 characters")
+}
+
+if(file_data %>% 
+  filter(is.na(pcv_name)) %>%
+  nrow() > 0){
+    stop("records with missing payee/customer/vendor name cells")
+  }
+```
+
+
+# vendor_id_code
+```{r}
+if(file_data %>% 
+  filter(nchar(vendor_id_code) > 60) %>%
+  nrow() > 0){
+    stop("records with vendor_id_code name too long > 60 characters")
+}
+
+if(file_data %>% 
+  filter(is.na(vendor_id_code)) %>%
+  nrow() > 0){
+    stop("records with missing vendor_id_code cells")
+  }
+```
+# posting_date
+```{r}
+if(file_data %>% 
+  filter( !is.POSIXct(posting_date) ) %>%
+  nrow() > 0){
+  
+  file_data <- file_data%>% mutate(posting_date = mdy(posting_date))
+    #stop("records with incorrect posting_date format")
+}
+
+
+```
+
+# transaction_description
+```{r}
+if(file_data %>% 
+  filter(nchar(transaction_description) > 255) %>%
+  nrow() > 0){
+    stop("records with transaction_description name too long > 255 characters")
+}
+
+if(file_data %>% 
+  filter(is.na(transaction_description)) %>%
+  nrow() > 0){
+    stop("records with missing transaction_description cells")
+  }
+
+
+```
+
+```{r}
+file_data %>% 
+  filter(is.na(transaction_description)) %>% view()
+```
+
+
+# transaction_id
+```{r}
+if(file_data %>% 
+  filter(nchar(transaction_id) > 255) %>%
+  nrow() > 0){
+    stop("records with transaction_id name too long > 255 characters")
+}
+
+if(file_data %>% 
+  filter(is.na(transaction_id)) %>%
+  nrow() > 0){
+    stop("records with missing transaction_id cells")
+  }
+
+
+```
+
+# contract_name
+```{r}
+if(file_data %>% 
+  filter(nchar(contract_name) > 255) %>%
+  nrow() > 0){
+    stop("records with contract_name name too long > 255 characters")
+}
+
+```
+
+# contract_number
+```{r}
+if(file_data %>% 
+  filter(nchar(contract_number) > 50) %>%
+  nrow() > 0){
+    stop("records with contract_number name too long > 50 characters")
+}
+```
+
+# position_title
+```{r}
+if(file_data %>% 
+  filter(nchar(position_title) > 50) %>%
+  nrow() > 0){
+    stop("records with contract_name name too long > 50 characters")
+}
+
+```
+
+
+# hourly_rate
+```{r}
+if(file_data %>% 
+  filter(!is.numeric(hourly_rate) ) %>%
+  nrow() > 0){
+    stop("records with hourly_rate incorrect format")
+}
+
+```
+```{r}
+file_data %>% 
+  filter(!is.numeric(hourly_rate) )
+```
+
+
+# gender
+```{r}
+if(file_data %>% 
+  filter(nchar(gender) > 1 ) %>%
+  nrow() > 0){
+    stop("records with gender too long > 1 characters")
+}
+
+if(file_data %>% 
+  filter(gender != "M" &&
+         gender != "F") %>%
+  nrow() > 0){
+    stop("records with gender incorrect format. must be M or F")
+}
+
+```
+
+# amount
+```{r}
+net_amount <- file_data %>% pull(amount) %>% sum()
+print(net_amount)
+```
+
+
+
+
